@@ -993,8 +993,8 @@ User account restricted
                   `timestamp` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                   `filename` VARCHAR(255) DEFAULT NULL,
                   `target` VARCHAR(255) DEFAULT NULL,
-                  `hash` VARCHAR(40) DEFAULT NULL
-                  `guid` VARCHAR(36) DEFAULT NULL
+                  `hash` VARCHAR(40) DEFAULT NULL,
+                  `guid` VARCHAR(36) DEFAULT NULL,
                   `version` VARCHAR(255) DEFAULT NULL
                 ) CHARSET=utf8;
             """
