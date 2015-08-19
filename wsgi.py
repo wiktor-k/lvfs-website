@@ -892,6 +892,8 @@ User account restricted
         # only save if we passed all tests
         basename = os.path.basename(fileitem.filename)
         new_filename = file_id + '-' + basename
+        if not os.path.exists(UPLOAD_DIR):
+            os.mkdir(UPLOAD_DIR)
         open(os.path.join(UPLOAD_DIR, new_filename), 'wb').write(data)
         print "wrote %i bytes to %s" % (len(data), new_filename)
 
