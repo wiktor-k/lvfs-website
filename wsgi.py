@@ -1151,18 +1151,12 @@ def application(environ, start_response):
         return static_app(fn, start_response, 'image/png')
     if fn.endswith(".ico"):
         return static_app(fn, start_response, 'image/x-icon')
-    if fn.endswith(".html"):
-        return static_app(fn, start_response, 'text/html')
     if fn.endswith(".xml.gz"):
         return static_app(fn, start_response, 'application/gzip', download=True)
     if fn.endswith(".cab"):
         return static_app(fn, start_response, 'application/vnd.ms-cab-compressed', download=True)
     if fn.endswith(".xml.gz.asc"):
         return static_app(fn, start_response, 'text/plain', download=True)
-    if fn.endswith("GPG-KEY-Linux-Vendor-Firmware-Service"):
-        return static_app(fn, start_response, 'text/plain')
-    if fn.find("wsgi") == -1:
-        return static_app('index.html', start_response, 'text/html')
 
     # use a helper class
     w = LvfsWebsite()
