@@ -918,7 +918,7 @@ changeTargetLabel();
             return self._internal_error(self._format_cursor_error(cur, e))
         if cur.fetchone():
             self._set_response_code('422 Entity Already Exists')
-            return self._upload_failed("A firmware file for GUID %s with version %s already exists" % (app.guid, app.version))
+            return self._upload_failed("A firmware file for this version already exists")
 
         # only save if we passed all tests
         basename = os.path.basename(fileitem.filename)
