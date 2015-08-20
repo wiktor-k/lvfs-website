@@ -673,9 +673,10 @@ changeTargetLabel();
                                    "<input type=\"hidden\" name=\"id\" value=\"%s\"/>" \
                                    "<button>&#8594; Stable</button>" \
                                    "</form>" % e[1]
+                uri = 'uploads/' + e[0]
                 fwlist += '<tr>'
                 fwlist += "<td>%s</td>" % e[3]
-                fwlist += "<td>%s&hellip;</td>" % e[1][0:8]
+                fwlist += "<td><a href=\"%s\">%s&hellip;</a></td>" % (uri, e[1][0:8])
                 fwlist += "<td>%s</td>" % guid
                 fwlist += "<td>%s</td>" % version
                 fwlist += "<td>%s</td>" % e[2]
