@@ -610,19 +610,28 @@ A good password consists of upper and lower case with numbers.
         # can the user upload directly to stable
         if self.qa_capability:
             html += """
-<tr><th width="150px">Target:</th><td>
-<select name="target" required>
+
+<tr>
+<th width="150px">Target:</th>
+<td>
+<select name="target" onChange="changeTargetLabel();" id="targetSelection" required>
+<option value="private">Private</option>
 <option value="testing">Testing</option>
 <option value="stable">Stable</option>
-</select></td></tr>
+</select>
+</td>
+</tr>
 """
         else:
             html += """
-<tr><th width="150px">Target:</th>
+<tr>
+<th width="150px">Target:</th>
 <td>
-User account restricted
-<input type="hidden" name="target" value="testing"/>
-</td></tr>
+<select name="target" id="targetSelection" required>
+<option value="private">Private</option>
+</select>
+</td>
+</tr>
 """
 
         # all enabled users can upload
@@ -631,9 +640,30 @@ User account restricted
 </table>
 <input type="submit" class="submit" value="Upload"/>
 </form>
+<p id="targetLabel">This user account is restricted to private uploading.</p>
 <h1>Existing Firmware</h1>
 %s
 </table>
+
+<script type="text/JavaScript">
+function changeTargetLabel() {
+    var combo = document.getElementById("targetSelection");
+    var label = document.getElementById("targetLabel");
+    if (combo.selectedIndex == 0) {
+        label.innerHTML = "The private target keeps the firmware secret and embargoed from users.<br>" +
+                          "Only a QA user can manually move the firmware to either testing or stable.";
+    } else if (combo.selectedIndex == 1) {
+        label.innerHTML = "The testing target makes the firmware immediately available to some users.<br>" +
+                          "Only a QA user can manually move the firmware to stable when testing is complete.";
+    } else if (combo.selectedIndex == 2) {
+        label.innerHTML = "The stable target makes the firmware immediately available to all users.<br>" +
+                          "Make sure the firmware has been carefully tested before using this target.";
+    }
+}
+
+// Ensure run at startup
+changeTargetLabel();
+</script>
 """
 
         # add the firmware files
@@ -666,18 +696,27 @@ User account restricted
                 if not version:
                     version = 'Unknown'
                 buttons = ''
-                if self.qa_capability or e[2] != 'stable':
+                if self.qa_capability or e[2] == 'private':
                     buttons = "<form method=\"get\" action=\"wsgi.py\">" \
                               "<input type=\"hidden\" name=\"action\" value=\"fwdelete\"/>" \
                               "<input type=\"hidden\" name=\"id\" value=\"%s\"/>" \
                               "<button>Delete</button>" \
                               "</form>" % e[1]
-                if self.qa_capability and e[2] != 'stable':
-                    buttons += "<form method=\"get\" action=\"wsgi.py\">" \
-                               "<input type=\"hidden\" name=\"action\" value=\"fwpromote\"/>" \
-                               "<input type=\"hidden\" name=\"id\" value=\"%s\"/>" \
-                               "<button>&#8594; Stable</button>" \
-                               "</form>" % e[1]
+                if self.qa_capability:
+                    if e[2] == 'private':
+                        buttons += "<form method=\"get\" action=\"wsgi.py\">" \
+                                   "<input type=\"hidden\" name=\"action\" value=\"fwpromote\"/>" \
+                                   "<input type=\"hidden\" name=\"target\" value=\"testing\"/>" \
+                                   "<input type=\"hidden\" name=\"id\" value=\"%s\"/>" \
+                                   "<button>&#8594; Testing</button>" \
+                                   "</form>" % e[1]
+                    elif e[2] == 'testing':
+                        buttons += "<form method=\"get\" action=\"wsgi.py\">" \
+                                   "<input type=\"hidden\" name=\"action\" value=\"fwpromote\"/>" \
+                                   "<input type=\"hidden\" name=\"target\" value=\"stable\"/>" \
+                                   "<input type=\"hidden\" name=\"id\" value=\"%s\"/>" \
+                                   "<button>&#8594; Stable</button>" \
+                                   "</form>" % e[1]
                 fwlist += '<tr>'
                 fwlist += "<td>%s</td>" % e[3]
                 fwlist += "<td>%s&hellip;</td>" % e[1][0:8]
@@ -817,7 +856,7 @@ User account restricted
         self._set_response_code('200 OK')
         return self._action_firmware()
 
-    def _action_fwpromote(self, target):
+    def _action_fwpromote(self):
         """
         Promote or demote a firmware file from one target to another,
         for example from testing to stable, or stable to testing.
@@ -830,7 +869,14 @@ User account restricted
         # get input
         fwid = self.qs_get.get('id', [None])[0]
         if not fwid:
-            return self._upload_failed("No ID specified" % fwid)
+            return self._internal_error('No ID specified')
+        target = self.qs_get.get('target', [None])[0]
+        if not fwid:
+            return self._internal_error('No target specified')
+
+        # check valid
+        if target not in ['stable', 'testing', 'private']:
+            return self._internal_error("Target %s invalid" % target)
 
         # check firmware exists in database
         cur = self.db.cursor()
@@ -966,9 +1012,7 @@ User account restricted
         elif action == 'fwdelete':
             return self._action_fwdelete()
         elif action == 'fwpromote':
-            return self._action_fwpromote('stable')
-        elif action == 'fwdemote':
-            return self._action_fwpromote('testing')
+            return self._action_fwpromote()
         elif action == 'fwsetdata':
             return self._action_fwsetdata()
         else:
@@ -1102,11 +1146,11 @@ User account restricted
                                       int(environ['OPENSHIFT_MYSQL_DB_PORT']))
             else:
                 # mysql -u root -p
-                # CREATE DATABASE testing;
+                # CREATE DATABASE secure;
                 # CREATE USER 'test'@'localhost' IDENTIFIED BY 'test';
-                # USE testing;
-                # GRANT ALL ON testing.* TO 'test'@'localhost';
-                self.db = mdb.connect('localhost', 'test', 'test', 'testing')
+                # USE secure;
+                # GRANT ALL ON secure.* TO 'test'@'localhost';
+                self.db = mdb.connect('localhost', 'test', 'test', 'secure')
             self.db.autocommit(True)
         except mdb.Error, e:
             print "Error %d: %s" % (e.args[0], e.args[1])
