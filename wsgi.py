@@ -1129,7 +1129,7 @@ def static_app(fn, start_response, content_type, download=False):
     else:
         path = os.path.join(DOWNLOAD_DIR, fn)
         if not os.path.exists(path):
-            path = os.path.join('uploads', fn)
+            path = os.path.join(UPLOAD_DIR, fn)
     if not os.path.exists(path):
         start_response('404 Not Found', [('content-type', 'text/plain')])
         return ['Not found: ' + path]
