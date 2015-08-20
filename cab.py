@@ -4,6 +4,7 @@
 
 import struct
 import fnmatch
+import zlib
 
 class CabFile(object):
     """An object representing a file in a Cab archive """
@@ -25,6 +26,7 @@ class CabArchive(object):
         self._buf_data = bytearray()
         self._nr_blocks = 0
         self._off_cfdata = 0
+        self.is_zlib = False
 
     def _parse_cffile(self, offset):
         """ Parse a CFFILE entry """
@@ -65,8 +67,12 @@ class CabArchive(object):
             raise TypeError('No CFDATA blocks')
 
         # no compression is supported
-        if vals[2] != 0:
-            raise RuntimeError('Compressed cab files are not supported')
+        if vals[2] == 0:
+            self.is_zlib = False
+        elif vals[2] == 1:
+            self.is_zlib = True
+        else:
+            raise RuntimeError('Compression type not supported')
 
     def _parse_cfdata(self, offset):
         """ Parse a CFDATA entry """
@@ -74,13 +80,21 @@ class CabArchive(object):
         fmt += 'H'      # compressed bytes
         fmt += 'H'      # uncompressed bytes
         vals = struct.unpack_from(fmt, self._buf_file, offset)
-        if vals[0] != vals[1]:
+        if not self.is_zlib and vals[0] != vals[1]:
             raise RuntimeError('Mismatched data %i != %i' % (vals[0], vals[1]))
         hdr_sz = struct.calcsize(fmt)
-        newbuf = self._buf_file[offset + hdr_sz:offset+vals[1] + hdr_sz]
+        newbuf = self._buf_file[offset + hdr_sz:offset + hdr_sz + vals[0]]
+
+        # decompress Zlib data after removing *another* header...
+        if self.is_zlib:
+            if newbuf[0] != 'C' or newbuf[1] != 'K':
+                raise RuntimeError('Compression header invalid')
+            decompress = zlib.decompressobj(-zlib.MAX_WBITS)
+            newbuf = decompress.decompress(newbuf[2:])
+            newbuf += decompress.flush()
+
         assert len(newbuf) == vals[1]
         self._buf_data += newbuf
-        #print('block of %i' % vals[1])
         return vals[1] + hdr_sz
 
     def parse(self, buf):
@@ -168,13 +182,14 @@ class CabArchive(object):
 def main():
 
     fn = '77454ea4ab0097c39cd948a469fe0fda7c86bdef-firmware-x28-parkcity.cab'
+    fn = 'hughski-colorhug-als-3.0.2.cab'
 
     cab = CabArchive()
     cab.parse_file(fn)
     print (cab.files)
 
     for cf in cab.files:
-        if len(cf.data) < 10000:
+        if len(cf.data) < 1000:
             print (cf.data)
         if cf.filename != 'firmware.metainfo.xml':
             continue
