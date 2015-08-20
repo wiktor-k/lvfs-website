@@ -67,8 +67,3 @@ class LvfsClient(object):
             return None
         uri = "%s/wsgi.py?action=upload&target=%s" % (self.server, target)
         return requests.post(uri, data=self._get_payload(auth), files={'file': f})
-
-    def action_fwsetdata(self, fwid, key, value, auth='user'):
-        """ Set firmware metadata """
-        uri = "%s/wsgi.py?action=fwsetdata&id=%s&key=%s&value=%s" % (self.server, fwid, key, value)
-        return requests.post(uri, data=self._get_payload(auth))

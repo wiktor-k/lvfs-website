@@ -23,6 +23,9 @@ import cgi
 import hashlib
 import MySQLdb as mdb
 
+from cab import CabArchive
+from appstream import Component
+
 class LvfsWebsite(object):
     """ A helper class """
 
@@ -278,53 +281,6 @@ class LvfsWebsite(object):
             return self._action_permission_denied('Unable to change user as key invalid')
         # set correct response code
         self._event_log("Set %s=%s for user %s" % (key, value, username_new))
-        self._set_response_code('200 OK')
-        return self._action_profile()
-
-    def _action_fwsetdata(self):
-        """ Sets metadata on the firmware """
-
-        # get modification type
-        fwid = self.qs_get.get('id', [None])[0]
-        if not fwid:
-            return self._upload_failed("No ID specified" % fwid)
-        key = self.qs_get.get('key', [None])[0]
-        if not key:
-            return self._action_permission_denied('Unable to set MD on firmware as no data')
-        value = self.qs_get.get('value', [None])[0]
-        if not value:
-            return self._action_permission_denied('Unable to set MD on firmware as no data')
-
-        # check either admin or that we own the firmware
-        cur = self.db.cursor()
-        if self.username != 'admin':
-            try:
-                cur.execute("SELECT hash FROM firmware WHERE (hash=%s OR filename=%s) AND qa_group=%s;",
-                            (fwid, fwid, self.username,))
-            except mdb.Error, e:
-                return self._internal_error(self._format_cursor_error(cur, e))
-            exists = cur.fetchone()
-            if not exists:
-                return self._action_permission_denied('Unable to set MD on other firmware')
-            fwid = exists[0]
-
-        # save new value
-        if key == 'guid':
-            try:
-                cur.execute("UPDATE firmware SET guid=%s WHERE (hash=%s OR filename=%s);",
-                            (value, fwid, fwid,))
-            except mdb.Error, e:
-                return self._internal_error(self._format_cursor_error(cur, e))
-        elif key == 'version':
-            try:
-                cur.execute("UPDATE firmware SET version=%s WHERE (hash=%s OR filename=%s);",
-                            (value, fwid, fwid,))
-            except mdb.Error, e:
-                return self._internal_error(self._format_cursor_error(cur, e))
-        else:
-            return self._action_permission_denied('Unable to set MD as key invalid')
-        # set correct response code
-        self._event_log("Set %s to %s for firmware %s" % (key, value, fwid))
         self._set_response_code('200 OK')
         return self._action_profile()
 
@@ -915,14 +871,32 @@ changeTargetLabel();
         if len(data) < 1024:
             return self._upload_failed('File too small, mimimum is 1k')
 
-        # check the file is really a cab file
-        if data[0:4] != 'MSCF':
+        # parse the file
+        cab = CabArchive()
+        try:
+            cab.parse(data)
+        except TypeError as e:
             self._set_response_code('415 Unsupported Media Type')
             return self._upload_failed('Invalid file type, expected <code>.cab</code> file')
+        except Exception as e:
+            return self._upload_failed(str(e))
 
-        # check for metadata
-        if '.metainfo.xml' not in data:
+        # check .inf exists
+        cf = cab.find_file("*.inf")
+        if not cf:
+            return self._upload_failed('The firmware file had no valid inf file')
+
+        # check metainfo exists
+        cf = cab.find_file("*.metainfo.xml")
+        if not cf:
             return self._upload_failed('The firmware file had no valid metadata')
+
+        # parse the MetaInfo file
+        app = Component()
+        try:
+            app.parse(str(cf.data))
+        except Exception as e:
+            return self._upload_failed(str(e))
 
         # check the file does not already exist
         file_id = hashlib.sha1(data).hexdigest()
@@ -947,13 +921,17 @@ changeTargetLabel();
         cur = self.db.cursor()
         target = self.fields['target'].value
         try:
-            cur.execute("INSERT INTO firmware (qa_group, addr, timestamp, filename, hash, target) "
-                        "VALUES (%s, %s, CURRENT_TIMESTAMP, %s, %s, %s);",
+            cur.execute("INSERT INTO firmware (qa_group, addr, timestamp, "
+                        "filename, hash, target, guid, version) "
+                        "VALUES (%s, %s, CURRENT_TIMESTAMP, %s, %s, %s, %s, %s);",
                         (self.qa_group,
                          self.client_address,
                          new_filename,
                          file_id,
-                         target,))
+                         target,
+                         app.guid,
+                         app.version,))
+
         except mdb.Error, e:
             return self._internal_error(self._format_cursor_error(cur, e))
         # set correct response code
@@ -1013,8 +991,6 @@ changeTargetLabel();
             return self._action_fwdelete()
         elif action == 'fwpromote':
             return self._action_fwpromote()
-        elif action == 'fwsetdata':
-            return self._action_fwsetdata()
         else:
             self.session_cookie['username'] = self.username
             self.session_cookie['username']['Path'] = '/'

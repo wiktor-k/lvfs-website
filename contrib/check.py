@@ -60,18 +60,6 @@ def main():
     r = w.action_upload(FILE, 'testing')
     assert r.status_code == 201, "failed to upload file"
 
-    # set some properties on the firmware
-    r = w.action_fwsetdata('3d69d6c68c915d7cbb4faa029230c92933263f42', 'version', '1.0.0', auth='admin')
-    assert r.status_code == 200, "failed to set firmware version : %s" % r.status_code
-    r = w.action_fwsetdata('3d69d6c68c915d7cbb4faa029230c92933263f42', 'guid', '2082b5e0-7a64-478a-b1b2-e3404fab6dad', auth='none')
-    assert r.status_code == 401, "expected error when setting md on foreign firmware : %s" % r.status_code
-    r = w.action_fwsetdata('3d69d6c68c915d7cbb4faa029230c92933263f42', 'guid', '2082b5e0-7a64-478a-b1b2-e3404fab6dad', auth='user')
-    assert r.status_code == 200, "failed to set firmware guid : %s" % r.text
-
-    # also allow the filename as the key
-    r = w.action_fwsetdata('3d69d6c68c915d7cbb4faa029230c92933263f42-hughski-colorhug2-2.0.3.cab', 'guid', '2082b5e0-7a64-478a-b1b2-e3404fab6dad', auth='user')
-    assert r.status_code == 200, "failed to set firmware guid : %s" % r.text
-
     # upload existing fw again
     r = w.action_upload(FILE, 'testing')
     assert r.status_code == 422, "expected error when reuploading file"
