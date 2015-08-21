@@ -83,6 +83,12 @@ def main():
     assert r.status_code == 200, "failed to dump testing : %s" % r.status_code
     assert r.text.find(os.path.basename(FILE)) != -1, "failed to find fn in dump: %s" % r.text
 
+    r = w.action_dump('embargoed', auth='none')
+    assert r.status_code == 401, "expected error when dumping embargoed"
+    r = w.action_dump('a94a8fe5ccb19ba61c4c0873d391e987982fbbd3', auth='none')
+    assert r.status_code == 200, "expected file list for embargoed hash"
+    assert r.text.find(os.path.basename(FILE)) != -1, "failed to find fn in dump: %s" % r.text
+
     # delete the test file
     r = w.action_fwdelete('3d69d6c68c915d7cbb4faa029230c92933263f42')
     assert r.status_code == 200, "failed to delete file"

@@ -63,6 +63,11 @@ class LvfsWebsite(object):
         salt = 'lvfs%%%'
         return hashlib.sha1(salt + value).hexdigest()
 
+    def _qa_hash(self, value):
+        """ Generate a salted hash of the QA group """
+        salt = 'vendor%%%'
+        return hashlib.sha1(salt + value).hexdigest()
+
     def _password_check(self, value):
         """ Check the password for suitability """
         if len(value) < 8:
@@ -572,6 +577,7 @@ A good password consists of upper and lower case with numbers.
 <td>
 <select name="target" onChange="changeTargetLabel();" id="targetSelection" required>
 <option value="private">Private</option>
+<option value="embargo">Embargoed</option>
 <option value="testing">Testing</option>
 <option value="stable">Stable</option>
 </select>
@@ -596,6 +602,10 @@ A good password consists of upper and lower case with numbers.
 </table>
 <input type="submit" class="submit" value="Upload"/>
 </form>
+<p>
+ Updates normally go through these stages:
+ Private &#8594; Embargoed &#8594; Testing &#8594; Stable
+</p>
 <p id="targetLabel">This user account is restricted to private uploading.</p>
 <h1>Existing Firmware</h1>
 %s
@@ -606,13 +616,16 @@ function changeTargetLabel() {
     var combo = document.getElementById("targetSelection");
     var label = document.getElementById("targetLabel");
     if (combo.selectedIndex == 0) {
-        label.innerHTML = "The private target keeps the firmware secret and embargoed from users.<br>" +
-                          "Only a QA user can manually move the firmware to either testing or stable.";
+        label.innerHTML = "The private target keeps the firmware secret and is only downloadable from this admin console.<br>" +
+                          "An admin or QA user can move the firmware to either embargo, testing or stable.";
     } else if (combo.selectedIndex == 1) {
-        label.innerHTML = "The testing target makes the firmware immediately available to some users.<br>" +
-                          "Only a QA user can manually move the firmware to stable when testing is complete.";
+        label.innerHTML = "The embargo target makes the firmware available to users knowing <a href=%s>this URL.</a><br>" +
+                          "An admin or QA user can move the firmware to testing when the hardware has been released.";
     } else if (combo.selectedIndex == 2) {
-        label.innerHTML = "The stable target makes the firmware immediately available to all users.<br>" +
+        label.innerHTML = "The testing target makes the firmware available to some users.<br>" +
+                          "An admin or QA user can move the firmware to stable when testing is complete.";
+    } else if (combo.selectedIndex == 3) {
+        label.innerHTML = "The stable target makes the firmware available to all users.<br>" +
                           "Make sure the firmware has been carefully tested before using this target.";
     }
 }
@@ -621,7 +634,6 @@ function changeTargetLabel() {
 changeTargetLabel();
 </script>
 """
-
         # add the firmware files
         cur = self.db.cursor()
         try:
@@ -662,6 +674,13 @@ changeTargetLabel();
                     if e[2] == 'private':
                         buttons += "<form method=\"get\" action=\"wsgi.py\">" \
                                    "<input type=\"hidden\" name=\"action\" value=\"fwpromote\"/>" \
+                                   "<input type=\"hidden\" name=\"target\" value=\"embargo\"/>" \
+                                   "<input type=\"hidden\" name=\"id\" value=\"%s\"/>" \
+                                   "<button>&#8594; Embargo</button>" \
+                                   "</form>" % e[1]
+                    elif e[2] == 'embargo':
+                        buttons += "<form method=\"get\" action=\"wsgi.py\">" \
+                                   "<input type=\"hidden\" name=\"action\" value=\"fwpromote\"/>" \
                                    "<input type=\"hidden\" name=\"target\" value=\"testing\"/>" \
                                    "<input type=\"hidden\" name=\"id\" value=\"%s\"/>" \
                                    "<button>&#8594; Testing</button>" \
@@ -685,7 +704,9 @@ changeTargetLabel();
         else:
             fwlist += "<p>No firmware available</p>"
 
-        html = html % fwlist
+        # this is secret enough as you have to know the SHA1 hash
+        embargo_url = '?downloads/firmware-%s.xml.gz' % self._qa_hash(self.qa_group)
+        html = html % (fwlist, embargo_url)
 
         return self._gen_header('LVFS: Firmware') + self._gen_breadcrumb(show_back=False) + html + self._gen_footer()
 
@@ -747,17 +768,39 @@ changeTargetLabel();
         target = self.qs_get.get('target', [None])[0]
         if not target:
             return self._internal_error("No target specified")
+        if target == 'embargo':
+            return self._action_permission_denied('No access to list of embargo firmware')
         cur = self.db.cursor()
         try:
-            cur.execute("SELECT filename FROM firmware WHERE target = %s;",
-                        (target,))
+            cur.execute("SELECT filename, target, qa_group FROM firmware;")
         except mdb.Error, e:
             return self._internal_error(self._format_cursor_error(cur, e))
         res = cur.fetchall()
         html = ''
         if res:
             for r in res:
-                html += r[0] + '\n'
+                # filter here so we can check with the sha1 hash too
+                print r[1]
+                if r[1] == target or self._qa_hash(r[2]) == target:
+                    html += r[0] + '\n'
+        self.content_type = 'text/plain'
+        self._set_response_code('200 OK')
+        return html
+
+    def _action_dump_targets(self):
+        """ Dumps a list of targets """
+
+        cur = self.db.cursor()
+        try:
+            cur.execute("SELECT DISTINCT qa_group FROM firmware WHERE target != 'private';")
+        except mdb.Error, e:
+            return self._internal_error(self._format_cursor_error(cur, e))
+        res = cur.fetchall()
+        html = 'stable\n'
+        html += 'testing\n'
+        if res:
+            for r in res:
+                html += self._qa_hash(r[0]) + '\n'
         self.content_type = 'text/plain'
         self._set_response_code('200 OK')
         return html
@@ -832,7 +875,7 @@ changeTargetLabel();
             return self._internal_error('No target specified')
 
         # check valid
-        if target not in ['stable', 'testing', 'private']:
+        if target not in ['stable', 'testing', 'private', 'embargo']:
             return self._internal_error("Target %s invalid" % target)
 
         # check firmware exists in database
@@ -953,11 +996,6 @@ changeTargetLabel();
     def get_response(self):
         """ Get the correct page using the page POST and GET data """
 
-        # get action
-        action = self.qs_get.get('action', [None])[0]
-        if action == 'dump':
-            return self._action_dump()
-
         # auth check
         if not self.username:
             self._set_response_code('401 Unauthorized')
@@ -977,6 +1015,11 @@ changeTargetLabel();
         self.qa_group = auth[2]
 
         # perform login-required actions
+        action = self.qs_get.get('action', [None])[0]
+        if action == 'dump':
+            return self._action_dump()
+        if action == 'dump_targets':
+            return self._action_dump_targets()
         if action == 'logout':
             self.session_cookie['username']['Path'] = '/'
             self.session_cookie['username']['max-age'] = -1
