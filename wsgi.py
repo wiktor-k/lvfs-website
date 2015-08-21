@@ -853,7 +853,7 @@ changeTargetLabel();
             embargo_url = 'downloads/firmware.xml.gz'
             qa_group = 'None'
         else:
-            embargo_url = 'downloads/firmware-%s.xml.gz' % self._qa_hash(self.qa_group)
+            embargo_url = 'downloads/firmware-%s.xml.gz' % self._qa_hash(qa_group)
         file_uri = 'uploads/' + res[3]
 
         buttons = ''
