@@ -845,9 +845,15 @@ changeTargetLabel();
         if not res:
             return self._action_login('No firmware matched!')
 
+        # we can only view our own firmware, unless admin
         qa_group = res[0]
+        if qa_group != self.qa_group and self.username != 'admin':
+            return self._action_permission_denied('Unable to view other vendor firmware')
         if not qa_group:
+            embargo_url = 'downloads/firmware.xml.gz'
             qa_group = 'None'
+        else:
+            embargo_url = 'downloads/firmware-%s.xml.gz' % self._qa_hash(self.qa_group)
         file_uri = 'uploads/' + res[3]
 
         buttons = ''
@@ -889,7 +895,7 @@ changeTargetLabel();
         html += '<tr><th>Version</th><td>%s</td></tr>' % res[6]
         html += '<tr><th>Current Target</th><td>%s</td></tr>' % res[4]
         html += '<tr><th>Submitted</th><td>%s</td></tr>' % res[2]
-        html += '<tr><th>QA Group</th><td>%s</td></tr>' % qa_group
+        html += '<tr><th>QA Group</th><td><a href="%s">%s</a></td></tr>' % (embargo_url, qa_group)
         html += '<tr><th>Uploaded from</th><td>%s</td></tr>' % res[1]
         html += '<tr><th>Actions</th><td>%s</td></tr>' % buttons
         html += '</table>'
