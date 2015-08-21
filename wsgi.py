@@ -638,9 +638,12 @@ changeTargetLabel();
         cur = self.db.cursor()
         try:
             if self.username == 'admin':
-                cur.execute("SELECT filename, hash, target, timestamp, guid, version FROM firmware ORDER BY timestamp DESC;")
+                cur.execute("SELECT filename, hash, target, timestamp, "
+                            "md_name, md_version FROM firmware ORDER BY timestamp DESC;")
             else:
-                cur.execute("SELECT filename, hash, target, timestamp, guid, version FROM firmware WHERE qa_group = %s ORDER BY timestamp DESC;", (self.qa_group,))
+                cur.execute("SELECT filename, hash, target, timestamp, "
+                            "md_name, md_version FROM firmware "
+                            "WHERE qa_group = %s ORDER BY timestamp DESC;", (self.qa_group,))
         except mdb.Error, e:
             return self._internal_error(self._format_cursor_error(cur, e))
         res = cur.fetchall()
@@ -649,55 +652,21 @@ changeTargetLabel();
             fwlist += "<table class=\"history\">" \
                       "<tr>" \
                       "<th>Submitted</td>" \
-                      "<th>Hash</td>" \
-                      "<th>Device GUID</td>" \
+                      "<th>Name</td>" \
                       "<th>Version</td>" \
                       "<th>Target</td>" \
-                      "<th>Actions</td>" \
+                      "<th></td>" \
                       "</tr>\n"
             for e in res:
-                # guid and version are only set by the updatefw.py script
-                guid = e[4]
-                if not guid:
-                    guid = 'Waiting to be processed&hellip;'
-                version = e[5]
-                if not version:
-                    version = 'Unknown'
-                buttons = ''
-                if self.qa_capability or e[2] == 'private':
-                    buttons = "<form method=\"get\" action=\"wsgi.py\">" \
-                              "<input type=\"hidden\" name=\"action\" value=\"fwdelete\"/>" \
-                              "<input type=\"hidden\" name=\"id\" value=\"%s\"/>" \
-                              "<button>Delete</button>" \
-                              "</form>" % e[1]
-                if self.qa_capability:
-                    if e[2] == 'private':
-                        buttons += "<form method=\"get\" action=\"wsgi.py\">" \
-                                   "<input type=\"hidden\" name=\"action\" value=\"fwpromote\"/>" \
-                                   "<input type=\"hidden\" name=\"target\" value=\"embargo\"/>" \
-                                   "<input type=\"hidden\" name=\"id\" value=\"%s\"/>" \
-                                   "<button>&#8594; Embargo</button>" \
-                                   "</form>" % e[1]
-                    elif e[2] == 'embargo':
-                        buttons += "<form method=\"get\" action=\"wsgi.py\">" \
-                                   "<input type=\"hidden\" name=\"action\" value=\"fwpromote\"/>" \
-                                   "<input type=\"hidden\" name=\"target\" value=\"testing\"/>" \
-                                   "<input type=\"hidden\" name=\"id\" value=\"%s\"/>" \
-                                   "<button>&#8594; Testing</button>" \
-                                   "</form>" % e[1]
-                    elif e[2] == 'testing':
-                        buttons += "<form method=\"get\" action=\"wsgi.py\">" \
-                                   "<input type=\"hidden\" name=\"action\" value=\"fwpromote\"/>" \
-                                   "<input type=\"hidden\" name=\"target\" value=\"stable\"/>" \
-                                   "<input type=\"hidden\" name=\"id\" value=\"%s\"/>" \
-                                   "<button>&#8594; Stable</button>" \
-                                   "</form>" % e[1]
-                uri = 'uploads/' + e[0]
+                buttons = "<form method=\"get\" action=\"wsgi.py\">" \
+                          "<input type=\"hidden\" name=\"action\" value=\"fwshow\"/>" \
+                          "<input type=\"hidden\" name=\"id\" value=\"%s\"/>" \
+                          "<button>Details</button>" \
+                          "</form>" % e[1]
                 fwlist += '<tr>'
                 fwlist += "<td>%s</td>" % e[3]
-                fwlist += "<td><a href=\"%s\">%s&hellip;</a></td>" % (uri, e[1][0:8])
-                fwlist += "<td>%s</td>" % guid
-                fwlist += "<td>%s</td>" % version
+                fwlist += "<td>%s</td>" % e[4]
+                fwlist += "<td>%s</td>" % e[5]
                 fwlist += "<td>%s</td>" % e[2]
                 fwlist += "<td>%s</td>" % buttons
                 fwlist += '</tr>\n'
@@ -856,6 +825,79 @@ changeTargetLabel();
         self._set_response_code('200 OK')
         return self._action_firmware()
 
+    def _action_fwshow(self):
+        """ Show profile information """
+
+        # get input
+        fwid = self.qs_get.get('id', [None])[0]
+        if not fwid:
+            return self._internal_error('No ID specified')
+
+        # get details about the firmware
+        cur = self.db.cursor()
+        try:
+            cur.execute("SELECT qa_group, addr, timestamp, filename, target, "
+                        "md_guid, md_version, md_name, md_summary, md_id "
+                        "FROM firmware WHERE hash=%s LIMIT 1;", (fwid,))
+        except mdb.Error, e:
+            return self._internal_error(self._format_cursor_error(cur, e))
+        res = cur.fetchone()
+        if not res:
+            return self._action_login('No firmware matched!')
+
+        qa_group = res[0]
+        if not qa_group:
+            qa_group = 'None'
+        file_uri = 'uploads/' + res[3]
+
+        buttons = ''
+        if self.qa_capability or res[4] == 'private':
+            buttons += "<form method=\"get\" action=\"wsgi.py\">" \
+                       "<input type=\"hidden\" name=\"action\" value=\"fwdelete\"/>" \
+                       "<input type=\"hidden\" name=\"id\" value=\"%s\"/>" \
+                       "<button>Delete</button>" \
+                       "</form>" % fwid
+        if self.qa_capability:
+            if res[4] == 'private':
+                buttons += "<form method=\"get\" action=\"wsgi.py\">" \
+                           "<input type=\"hidden\" name=\"action\" value=\"fwpromote\"/>" \
+                           "<input type=\"hidden\" name=\"target\" value=\"embargo\"/>" \
+                           "<input type=\"hidden\" name=\"id\" value=\"%s\"/>" \
+                           "<button>&#8594; Embargo</button>" \
+                           "</form>" % fwid
+            elif res[4] == 'embargo':
+                buttons += "<form method=\"get\" action=\"wsgi.py\">" \
+                           "<input type=\"hidden\" name=\"action\" value=\"fwpromote\"/>" \
+                           "<input type=\"hidden\" name=\"target\" value=\"testing\"/>" \
+                           "<input type=\"hidden\" name=\"id\" value=\"%s\"/>" \
+                           "<button>&#8594; Testing</button>" \
+                           "</form>" % fwid
+            elif res[4] == 'testing':
+                buttons += "<form method=\"get\" action=\"wsgi.py\">" \
+                           "<input type=\"hidden\" name=\"action\" value=\"fwpromote\"/>" \
+                           "<input type=\"hidden\" name=\"target\" value=\"stable\"/>" \
+                           "<input type=\"hidden\" name=\"id\" value=\"%s\"/>" \
+                           "<button>&#8594; Stable</button>" \
+                           "</form>" % fwid
+
+        html = '<h1>%s</h1>' % res[7]
+        html += '<p>%s</p>' % res[8]
+        html += '<table class="history">'
+        html += '<tr><th>ID</th><td>%s</td></tr>' % res[9]
+        html += '<tr><th>Filename</th><td><a href=\"%s\">%s</a></td></tr>' % (file_uri, res[3])
+        html += '<tr><th>Device GUID</th><td>%s</td></tr>' % res[5]
+        html += '<tr><th>Version</th><td>%s</td></tr>' % res[6]
+        html += '<tr><th>Current Target</th><td>%s</td></tr>' % res[4]
+        html += '<tr><th>Submitted</th><td>%s</td></tr>' % res[2]
+        html += '<tr><th>QA Group</th><td>%s</td></tr>' % qa_group
+        html += '<tr><th>Uploaded from</th><td>%s</td></tr>' % res[1]
+        html += '<tr><th>Actions</th><td>%s</td></tr>' % buttons
+        html += '</table>'
+
+        # set correct response code
+        self._set_response_code('200 OK')
+        return self._gen_header('LVFS: Firmware Details') + self._gen_breadcrumb() + html + self._gen_footer()
+
     def _action_fwpromote(self):
         """
         Promote or demote a firmware file from one target to another,
@@ -886,7 +928,7 @@ changeTargetLabel();
             return self._internal_error(self._format_cursor_error(cur, e))
         # set correct response code
         self._event_log("Moved firmware %s to %s" % (fwid, target))
-        return self._action_firmware()
+        return self._action_fwshow()
 
     def _action_upload(self):
         """ Upload a .cab file to the LVFS service """
@@ -955,7 +997,7 @@ changeTargetLabel();
 
         # check the guid and version does not already exist
         try:
-            cur.execute("SELECT * FROM firmware WHERE guid=%s AND version=%s LIMIT 1;",
+            cur.execute("SELECT * FROM firmware WHERE md_guid=%s AND md_version=%s LIMIT 1;",
                         (app.guid, app.version,))
         except mdb.Error, e:
             return self._internal_error(self._format_cursor_error(cur, e))
@@ -976,15 +1018,20 @@ changeTargetLabel();
         target = self.fields['target'].value
         try:
             cur.execute("INSERT INTO firmware (qa_group, addr, timestamp, "
-                        "filename, hash, target, guid, version) "
-                        "VALUES (%s, %s, CURRENT_TIMESTAMP, %s, %s, %s, %s, %s);",
+                        "filename, hash, target, md_id, md_guid, md_version, "
+                        "md_name, md_summary) "
+                        "VALUES (%s, %s, CURRENT_TIMESTAMP, %s, %s, %s, %s, "
+                        "%s, %s, %s, %s);",
                         (self.qa_group,
                          self.client_address,
                          new_filename,
                          file_id,
                          target,
+                         app.id,
                          app.guid,
-                         app.version,))
+                         app.version,
+                         app.name,
+                         app.summary,))
 
         except mdb.Error, e:
             return self._internal_error(self._format_cursor_error(cur, e))
@@ -1047,6 +1094,8 @@ changeTargetLabel();
             return self._action_fwdelete()
         elif action == 'fwpromote':
             return self._action_fwpromote()
+        elif action == 'fwshow':
+            return self._action_fwshow()
         else:
             self.session_cookie['username'] = self.username
             self.session_cookie['username']['Path'] = '/'
@@ -1072,19 +1121,25 @@ changeTargetLabel();
                   `filename` VARCHAR(255) DEFAULT NULL,
                   `target` VARCHAR(255) DEFAULT NULL,
                   `hash` VARCHAR(40) DEFAULT NULL,
-                  `guid` VARCHAR(36) DEFAULT NULL,
-                  `version` VARCHAR(255) DEFAULT NULL
+                  `md_id` VARCHAR(1024) DEFAULT NULL,
+                  `md_name` VARCHAR(1024) DEFAULT NULL,
+                  `md_summary` VARCHAR(1024) DEFAULT NULL,
+                  `md_guid` VARCHAR(36) DEFAULT NULL,
+                  `md_version` VARCHAR(255) DEFAULT NULL
                 ) CHARSET=utf8;
             """
             cur.execute(sql_db)
 
         # FIXME, remove after a few days
         try:
-            cur.execute("SELECT guid FROM firmware LIMIT 1;")
+            cur.execute("SELECT md_id FROM firmware LIMIT 1;")
         except mdb.Error, e:
             sql_db = """
-                ALTER TABLE `firmware` ADD guid VARCHAR(36) DEFAULT NULL;
-                ALTER TABLE `firmware` ADD version VARCHAR(255) DEFAULT NULL;
+                ALTER TABLE `firmware` ADD md_id VARCHAR(1024) DEFAULT NULL;
+                ALTER TABLE `firmware` ADD md_name VARCHAR(1024) DEFAULT NULL;
+                ALTER TABLE `firmware` ADD md_summary VARCHAR(1024) DEFAULT NULL;
+                ALTER TABLE `firmware` ADD md_guid VARCHAR(36) DEFAULT NULL;
+                ALTER TABLE `firmware` ADD md_version VARCHAR(255) DEFAULT NULL;
             """
             cur.execute(sql_db)
 
