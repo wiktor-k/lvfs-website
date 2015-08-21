@@ -996,6 +996,13 @@ changeTargetLabel();
     def get_response(self):
         """ Get the correct page using the page POST and GET data """
 
+        # perform actions that do not require a login
+        action = self.qs_get.get('action', [None])[0]
+        if action == 'dump':
+            return self._action_dump()
+        if action == 'dump_targets':
+            return self._action_dump_targets()
+
         # auth check
         if not self.username:
             self._set_response_code('401 Unauthorized')
@@ -1015,11 +1022,6 @@ changeTargetLabel();
         self.qa_group = auth[2]
 
         # perform login-required actions
-        action = self.qs_get.get('action', [None])[0]
-        if action == 'dump':
-            return self._action_dump()
-        if action == 'dump_targets':
-            return self._action_dump_targets()
         if action == 'logout':
             self.session_cookie['username']['Path'] = '/'
             self.session_cookie['username']['max-age'] = -1
