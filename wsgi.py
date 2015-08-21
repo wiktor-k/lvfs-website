@@ -897,7 +897,7 @@ changeTargetLabel();
         try:
             app.parse(str(cf.data))
         except Exception as e:
-            return self._upload_failed(str(e))
+            return self._upload_failed('The metadata file did not validate: ' + cgi.escape(str(e)))
 
         # check the file does not already exist
         file_id = hashlib.sha1(data).hexdigest()
