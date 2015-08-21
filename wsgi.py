@@ -705,7 +705,7 @@ changeTargetLabel();
             fwlist += "<p>No firmware available</p>"
 
         # this is secret enough as you have to know the SHA1 hash
-        embargo_url = '?downloads/firmware-%s.xml.gz' % self._qa_hash(self.qa_group)
+        embargo_url = 'downloads/firmware-%s.xml.gz' % self._qa_hash(self.qa_group)
         html = html % (fwlist, embargo_url)
 
         return self._gen_header('LVFS: Firmware') + self._gen_breadcrumb(show_back=False) + html + self._gen_footer()
