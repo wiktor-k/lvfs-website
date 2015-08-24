@@ -982,22 +982,25 @@ changeTargetLabel();
             return self._upload_failed('File too small, mimimum is 1k')
 
         # parse the file
-        cab = cabarchive.CabArchive()
+        arc = cabarchive.CabArchive()
         try:
-            cab.parse(data)
-        except TypeError as e:
+            arc.parse(data)
+        except cabarchive.CorruptionError as e:
             self._set_response_code('415 Unsupported Media Type')
             return self._upload_failed('Invalid file type, expected <code>.cab</code> file')
+        except cabarchive.NotSupportedError as e:
+            self._set_response_code('415 Unsupported Media Type')
+            return self._upload_failed('The cab file has unsupported features')
         except Exception as e:
             return self._upload_failed(str(e))
 
         # check .inf exists
-        cf = cab.find_file("*.inf")
+        cf = arc.find_file("*.inf")
         if not cf:
             return self._upload_failed('The firmware file had no valid inf file')
 
         # check metainfo exists
-        cf = cab.find_file("*.metainfo.xml")
+        cf = arc.find_file("*.metainfo.xml")
         if not cf:
             return self._upload_failed('The firmware file had no valid metadata')
 
@@ -1006,7 +1009,9 @@ changeTargetLabel();
         try:
             app.parse(str(cf.contents))
             app.validate()
-        except Exception as e:
+        except appstream.ParseError as e:
+            return self._upload_failed('The metadata could not be parsed: ' + cgi.escape(str(e)))
+        except appstream.ValidationError as e:
             return self._upload_failed('The metadata file did not validate: ' + cgi.escape(str(e)))
 
         # check the file does not already exist
@@ -1037,13 +1042,6 @@ changeTargetLabel();
             os.mkdir(UPLOAD_DIR)
         open(os.path.join(UPLOAD_DIR, new_filename), 'wb').write(data)
         print "wrote %i bytes to %s" % (len(data), new_filename)
-
-        # sign the cab file
-        arc = cabarchive.CabArchive()
-        try:
-            arc.parse(data)
-        except Exception as e:
-            return self._upload_failed('The archive could not be loaded: ' + cgi.escape(str(e)))
 
         # get the contents checksum
         fw_data = arc.find_file('*.bin')
@@ -1202,7 +1200,7 @@ changeTargetLabel();
                     "WHERE target != 'private';")
         res = cur.fetchall()
 
-        store = appstream.Store()
+        store = appstream.Store('lvfs')
         for r in res:
 
             # filter
@@ -1393,7 +1391,7 @@ changeTargetLabel();
             self._event_log('Creating admin user')
             sql_db = """
                 INSERT INTO users (username, password, display_name, email, is_enabled, is_qa, qa_group)
-                    VALUES ('admin', 'Pa$$w0rd', 'Admin User', 'info@example.com', 1, 1, '');
+                    VALUES ('admin', 'Pa$$w0rd', 'Admin User', 'sign-test@fwupd.org', 1, 1, '');
             """
             cur.execute(sql_db)
 
@@ -1471,8 +1469,6 @@ def static_app(fn, start_response, content_type, download=False):
         path = os.path.join(STATIC_DIR, fn)
     else:
         path = os.path.join(DOWNLOAD_DIR, fn)
-        if not os.path.exists(path):
-            path = os.path.join(UPLOAD_DIR, fn)
     if not os.path.exists(path):
         start_response('404 Not Found', [('content-type', 'text/plain')])
         return ['Not found: ' + path]

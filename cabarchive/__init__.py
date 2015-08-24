@@ -18,3 +18,4 @@
 
 from file import CabFile
 from archive import CabArchive
+from errors import CorruptionError, NotSupportedError
