@@ -783,10 +783,11 @@ changeTargetLabel();
         except mdb.Error, e:
             return self._internal_error(self._format_cursor_error(cur, e))
 
-        # delete file
-        path = os.path.join(UPLOAD_DIR, filename)
-        if os.path.exists(path):
-            os.remove(path)
+        # delete file(s)
+        for loc in [UPLOAD_DIR, DOWNLOAD_DIR]:
+            path = os.path.join(loc, filename)
+            if os.path.exists(path):
+                os.remove(path)
 
         self._event_log("Deleted firmware %s" % fwid)
         self._set_response_code('200 OK')
