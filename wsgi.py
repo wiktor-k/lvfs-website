@@ -741,50 +741,6 @@ changeTargetLabel();
         self._set_response_code('201 Created')
         return self._gen_header('LVFS: Upload Success') + self._gen_breadcrumb() + html + self._gen_footer()
 
-    def _action_dump(self):
-        """ Dumps a list of filenames in a specific target """
-
-        # get input
-        target = self.qs_get.get('target', [None])[0]
-        if not target:
-            return self._internal_error("No target specified")
-        if target == 'embargo':
-            return self._action_permission_denied('No access to list of embargo firmware')
-        cur = self.db.cursor()
-        try:
-            cur.execute("SELECT filename, target, qa_group FROM firmware;")
-        except mdb.Error, e:
-            return self._internal_error(self._format_cursor_error(cur, e))
-        res = cur.fetchall()
-        html = ''
-        if res:
-            for r in res:
-                # filter here so we can check with the sha1 hash too
-                print r[1]
-                if r[1] == target or self._qa_hash(r[2]) == target:
-                    html += r[0] + '\n'
-        self.content_type = 'text/plain'
-        self._set_response_code('200 OK')
-        return html
-
-    def _action_dump_targets(self):
-        """ Dumps a list of targets """
-
-        cur = self.db.cursor()
-        try:
-            cur.execute("SELECT DISTINCT qa_group FROM firmware WHERE target != 'private';")
-        except mdb.Error, e:
-            return self._internal_error(self._format_cursor_error(cur, e))
-        res = cur.fetchall()
-        html = 'stable\n'
-        html += 'testing\n'
-        if res:
-            for r in res:
-                html += self._qa_hash(r[0]) + '\n'
-        self.content_type = 'text/plain'
-        self._set_response_code('200 OK')
-        return html
-
     def _action_fwdelete(self):
         """ Delete a firmware entry and also delete the file from disk """
 
@@ -1123,13 +1079,6 @@ changeTargetLabel();
     def get_response(self):
         """ Get the correct page using the page POST and GET data """
 
-        # perform actions that do not require a login
-        action = self.qs_get.get('action', [None])[0]
-        if action == 'dump':
-            return self._action_dump()
-        if action == 'dump_targets':
-            return self._action_dump_targets()
-
         # auth check
         if not self.username:
             self._set_response_code('401 Unauthorized')
@@ -1149,6 +1098,7 @@ changeTargetLabel();
         self.qa_group = auth[2]
 
         # perform login-required actions
+        action = self.qs_get.get('action', [None])[0]
         if action == 'logout':
             self.session_cookie['username']['Path'] = '/'
             self.session_cookie['username']['max-age'] = -1
