@@ -821,7 +821,7 @@ changeTargetLabel();
             qa_group = 'None'
         else:
             embargo_url = 'downloads/firmware-%s.xml.gz' % self._qa_hash(qa_group)
-        file_uri = 'uploads/' + res[3]
+        file_uri = 'downloads/' + res[3]
 
         buttons = ''
         if self.qa_capability or res[4] == 'private':
@@ -1018,7 +1018,7 @@ changeTargetLabel();
         arc.add_file(cff)
 
         # export the new archive and get the checksum
-        cab_data = arc.save(compressed=False)
+        cab_data = arc.save(compressed=True)
         checksum_container = hashlib.sha1(cab_data).hexdigest()
 
         # dump to a file
