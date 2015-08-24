@@ -42,7 +42,7 @@ def _chunkify(arr, size):
 def _checksum_compute(content, seed=0):
     """ Compute the MSCAB "checksum" """
     csum = seed
-    chunks = _chunkify(content, 4)
+    chunks = _chunkify(bytearray(content), 4)
     for chunk in chunks:
         ul = 0
         for i in range(0, min(len(chunk), 4)):
@@ -250,6 +250,12 @@ class CabArchive(object):
     def save(self, compressed=False):
         """ Returns cabinet file data """
 
+        # FIXME, we have to do the following things:
+        #
+        # * chunkify data and compress early for the correct size in the header
+        # * work out how to invoke the compressor with the previous block state
+        assert not compressed, 'Saving with compression is not (yet) working'
+
         # create linear CFDATA block
         cfdata_linear = bytearray()
         for f in self.files:
@@ -320,7 +326,7 @@ class CabArchive(object):
                                 checksum,               # checksum
                                 len(chunk_compressed),  # compressed bytes
                                 len(chunk))             # uncompressed bytes
-            data += chunk
+            data += chunk_compressed
 
         # return bytearray
         return data
