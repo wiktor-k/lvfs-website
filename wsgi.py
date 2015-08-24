@@ -6,6 +6,7 @@ import os
 STATIC_DIR = 'static'
 UPLOAD_DIR = 'uploads'
 DOWNLOAD_DIR = 'downloads'
+KEYRING_DIR = 'gnupg'
 if 'OPENSHIFT_PYTHON_DIR' in os.environ:
     virtenv = os.environ['OPENSHIFT_PYTHON_DIR'] + '/virtenv/'
     virtualenv = os.path.join(virtenv, 'bin/activate_this.py')
@@ -16,6 +17,7 @@ if 'OPENSHIFT_PYTHON_DIR' in os.environ:
     STATIC_DIR = os.path.join(os.environ['OPENSHIFT_REPO_DIR'], 'static')
     UPLOAD_DIR = os.path.join(os.environ['OPENSHIFT_DATA_DIR'], 'uploads')
     DOWNLOAD_DIR = os.path.join(os.environ['OPENSHIFT_DATA_DIR'], 'downloads')
+    KEYRING_DIR = os.path.join(os.environ['OPENSHIFT_DATA_DIR'], 'gnupg')
 
 from wsgiref.simple_server import make_server
 from Cookie import SimpleCookie
@@ -23,8 +25,9 @@ import cgi
 import hashlib
 import MySQLdb as mdb
 
-from cab import CabArchive
-from appstream import Component
+import cabarchive
+import appstream
+from affidavit import Affidavit
 
 class LvfsWebsite(object):
     """ A helper class """
@@ -57,6 +60,15 @@ class LvfsWebsite(object):
                         (username, self.client_address, msg, is_important,))
         except mdb.Error, e:
             return self._internal_error(self._format_cursor_error(cur, e))
+
+    def create_affidavit(self):
+        """ Create an affidavit that can be used to sign files """
+
+        # create signing object
+        cur = self.db.cursor()
+        cur.execute("SELECT email FROM users WHERE username='admin'")
+        key_uid = cur.fetchone()
+        return Affidavit(key_uid[0], KEYRING_DIR)
 
     def _password_hash(self, value):
         """ Generate a salted hash of the password string """
@@ -723,8 +735,7 @@ changeTargetLabel();
 
         html = """
 <h1>Result: Success</h1>
- The firmware file was successfully uploaded.
- It will take up to 2 working days to appear in the metadata.
+ The firmware file was successfully uploaded and the metadata has been updated.
 """
         # set correct response code
         self._set_response_code('201 Created')
@@ -934,6 +945,13 @@ changeTargetLabel();
             return self._internal_error(self._format_cursor_error(cur, e))
         # set correct response code
         self._event_log("Moved firmware %s to %s" % (fwid, target))
+
+        # update everything
+        try:
+            self.update_metadata(targets=['stable', 'unstable'], qa_group='')
+        except Exception as e:
+            return self._upload_failed('Failed to sign metadata: ' + cgi.escape(str(e)))
+
         return self._action_fwshow()
 
     def _action_upload(self):
@@ -964,7 +982,7 @@ changeTargetLabel();
             return self._upload_failed('File too small, mimimum is 1k')
 
         # parse the file
-        cab = CabArchive()
+        cab = cabarchive.CabArchive()
         try:
             cab.parse(data)
         except TypeError as e:
@@ -984,9 +1002,10 @@ changeTargetLabel();
             return self._upload_failed('The firmware file had no valid metadata')
 
         # parse the MetaInfo file
-        app = Component()
+        app = appstream.Component()
         try:
-            app.parse(str(cf.data))
+            app.parse(str(cf.contents))
+            app.validate()
         except Exception as e:
             return self._upload_failed('The metadata file did not validate: ' + cgi.escape(str(e)))
 
@@ -1004,7 +1023,7 @@ changeTargetLabel();
         # check the guid and version does not already exist
         try:
             cur.execute("SELECT * FROM firmware WHERE md_guid=%s AND md_version=%s LIMIT 1;",
-                        (app.guid, app.version,))
+                        (app.provides[0].value, app.releases[0].version,))
         except mdb.Error, e:
             return self._internal_error(self._format_cursor_error(cur, e))
         if cur.fetchone():
@@ -1019,31 +1038,90 @@ changeTargetLabel();
         open(os.path.join(UPLOAD_DIR, new_filename), 'wb').write(data)
         print "wrote %i bytes to %s" % (len(data), new_filename)
 
+        # sign the cab file
+        arc = cabarchive.CabArchive()
+        try:
+            arc.parse(data)
+        except Exception as e:
+            return self._upload_failed('The archive could not be loaded: ' + cgi.escape(str(e)))
+
+        # get the contents checksum
+        fw_data = arc.find_file('*.bin')
+        if not fw_data:
+            fw_data = arc.find_file('*.cap')
+        if not fw_data:
+            return self._upload_failed('No firmware found in the archive: ' + cgi.escape(str(e)))
+        checksum_contents = hashlib.sha1(fw_data.contents).hexdigest()
+
+        # add the detached signature
+        try:
+            affidavit = self.create_affidavit()
+            print affidavit
+        except Exception as e:
+            return self._upload_failed('Failed to sign archive: ' + cgi.escape(str(e)))
+        print affidavit
+        cff = cabarchive.CabFile(fw_data.filename + '.asc',
+                                 affidavit.create(fw_data.contents))
+        arc.add_file(cff)
+
+        # export the new archive and get the checksum
+        cab_data = arc.save(compressed=False)
+        checksum_container = hashlib.sha1(cab_data).hexdigest()
+
+        # dump to a file
+        if not os.path.exists(DOWNLOAD_DIR):
+            os.mkdir(DOWNLOAD_DIR)
+        fn = os.path.join(DOWNLOAD_DIR, new_filename)
+        open(fn, 'wb').write(cab_data)
+
         # log to database
         cur = self.db.cursor()
         target = self.fields['target'].value
         try:
             cur.execute("INSERT INTO firmware (qa_group, addr, timestamp, "
                         "filename, hash, target, md_id, md_guid, md_version, "
-                        "md_name, md_summary) "
+                        "md_name, md_summary, md_checksum_contents, md_release_description, "
+                        "md_release_timestamp, md_developer_name, md_metadata_license, "
+                        "md_project_license, md_url_homepage, md_description, "
+                        "md_checksum_container) "
                         "VALUES (%s, %s, CURRENT_TIMESTAMP, %s, %s, %s, %s, "
-                        "%s, %s, %s, %s);",
+                        "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);",
                         (self.qa_group,
                          self.client_address,
                          new_filename,
                          file_id,
                          target,
                          app.id,
-                         app.guid,
-                         app.version,
+                         app.provides[0].value,
+                         app.releases[0].version,
                          app.name,
-                         app.summary,))
-
+                         app.summary,
+                         checksum_contents,
+                         app.releases[0].description,
+                         app.releases[0].timestamp,
+                         app.developer_name,
+                         app.metadata_license,
+                         app.project_license,
+                         app.urls['homepage'],
+                         app.description,
+                         checksum_container,
+                         ))
         except mdb.Error, e:
             return self._internal_error(self._format_cursor_error(cur, e))
         # set correct response code
         self._event_log("Uploaded file %s to %s" % (new_filename, target))
         self._set_response_code('201 Created')
+
+        # ensure up to date
+        try:
+            self.update_metadata(targets=['stable', 'unstable'], qa_group='')
+            if target in ['stable', 'testing']:
+                self.update_metadata(targets=[target])
+            elif target == 'embargo':
+                self.update_metadata(qa_group=qa_group)
+        except Exception as e:
+            return self._upload_failed('Failed to sign metadata: ' + cgi.escape(str(e)))
+
         return self._upload_success()
 
     def get_response(self):
@@ -1111,6 +1189,116 @@ changeTargetLabel();
             self.session_cookie['password']['max-age'] = 2 * 60 * 60
             return self._action_firmware()
 
+    def _generate_metadata_kind(self, filename, target=None, qa_group=None):
+        """ Generates AppStream metadata of a specific kind """
+
+        cur = self.db.cursor()
+        cur.execute("SELECT filename, md_checksum_contents, md_id, "
+                    "md_name, md_summary, md_guid, md_description, "
+                    "md_release_description, md_url_homepage, "
+                    "md_metadata_license, md_project_license, "
+                    "md_developer_name, md_release_timestamp, "
+                    "md_version, hash, qa_group, target FROM firmware "
+                    "WHERE target != 'private';")
+        res = cur.fetchall()
+
+        store = appstream.Store()
+        for r in res:
+
+            # filter
+            if target:
+                if target != r[16]:
+                    continue
+            if qa_group:
+                if qa_group != r[15]:
+                    continue
+
+            # add component
+            app = appstream.Component()
+            app.id = r[2]
+            app.kind = 'firmware'
+            app.name = r[3]
+            app.summary = r[4]
+            app.description = r[6]
+            app.urls['homepage'] = r[8]
+            app.metadata_license = r[9]
+            app.project_license = r[10]
+            app.developer_name = r[11]
+
+            # add provide
+            prov = appstream.Provide()
+            prov.kind = 'firmware-flashed'
+            prov.value = r[5]
+            app.add_provide(prov)
+
+            # add release
+            rel = appstream.Release()
+            rel.version = r[13]
+            rel.description = r[7]
+            rel.timestamp = r[12]
+            rel.checksums = []
+            rel.location = 'https://secure-lvfs.rhcloud.com/downloads/' + r[0]
+            app.add_release(rel)
+
+            # add container checksum
+            csum = appstream.Checksum()
+            csum.target = 'container'
+            csum.value = r[14]
+            csum.filename = r[0]
+            rel.add_checksum(csum)
+
+            # add content checksum
+            csum = appstream.Checksum()
+            csum.target = 'content'
+            csum.value = r[1]
+            csum.filename = 'firmware.bin'
+            rel.add_checksum(csum)
+
+            # add app
+            store.add(app)
+
+        # dump to file
+        if not os.path.exists(DOWNLOAD_DIR):
+            os.mkdir(DOWNLOAD_DIR)
+        filename = os.path.join(DOWNLOAD_DIR, filename)
+        store.to_file(filename)
+
+        # create .asc file
+        affidavit = self.create_affidavit()
+        affidavit.create_detached(filename)
+
+        # log
+        if target:
+            self._event_log("Generated metadata for %s target" % target)
+        if qa_group:
+            self._event_log("Generated metadata for %s QA group" % qa_group)
+
+    def update_metadata(self, targets=None, qa_group=None):
+        """ Updates metadata """
+
+        # normal metadata
+        if targets:
+            for target in targets:
+                if target == 'stable':
+                    filename = 'firmware.xml.gz'
+                else:
+                    filename = 'firmware-%s.xml.gz' % target
+                self._generate_metadata_kind(filename, target=target)
+
+        # each vendor
+        if qa_group == '':
+            cur = self.db.cursor()
+            try:
+                cur.execute("SELECT DISTINCT qa_group FROM firmware;")
+            except mdb.Error, e:
+                return self._internal_error(self._format_cursor_error(cur, e))
+            res = cur.fetchall()
+            for r in res:
+                filename = 'firmware-%s.xml.gz' % self._qa_hash(r[0])
+                self._generate_metadata_kind(filename, qa_group=r[0])
+        else:
+            self._generate_metadata_kind(filename, qa_group=qa_group)
+
     def _fixup_database(self):
         ''' Fix any database problems automatically '''
 
@@ -1127,10 +1315,19 @@ changeTargetLabel();
                   `filename` VARCHAR(255) DEFAULT NULL,
                   `target` VARCHAR(255) DEFAULT NULL,
                   `hash` VARCHAR(40) DEFAULT NULL,
+                  `md_checksum_contents` VARCHAR(40) DEFAULT NULL,
+                  `md_checksum_container` VARCHAR(40) DEFAULT NULL,
                   `md_id` VARCHAR(1024) DEFAULT NULL,
                   `md_name` VARCHAR(1024) DEFAULT NULL,
                   `md_summary` VARCHAR(1024) DEFAULT NULL,
                   `md_guid` VARCHAR(36) DEFAULT NULL,
+                  `md_description` VARCHAR(4096) DEFAULT NULL,
+                  `md_release_description` VARCHAR(4096) DEFAULT NULL,
+                  `md_url_homepage` VARCHAR(1024) DEFAULT NULL,
+                  `md_metadata_license` VARCHAR(1024) DEFAULT NULL,
+                  `md_project_license` VARCHAR(1024) DEFAULT NULL,
+                  `md_developer_name` VARCHAR(1024) DEFAULT NULL,
+                  `md_release_timestamp` INTEGER DEFAULT NULL,
                   `md_version` VARCHAR(255) DEFAULT NULL
                 ) CHARSET=utf8;
             """
@@ -1138,9 +1335,18 @@ changeTargetLabel();
 
         # FIXME, remove after a few days
         try:
-            cur.execute("SELECT md_id FROM firmware LIMIT 1;")
+            cur.execute("SELECT md_checksum_container FROM firmware LIMIT 1;")
         except mdb.Error, e:
             sql_db = """
+                ALTER TABLE `firmware` ADD md_checksum_container VARCHAR(40) DEFAULT NULL;
+                ALTER TABLE `firmware` ADD md_checksum_contents VARCHAR(40) DEFAULT NULL;
+                ALTER TABLE `firmware` ADD md_release_description VARCHAR(4096) DEFAULT NULL;
+                ALTER TABLE `firmware` ADD md_release_timestamp INTEGER DEFAULT NULL;
+                ALTER TABLE `firmware` ADD md_developer_name VARCHAR(1024) DEFAULT NULL;
+                ALTER TABLE `firmware` ADD md_metadata_license VARCHAR(1024) DEFAULT NULL;
+                ALTER TABLE `firmware` ADD md_project_license VARCHAR(1024) DEFAULT NULL;
+                ALTER TABLE `firmware` ADD md_url_homepage VARCHAR(1024) DEFAULT NULL;
+                ALTER TABLE `firmware` ADD md_description VARCHAR(4096) DEFAULT NULL;
                 ALTER TABLE `firmware` ADD md_id VARCHAR(1024) DEFAULT NULL;
                 ALTER TABLE `firmware` ADD md_name VARCHAR(1024) DEFAULT NULL;
                 ALTER TABLE `firmware` ADD md_summary VARCHAR(1024) DEFAULT NULL;
