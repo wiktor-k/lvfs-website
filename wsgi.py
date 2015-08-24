@@ -1286,28 +1286,6 @@ changeTargetLabel();
             """
             cur.execute(sql_db)
 
-        # FIXME, remove after a few days
-        try:
-            cur.execute("SELECT md_checksum_container FROM firmware LIMIT 1;")
-        except mdb.Error, e:
-            sql_db = """
-                ALTER TABLE `firmware` ADD md_checksum_container VARCHAR(40) DEFAULT NULL;
-                ALTER TABLE `firmware` ADD md_checksum_contents VARCHAR(40) DEFAULT NULL;
-                ALTER TABLE `firmware` ADD md_release_description VARCHAR(4096) DEFAULT NULL;
-                ALTER TABLE `firmware` ADD md_release_timestamp INTEGER DEFAULT NULL;
-                ALTER TABLE `firmware` ADD md_developer_name VARCHAR(1024) DEFAULT NULL;
-                ALTER TABLE `firmware` ADD md_metadata_license VARCHAR(1024) DEFAULT NULL;
-                ALTER TABLE `firmware` ADD md_project_license VARCHAR(1024) DEFAULT NULL;
-                ALTER TABLE `firmware` ADD md_url_homepage VARCHAR(1024) DEFAULT NULL;
-                ALTER TABLE `firmware` ADD md_description VARCHAR(4096) DEFAULT NULL;
-                ALTER TABLE `firmware` ADD md_id VARCHAR(1024) DEFAULT NULL;
-                ALTER TABLE `firmware` ADD md_name VARCHAR(1024) DEFAULT NULL;
-                ALTER TABLE `firmware` ADD md_summary VARCHAR(1024) DEFAULT NULL;
-                ALTER TABLE `firmware` ADD md_guid VARCHAR(36) DEFAULT NULL;
-                ALTER TABLE `firmware` ADD md_version VARCHAR(255) DEFAULT NULL;
-            """
-            cur.execute(sql_db)
-
         # test user list exists
         try:
             cur.execute("SELECT * FROM users LIMIT 1;")
