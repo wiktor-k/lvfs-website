@@ -25,7 +25,7 @@ class Affidavit(object):
                 if uid.find(key_uid) != -1:
                     self._keyid = privkey['keyid']
         if not self._keyid:
-            raise RuntimeError('No imported private key for %s' % key_uid)
+            raise NoKeyError('No imported private key for %s' % key_uid)
         self._homedir = homedir
 
     def create(self, data):

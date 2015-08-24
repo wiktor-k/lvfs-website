@@ -27,7 +27,7 @@ import MySQLdb as mdb
 
 import cabarchive
 import appstream
-from affidavit import Affidavit
+from affidavit import Affidavit, NoKeyError
 
 class LvfsWebsite(object):
     """ A helper class """
@@ -949,7 +949,7 @@ changeTargetLabel();
         # update everything
         try:
             self.update_metadata(targets=['stable', 'unstable'], qa_group='')
-        except affidavit.NoKeyError as e:
+        except NoKeyError as e:
             return self._upload_failed('Failed to sign metadata: ' + cgi.escape(str(e)))
 
         return self._action_fwshow()
@@ -1055,9 +1055,8 @@ changeTargetLabel();
         try:
             affidavit = self.create_affidavit()
             print affidavit
-        except Exception as e:
+        except NoKeyError as e:
             return self._upload_failed('Failed to sign archive: ' + cgi.escape(str(e)))
-        print affidavit
         cff = cabarchive.CabFile(fw_data.filename + '.asc',
                                  affidavit.create(fw_data.contents))
         arc.add_file(cff)
@@ -1102,8 +1101,7 @@ changeTargetLabel();
                          app.project_license,
                          app.urls['homepage'],
                          app.description,
-                         checksum_container,
-                         ))
+                         checksum_container,))
         except mdb.Error, e:
             return self._internal_error(self._format_cursor_error(cur, e))
         # set correct response code
@@ -1116,8 +1114,8 @@ changeTargetLabel();
             if target in ['stable', 'testing']:
                 self.update_metadata(targets=[target])
             elif target == 'embargo':
-                self.update_metadata(qa_group=qa_group)
-        except affidavit.NoKeyError as e:
+                self.update_metadata(qa_group=self.qa_group)
+        except NoKeyError as e:
             return self._upload_failed('Failed to sign metadata: ' + cgi.escape(str(e)))
 
         return self._upload_success()
@@ -1218,39 +1216,45 @@ changeTargetLabel();
             app.name = r[3]
             app.summary = r[4]
             app.description = r[6]
-            app.urls['homepage'] = r[8]
+            if r[8]:
+                app.urls['homepage'] = r[8]
             app.metadata_license = r[9]
             app.project_license = r[10]
             app.developer_name = r[11]
 
             # add provide
-            prov = appstream.Provide()
-            prov.kind = 'firmware-flashed'
-            prov.value = r[5]
-            app.add_provide(prov)
+            if r[5]:
+                prov = appstream.Provide()
+                prov.kind = 'firmware-flashed'
+                prov.value = r[5]
+                app.add_provide(prov)
 
             # add release
-            rel = appstream.Release()
-            rel.version = r[13]
-            rel.description = r[7]
-            rel.timestamp = r[12]
-            rel.checksums = []
-            rel.location = 'https://secure-lvfs.rhcloud.com/downloads/' + r[0]
-            app.add_release(rel)
+            if r[13]:
+                rel = appstream.Release()
+                rel.version = r[13]
+                rel.description = r[7]
+                if r[12]:
+                    rel.timestamp = r[12]
+                rel.checksums = []
+                rel.location = 'https://secure-lvfs.rhcloud.com/downloads/' + r[0]
+                app.add_release(rel)
 
-            # add container checksum
-            csum = appstream.Checksum()
-            csum.target = 'container'
-            csum.value = r[14]
-            csum.filename = r[0]
-            rel.add_checksum(csum)
+                # add container checksum
+                if r[14]:
+                    csum = appstream.Checksum()
+                    csum.target = 'container'
+                    csum.value = r[14]
+                    csum.filename = r[0]
+                    rel.add_checksum(csum)
 
-            # add content checksum
-            csum = appstream.Checksum()
-            csum.target = 'content'
-            csum.value = r[1]
-            csum.filename = 'firmware.bin'
-            rel.add_checksum(csum)
+                # add content checksum
+                if r[1]:
+                    csum = appstream.Checksum()
+                    csum.target = 'content'
+                    csum.value = r[1]
+                    csum.filename = 'firmware.bin'
+                    rel.add_checksum(csum)
 
             # add app
             store.add(app)
