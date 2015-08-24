@@ -789,6 +789,12 @@ changeTargetLabel();
             if os.path.exists(path):
                 os.remove(path)
 
+        # update everything
+        try:
+            self.update_metadata(targets=['stable', 'unstable'], qa_group='')
+        except NoKeyError as e:
+            return self._upload_failed('Failed to sign metadata: ' + cgi.escape(str(e)))
+
         self._event_log("Deleted firmware %s" % fwid)
         self._set_response_code('200 OK')
         return self._action_firmware()
