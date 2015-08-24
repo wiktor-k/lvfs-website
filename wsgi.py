@@ -949,7 +949,7 @@ changeTargetLabel();
         # update everything
         try:
             self.update_metadata(targets=['stable', 'unstable'], qa_group='')
-        except Exception as e:
+        except affidavit.NoKeyError as e:
             return self._upload_failed('Failed to sign metadata: ' + cgi.escape(str(e)))
 
         return self._action_fwshow()
@@ -1117,7 +1117,7 @@ changeTargetLabel();
                 self.update_metadata(targets=[target])
             elif target == 'embargo':
                 self.update_metadata(qa_group=qa_group)
-        except Exception as e:
+        except affidavit.NoKeyError as e:
             return self._upload_failed('Failed to sign metadata: ' + cgi.escape(str(e)))
 
         return self._upload_success()

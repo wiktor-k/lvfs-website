@@ -5,6 +5,9 @@
 import gnupg
 import os
 
+class NoKeyError(Exception):
+    pass
+
 class Affidavit(object):
     """ A quick'n'dirty signing server """
     def __init__(self, key_uid=None, homedir='/tmp'):
