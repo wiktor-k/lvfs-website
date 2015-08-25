@@ -204,12 +204,16 @@ To upload firmware please login, or <a href="mailto:richard@hughsie.com">request
             cur.execute("SELECT SUM(download_cnt) FROM firmware")
         except mdb.Error, e:
             return self._internal_error(self._format_cursor_error(cur, e))
-        download_cnt = cur.fetchone()
+        download_cnt = cur.fetchone()[0]
+        if not download_cnt:
+            download_cnt = 0
         try:
             cur.execute("SELECT COUNT(addr) FROM clients")
         except mdb.Error, e:
             return self._internal_error(self._format_cursor_error(cur, e))
-        user_cnt = cur.fetchone()
+        user_cnt = cur.fetchone()[0]
+        if not user_cnt:
+            user_cnt = 0
 
         # format the numbers
         locale.setlocale(locale.LC_ALL, 'en_US')
