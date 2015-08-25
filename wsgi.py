@@ -979,12 +979,10 @@ changeTargetLabel();
             arc.parse(data)
         except cabarchive.CorruptionError as e:
             self._set_response_code('415 Unsupported Media Type')
-            return self._upload_failed('Invalid file type, expected <code>.cab</code> file')
+            return self._upload_failed('Invalid file type: %s' % str(e))
         except cabarchive.NotSupportedError as e:
             self._set_response_code('415 Unsupported Media Type')
-            return self._upload_failed('The cab file has unsupported features')
-        except Exception as e:
-            return self._upload_failed(str(e))
+            return self._upload_failed('The file is unsupported: %s' % str(e))
 
         # check .inf exists
         cf = arc.find_file("*.inf")
