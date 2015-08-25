@@ -1329,6 +1329,16 @@ changeTargetLabel();
             """
             cur.execute(sql_db)
 
+        # fixup NULL fields
+        try:
+            cur.execute("SELECT * FROM firmware WHERE md_filename_contents IS NULL;")
+            if cur.fetchone():
+                sql_db = "UPDATE firmware SET md_filename_contents='firmware.bin' " \
+                         "WHERE md_filename_contents IS NULL;"
+                cur.execute(sql_db)
+        except mdb.Error, e:
+            pass
+
         # test user list exists
         try:
             cur.execute("SELECT * FROM users LIMIT 1;")
