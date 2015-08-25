@@ -21,6 +21,7 @@ if 'OPENSHIFT_PYTHON_DIR' in os.environ:
 
 from wsgiref.simple_server import make_server
 from Cookie import SimpleCookie
+import locale
 import cgi
 import hashlib
 import MySQLdb as mdb
@@ -169,6 +170,17 @@ class LvfsWebsite(object):
 <h1 class="banner">Linux Vendor<br>Firmware Service</h1>
 <h2>Please Login</h2>
 <p>%s</p>
+<p>
+The Linux Vendor Firmware Service is a secure portal which allows
+hardware vendors to upload firmware updates.
+Files can be uploaded privately and optionally embargod until a specific date.
+</p>
+<p>
+This site is used by all major Linux distributions to provide metadata
+for clients such as fwupd.
+In the last month we've provided %s firmware files to %s unique users.
+To upload firmware please login, or <a href="mailto:richard@hughsie.com">request a new account</a>.
+</p>
 <form method="post" action="wsgi.py">
 <table class="upload">
 <tr>
@@ -182,19 +194,35 @@ class LvfsWebsite(object):
 </table>
 <input type="submit" class="submit" value="Login">
 </form>
-<p>
- If you are a hardware vendor it's easy to
- <a href="mailto:richard@hughsie.com">request a new account</a>.
- It's also completely free!
-</p>
 </body>
 </html>
 """
-        if error_msg == None:
-            error_msg = ''
+
+        # get the number of files we've provided
+        cur = self.db.cursor()
+        try:
+            cur.execute("SELECT SUM(download_cnt) FROM firmware")
+        except mdb.Error, e:
+            return self._internal_error(self._format_cursor_error(cur, e))
+        download_cnt = cur.fetchone()
+        try:
+            cur.execute("SELECT COUNT(addr) FROM clients")
+        except mdb.Error, e:
+            return self._internal_error(self._format_cursor_error(cur, e))
+        user_cnt = cur.fetchone()
+
+        # format the numbers
+        locale.setlocale(locale.LC_ALL, 'en_US')
+        download_str = locale.format("%d", download_cnt, grouping=True)
+        user_str = locale.format("%d", user_cnt, grouping=True)
+        if error_msg:
+            html = html % (error_msg, download_str, user_str)
+        else:
+            html = html % ('', download_str, user_str)
+
         # set correct response code
         self._set_response_code('401 Unauthorized')
-        return self._gen_header('LVFS: Login') + html % error_msg + self._gen_footer()
+        return self._gen_header('LVFS: Login') + html + self._gen_footer()
 
     def _action_useradd(self):
         """ Add a user [ADMIN ONLY] """
@@ -1335,6 +1363,19 @@ changeTargetLabel();
             """
             cur.execute(sql_db)
 
+        # test client table exists
+        try:
+            cur.execute("SELECT * FROM clients LIMIT 1;")
+        except mdb.Error, e:
+            sql_db = """
+                CREATE TABLE `clients` (
+                  `timestamp` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                  `addr` VARCHAR(40) DEFAULT NULL UNIQUE,
+                  `cnt` INTEGER DEFAULT 1
+                ) CHARSET=utf8;
+            """
+            cur.execute(sql_db)
+
         # ensure an admin user always exists
         cur.execute("SELECT is_enabled FROM users WHERE username='admin';")
         if not cur.fetchone():
@@ -1363,6 +1404,15 @@ changeTargetLabel();
         try:
             cur.execute("UPDATE firmware SET download_cnt = download_cnt + 1 "
                         "WHERE filename=%s", (filename,))
+        except mdb.Error, e:
+            return self._internal_error(self._format_cursor_error(cur, e))
+
+    def inc_client_cnt(self, filename):
+        """ Increment the client count """
+        cur = self.db.cursor()
+        try:
+            cur.execute("INSERT INTO clients (addr) VALUES (%s) "
+                        "ON DUPLICATE KEY UPDATE cnt=cnt+1;", (self.client_address,))
         except mdb.Error, e:
             return self._internal_error(self._format_cursor_error(cur, e))
 
@@ -1451,8 +1501,6 @@ def application(environ, start_response):
         return static_app(fn, start_response, 'image/png')
     if fn.endswith(".ico"):
         return static_app(fn, start_response, 'image/x-icon')
-    if fn.endswith(".xml.gz"):
-        return static_app(fn, start_response, 'application/gzip', download=True)
     if fn.endswith(".xml.gz.asc"):
         return static_app(fn, start_response, 'text/plain', download=True)
 
@@ -1465,6 +1513,9 @@ def application(environ, start_response):
     if fn.endswith(".cab"):
         w.inc_firmware_cnt_by_fn(fn)
         return static_app(fn, start_response, 'application/vnd.ms-cab-compressed', download=True)
+    if fn.endswith(".xml.gz"):
+        w.inc_client_cnt(fn)
+        return static_app(fn, start_response, 'application/gzip', download=True)
 
     # get response
     response_body = w.get_response()
