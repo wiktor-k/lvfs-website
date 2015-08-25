@@ -25,28 +25,37 @@ from file import CabFile
 from errors import *
 
 FMT_CFHEADER = '<4sxxxxIxxxxIxxxxBBHHHHH'
-FMT_CFFOLDER = 'IHH'
-FMT_CFFILE = 'IIHHHH'
-FMT_CFDATA = 'IHH'
+FMT_CFFOLDER = '<IHH'
+FMT_CFFILE = '<IIHHHH'
+FMT_CFDATA = '<IHH'
 
 def _chunkify(arr, size):
     """ Split up a bytestream into chunks """
     arrs = []
-    while len(arr) > size:
-        pice = arr[:size]
-        arrs.append(pice)
-        arr = arr[size:]
-    arrs.append(arr)
+    for i in range(0, len(arr), size):
+        chunk = bytearray(arr[i:i+size])
+        arrs.append(chunk)
     return arrs
 
 def _checksum_compute(content, seed=0):
-    """ Compute the MSCAB "checksum" """
+    """ Compute the MS cabinet checksum """
     csum = seed
-    chunks = _chunkify(bytearray(content), 4)
+    chunks = _chunkify(content, 4)
     for chunk in chunks:
-        ul = 0
-        for i in range(0, min(len(chunk), 4)):
-            ul += chunk[i] << (8 * i)
+        if len(chunk) == 4:
+            ul = chunk[0]
+            ul |= chunk[1] << 8
+            ul |= chunk[2] << 16
+            ul |= chunk[3] << 24
+        else:
+            # WTF: I can only assume this is a typo from the original
+            # author of the cabinet file specification
+            if len(chunk) == 3:
+                ul = (chunk[0] << 16) | (chunk[1] << 8) | chunk[2]
+            elif len(chunk) == 2:
+                ul = (chunk[0] << 8) | chunk[1]
+            elif len(chunk) == 1:
+                ul = chunk[0]
         csum ^= ul
     return csum
 
@@ -77,7 +86,7 @@ class CabArchive(object):
 
     def _parse_cffile(self, offset):
         """ Parse a CFFILE entry """
-        fmt = 'I'       # uncompressed size
+        fmt = '<I'       # uncompressed size
         fmt += 'I'      # uncompressed offset of this file in the folder
         fmt += 'H'      # index into the CFFOLDER area
         fmt += 'H'      # date
@@ -112,7 +121,7 @@ class CabArchive(object):
 
     def _parse_cffolder(self, offset):
         """ Parse a CFFOLDER entry """
-        fmt = 'I'       # offset to CFDATA
+        fmt = '<I'       # offset to CFDATA
         fmt += 'H'      # number of CFDATA blocks
         fmt += 'H'      # compression type
         try:
@@ -138,7 +147,7 @@ class CabArchive(object):
 
     def _parse_cfdata(self, offset):
         """ Parse a CFDATA entry """
-        fmt = 'I'    # checksum
+        fmt = '<I'    # checksum
         fmt += 'H'      # compressed bytes
         fmt += 'H'      # uncompressed bytes
         try:
@@ -163,7 +172,7 @@ class CabArchive(object):
         # check checksum
         if vals[0] != 0:
             checksum = _checksum_compute(newbuf)
-            hdr = bytearray(struct.pack('HH', len(newbuf), len(buf)))
+            hdr = bytearray(struct.pack('<HH', len(newbuf), len(buf)))
             checksum = _checksum_compute(hdr, checksum)
             if checksum != vals[0]:
                 raise CorruptionError("Got checksum %04x, expected %04x" % (vals[0], checksum))
@@ -268,9 +277,9 @@ class CabArchive(object):
         for f in self.files:
             cfdata_linear += f.contents
 
-        # _chunkify and compress
-        chunks = _chunkify(cfdata_linear, 0xffff - 8)
+        # _chunkify and compress (leave some bytes for uncompressable data)
         if compressed:
+            chunks = _chunkify(cfdata_linear, 0xffff - 0x800)
             chunks_zlib = []
             for chunk in chunks:
                 compress = zlib.compressobj(9, zlib.DEFLATED, -zlib.MAX_WBITS)
@@ -279,6 +288,7 @@ class CabArchive(object):
                 chunk_zlib += compress.flush()
                 chunks_zlib.append(chunk_zlib)
         else:
+            chunks = _chunkify(cfdata_linear, 0xffff)
             chunks_zlib = chunks
 
         # create header
@@ -331,7 +341,7 @@ class CabArchive(object):
             # first do the 'checksum' on the data, then the partial
             # header. slightly crazy, but anyway
             checksum = _checksum_compute(chunk_zlib)
-            hdr = bytearray(struct.pack('HH', len(chunk_zlib), len(chunk)))
+            hdr = bytearray(struct.pack('<HH', len(chunk_zlib), len(chunk)))
             checksum = _checksum_compute(hdr, checksum)
             data += struct.pack(FMT_CFDATA,
                                 checksum,           # checksum
@@ -346,3 +356,7 @@ class CabArchive(object):
         """ Saves a cabinet file to disk """
         data = self.save(compressed)
         open(filename, 'wb').write(data)
+
+    def __repr__(self):
+        """ Represent the object as a string """
+        return "<CabArchive [compressed:%i] object %s>" % (self._is_zlib, self.files)
