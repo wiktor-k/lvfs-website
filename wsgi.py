@@ -1327,34 +1327,6 @@ changeTargetLabel();
             """
             cur.execute(sql_db)
 
-        # FIXME, remove after a few days
-        sql_db = """
-            ALTER TABLE firmware MODIFY md_id TEXT DEFAULT NULL;
-            ALTER TABLE firmware MODIFY md_name TEXT DEFAULT NULL;
-            ALTER TABLE firmware MODIFY md_summary TEXT DEFAULT NULL;
-            ALTER TABLE firmware MODIFY md_description TEXT DEFAULT NULL;
-            ALTER TABLE firmware MODIFY md_release_description TEXT DEFAULT NULL;
-            ALTER TABLE firmware MODIFY md_url_homepage TEXT DEFAULT NULL;
-            ALTER TABLE firmware MODIFY md_metadata_license TEXT DEFAULT NULL;
-            ALTER TABLE firmware MODIFY md_project_license TEXT DEFAULT NULL;
-            ALTER TABLE firmware MODIFY md_developer_name TEXT DEFAULT NULL;
-            ALTER TABLE firmware MODIFY md_filename_contents TEXT DEFAULT NULL;
-            ALTER TABLE event_log MODIFY message TEXT DEFAULT NULL;
-        """
-        cur.execute(sql_db)
-
-        # FIXME, remove after a few days
-        try:
-            cur.execute("SELECT md_filename_contents FROM firmware LIMIT 1;")
-        except mdb.Error, e:
-            sql_db = """
-                ALTER TABLE firmware ADD md_filename_contents TEXT DEFAULT NULL;
-                ALTER TABLE firmware ADD download_cnt INTEGER DEFAULT 0;
-            """
-            cur.execute(sql_db)
-            cur.execute("UPDATE firmware SET md_filename_contents='firmware.bin' "
-                        "WHERE md_filename_contents IS NULL;")
-
         # test user list exists
         try:
             cur.execute("SELECT * FROM users LIMIT 1;")
