@@ -1296,40 +1296,56 @@ changeTargetLabel();
             cur.execute("SELECT * FROM firmware LIMIT 1;")
         except mdb.Error, e:
             sql_db = """
-                CREATE TABLE `firmware` (
-                  `qa_group` VARCHAR(40) NOT NULL DEFAULT '',
-                  `addr` VARCHAR(40) DEFAULT NULL,
-                  `timestamp` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                  `filename` VARCHAR(255) DEFAULT NULL,
-                  `target` VARCHAR(255) DEFAULT NULL,
-                  `hash` VARCHAR(40) DEFAULT NULL,
-                  `download_cnt` INTEGER DEFAULT 0,
-                  `md_checksum_contents` VARCHAR(40) DEFAULT NULL,
-                  `md_checksum_container` VARCHAR(40) DEFAULT NULL,
-                  `md_id` VARCHAR(1024) DEFAULT NULL,
-                  `md_name` VARCHAR(1024) DEFAULT NULL,
-                  `md_summary` VARCHAR(1024) DEFAULT NULL,
-                  `md_guid` VARCHAR(36) DEFAULT NULL,
-                  `md_description` VARCHAR(4096) DEFAULT NULL,
-                  `md_release_description` VARCHAR(4096) DEFAULT NULL,
-                  `md_url_homepage` VARCHAR(1024) DEFAULT NULL,
-                  `md_metadata_license` VARCHAR(1024) DEFAULT NULL,
-                  `md_project_license` VARCHAR(1024) DEFAULT NULL,
-                  `md_developer_name` VARCHAR(1024) DEFAULT NULL,
-                  `md_filename_contents` VARCHAR(1024) DEFAULT NULL,
-                  `md_release_timestamp` INTEGER DEFAULT 0,
-                  `md_version` VARCHAR(255) DEFAULT NULL
+                CREATE TABLE firmware (
+                  qa_group VARCHAR(40) NOT NULL DEFAULT '',
+                  addr VARCHAR(40) DEFAULT NULL,
+                  timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                  filename VARCHAR(255) DEFAULT NULL,
+                  target VARCHAR(255) DEFAULT NULL,
+                  hash VARCHAR(40) DEFAULT NULL,
+                  download_cnt INTEGER DEFAULT 0,
+                  md_checksum_contents VARCHAR(40) DEFAULT NULL,
+                  md_checksum_container VARCHAR(40) DEFAULT NULL,
+                  md_id TEXT DEFAULT NULL,
+                  md_name TEXT DEFAULT NULL,
+                  md_summary TEXT DEFAULT NULL,
+                  md_guid VARCHAR(36) DEFAULT NULL,
+                  md_description TEXT DEFAULT NULL,
+                  md_release_description TEXT DEFAULT NULL,
+                  md_url_homepage TEXT DEFAULT NULL,
+                  md_metadata_license TEXT DEFAULT NULL,
+                  md_project_license TEXT DEFAULT NULL,
+                  md_developer_name TEXT DEFAULT NULL,
+                  md_filename_contents TEXT DEFAULT NULL,
+                  md_release_timestamp INTEGER DEFAULT 0,
+                  md_version VARCHAR(255) DEFAULT NULL
                 ) CHARSET=utf8;
             """
             cur.execute(sql_db)
+
+        # FIXME, remove after a few days
+        sql_db = """
+            ALTER TABLE firmware MODIFY md_id TEXT DEFAULT NULL;
+            ALTER TABLE firmware MODIFY md_name TEXT DEFAULT NULL;
+            ALTER TABLE firmware MODIFY md_summary TEXT DEFAULT NULL;
+            ALTER TABLE firmware MODIFY md_description TEXT DEFAULT NULL;
+            ALTER TABLE firmware MODIFY md_release_description TEXT DEFAULT NULL;
+            ALTER TABLE firmware MODIFY md_url_homepage TEXT DEFAULT NULL;
+            ALTER TABLE firmware MODIFY md_metadata_license TEXT DEFAULT NULL;
+            ALTER TABLE firmware MODIFY md_project_license TEXT DEFAULT NULL;
+            ALTER TABLE firmware MODIFY md_developer_name TEXT DEFAULT NULL;
+            ALTER TABLE firmware MODIFY md_filename_contents TEXT DEFAULT NULL;
+            ALTER TABLE event_log MODIFY message TEXT DEFAULT NULL;
+        """
+        cur.execute(sql_db)
 
         # FIXME, remove after a few days
         try:
             cur.execute("SELECT md_filename_contents FROM firmware LIMIT 1;")
         except mdb.Error, e:
             sql_db = """
-                ALTER TABLE `firmware` ADD md_filename_contents VARCHAR(1024) DEFAULT NULL;
-                ALTER TABLE `firmware` ADD download_cnt INTEGER DEFAULT 0;
+                ALTER TABLE firmware ADD md_filename_contents TEXT DEFAULT NULL;
+                ALTER TABLE firmware ADD download_cnt INTEGER DEFAULT 0;
             """
             cur.execute(sql_db)
             cur.execute("UPDATE firmware SET md_filename_contents='firmware.bin' "
@@ -1340,14 +1356,14 @@ changeTargetLabel();
             cur.execute("SELECT * FROM users LIMIT 1;")
         except mdb.Error, e:
             sql_db = """
-                CREATE TABLE `users` (
-                  `username` VARCHAR(40) NOT NULL DEFAULT '',
-                  `password` VARCHAR(40) NOT NULL DEFAULT '',
-                  `display_name` VARCHAR(128) DEFAULT NULL,
-                  `email` VARCHAR(255) DEFAULT NULL,
-                  `is_enabled` INTEGER DEFAULT 0,
-                  `is_qa` INTEGER DEFAULT 0,
-                  `qa_group` VARCHAR(40) NOT NULL DEFAULT ''
+                CREATE TABLE users (
+                  username VARCHAR(40) NOT NULL DEFAULT '',
+                  password VARCHAR(40) NOT NULL DEFAULT '',
+                  display_name VARCHAR(128) DEFAULT NULL,
+                  email VARCHAR(255) DEFAULT NULL,
+                  is_enabled TINYINT DEFAULT 0,
+                  is_qa TINYINT DEFAULT 0,
+                  qa_group VARCHAR(40) NOT NULL DEFAULT ''
                 ) CHARSET=utf8;
             """
             cur.execute(sql_db)
@@ -1357,12 +1373,12 @@ changeTargetLabel();
             cur.execute("SELECT * FROM event_log LIMIT 1;")
         except mdb.Error, e:
             sql_db = """
-                CREATE TABLE `event_log` (
-                  `timestamp` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                  `username` VARCHAR(40) NOT NULL DEFAULT '',
-                  `addr` VARCHAR(40) DEFAULT NULL,
-                  `message` VARCHAR(1024) DEFAULT NULL,
-                  `is_important` INTEGER DEFAULT 0
+                CREATE TABLE event_log (
+                  timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                  username VARCHAR(40) NOT NULL DEFAULT '',
+                  addr VARCHAR(40) DEFAULT NULL,
+                  message TEXT DEFAULT NULL,
+                  is_important TINYINT DEFAULT 0
                 ) CHARSET=utf8;
             """
             cur.execute(sql_db)
@@ -1372,10 +1388,10 @@ changeTargetLabel();
             cur.execute("SELECT * FROM clients LIMIT 1;")
         except mdb.Error, e:
             sql_db = """
-                CREATE TABLE `clients` (
-                  `timestamp` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                  `addr` VARCHAR(40) DEFAULT NULL UNIQUE,
-                  `cnt` INTEGER DEFAULT 1
+                CREATE TABLE clients (
+                  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                  addr VARCHAR(40) DEFAULT NULL UNIQUE,
+                  cnt INTEGER DEFAULT 1
                 ) CHARSET=utf8;
             """
             cur.execute(sql_db)
