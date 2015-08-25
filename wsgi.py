@@ -811,7 +811,7 @@ changeTargetLabel();
         cur = self.db.cursor()
         try:
             cur.execute("SELECT qa_group, addr, timestamp, filename, target, "
-                        "md_guid, md_version, md_name, md_summary, md_id "
+                        "md_guid, md_version, md_name, md_summary, md_id, download_cnt "
                         "FROM firmware WHERE hash=%s LIMIT 1;", (fwid,))
         except mdb.Error, e:
             return self._internal_error(self._format_cursor_error(cur, e))
@@ -871,6 +871,7 @@ changeTargetLabel();
         html += '<tr><th>Submitted</th><td>%s</td></tr>' % res[2]
         html += '<tr><th>QA Group</th><td><a href="%s">%s</a></td></tr>' % (embargo_url, qa_group)
         html += '<tr><th>Uploaded from</th><td>%s</td></tr>' % res[1]
+        html += '<tr><th>Downloads</th><td>%i</td></tr>' % res[10]
         html += '<tr><th>Actions</th><td>%s</td></tr>' % buttons
         html += '</table>'
 
@@ -1274,6 +1275,7 @@ changeTargetLabel();
                   `filename` VARCHAR(255) DEFAULT NULL,
                   `target` VARCHAR(255) DEFAULT NULL,
                   `hash` VARCHAR(40) DEFAULT NULL,
+                  `download_cnt` INTEGER DEFAULT 0,
                   `md_checksum_contents` VARCHAR(40) DEFAULT NULL,
                   `md_checksum_container` VARCHAR(40) DEFAULT NULL,
                   `md_id` VARCHAR(1024) DEFAULT NULL,
@@ -1286,9 +1288,18 @@ changeTargetLabel();
                   `md_metadata_license` VARCHAR(1024) DEFAULT NULL,
                   `md_project_license` VARCHAR(1024) DEFAULT NULL,
                   `md_developer_name` VARCHAR(1024) DEFAULT NULL,
-                  `md_release_timestamp` INTEGER DEFAULT NULL,
+                  `md_release_timestamp` INTEGER DEFAULT 0,
                   `md_version` VARCHAR(255) DEFAULT NULL
                 ) CHARSET=utf8;
+            """
+            cur.execute(sql_db)
+
+        # FIXME, remove after a few days
+        try:
+            cur.execute("SELECT download_cnt FROM firmware LIMIT 1;")
+        except mdb.Error, e:
+            sql_db = """
+                ALTER TABLE `firmware` ADD download_cnt INTEGER DEFAULT 0;
             """
             cur.execute(sql_db)
 
@@ -1345,6 +1356,15 @@ changeTargetLabel();
 
         # ensure admin has all privs
         cur.execute("UPDATE users SET is_enabled=1, is_qa=1, qa_group='' WHERE username='admin';")
+
+    def inc_firmware_cnt_by_fn(self, filename):
+        """ Increment the downloaded count """
+        cur = self.db.cursor()
+        try:
+            cur.execute("UPDATE firmware SET download_cnt = download_cnt + 1 "
+                        "WHERE filename=%s", (filename,))
+        except mdb.Error, e:
+            return self._internal_error(self._format_cursor_error(cur, e))
 
     def init(self, environ):
         """ Set up the website helper with the calling environment """
@@ -1433,8 +1453,6 @@ def application(environ, start_response):
         return static_app(fn, start_response, 'image/x-icon')
     if fn.endswith(".xml.gz"):
         return static_app(fn, start_response, 'application/gzip', download=True)
-    if fn.endswith(".cab"):
-        return static_app(fn, start_response, 'application/vnd.ms-cab-compressed', download=True)
     if fn.endswith(".xml.gz.asc"):
         return static_app(fn, start_response, 'text/plain', download=True)
 
@@ -1443,6 +1461,12 @@ def application(environ, start_response):
     w.qs_get = cgi.parse_qs(environ['QUERY_STRING'])
     w.init(environ)
 
+    # handle files
+    if fn.endswith(".cab"):
+        w.inc_firmware_cnt_by_fn(fn)
+        return static_app(fn, start_response, 'application/vnd.ms-cab-compressed', download=True)
+
+    # get response
     response_body = w.get_response()
 
     # fallback
