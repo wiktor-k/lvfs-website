@@ -1,4 +1,6 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
+#
 # Copyright (C) 2015 Richard Hughes <richard@hughsie.com>
 # Licensed under the GNU General Public License Version 2
 import os
@@ -1456,6 +1458,10 @@ changeTargetLabel();
             self.db.autocommit(True)
         except mdb.Error, e:
             print "Error %d: %s" % (e.args[0], e.args[1])
+
+        # set as UTF-8
+        cur = self.db.cursor()
+        cur.execute("SET CHARACTER SET utf8;")
 
         # make sane
         self._fixup_database()
