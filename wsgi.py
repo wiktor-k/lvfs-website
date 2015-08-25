@@ -1070,9 +1070,9 @@ changeTargetLabel();
                         "md_name, md_summary, md_checksum_contents, md_release_description, "
                         "md_release_timestamp, md_developer_name, md_metadata_license, "
                         "md_project_license, md_url_homepage, md_description, "
-                        "md_checksum_container) "
+                        "md_checksum_container, md_filename_contents) "
                         "VALUES (%s, %s, CURRENT_TIMESTAMP, %s, %s, %s, %s, "
-                        "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);",
+                        "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);",
                         (self.qa_group,
                          self.client_address,
                          new_filename,
@@ -1091,7 +1091,8 @@ changeTargetLabel();
                          app.project_license,
                          app.urls['homepage'],
                          app.description,
-                         checksum_container,))
+                         checksum_container,
+                         fw_data.filename,))
         except mdb.Error, e:
             return self._internal_error(self._format_cursor_error(cur, e))
         # set correct response code
@@ -1178,7 +1179,8 @@ changeTargetLabel();
                     "md_release_description, md_url_homepage, "
                     "md_metadata_license, md_project_license, "
                     "md_developer_name, md_release_timestamp, "
-                    "md_version, hash, qa_group, target FROM firmware "
+                    "md_version, hash, qa_group, target, "
+                    "md_filename_contents FROM firmware "
                     "WHERE target != 'private';")
         res = cur.fetchall()
 
@@ -1237,7 +1239,7 @@ changeTargetLabel();
                     csum = appstream.Checksum()
                     csum.target = 'content'
                     csum.value = r[1]
-                    csum.filename = 'firmware.bin'
+                    csum.filename = r[17]
                     rel.add_checksum(csum)
 
             # add app
@@ -1314,6 +1316,7 @@ changeTargetLabel();
                   `md_metadata_license` VARCHAR(1024) DEFAULT NULL,
                   `md_project_license` VARCHAR(1024) DEFAULT NULL,
                   `md_developer_name` VARCHAR(1024) DEFAULT NULL,
+                  `md_filename_contents` VARCHAR(1024) DEFAULT NULL,
                   `md_release_timestamp` INTEGER DEFAULT 0,
                   `md_version` VARCHAR(255) DEFAULT NULL
                 ) CHARSET=utf8;
@@ -1322,12 +1325,15 @@ changeTargetLabel();
 
         # FIXME, remove after a few days
         try:
-            cur.execute("SELECT download_cnt FROM firmware LIMIT 1;")
+            cur.execute("SELECT md_filename_contents FROM firmware LIMIT 1;")
         except mdb.Error, e:
             sql_db = """
+                ALTER TABLE `firmware` ADD md_filename_contents VARCHAR(1024) DEFAULT NULL;
                 ALTER TABLE `firmware` ADD download_cnt INTEGER DEFAULT 0;
             """
             cur.execute(sql_db)
+            cur.execute("UPDATE firmware SET md_filename_contents='firmware.bin' "
+                        "WHERE md_filename_contents IS NULL;")
 
         # test user list exists
         try:
