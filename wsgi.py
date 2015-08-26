@@ -1457,23 +1457,20 @@ changeTargetLabel();
                                       environ['OPENSHIFT_MYSQL_DB_USERNAME'],
                                       environ['OPENSHIFT_MYSQL_DB_PASSWORD'],
                                       'secure',
-                                      int(environ['OPENSHIFT_MYSQL_DB_PORT']))
+                                      int(environ['OPENSHIFT_MYSQL_DB_PORT']),
+                                      use_unicode=True, charset='utf8')
             else:
                 # mysql -u root -p
                 # CREATE DATABASE secure;
                 # CREATE USER 'test'@'localhost' IDENTIFIED BY 'test';
                 # USE secure;
                 # GRANT ALL ON secure.* TO 'test'@'localhost';
-                self.db = mdb.connect('localhost', 'test', 'test', 'secure')
+                self.db = mdb.connect('localhost', 'test', 'test', 'secure',
+                                      use_unicode=True, charset='utf8')
             self.db.autocommit(True)
         except mdb.Error, e:
             print "Error %d: %s" % (e.args[0], e.args[1])
 
-        # set as UTF-8
-        cur = self.db.cursor()
-        cur.execute("SET CHARACTER SET utf8;")
-
-        # make sane
         self._fixup_database()
 
         if self.fields:
@@ -1546,7 +1543,7 @@ def application(environ, start_response):
     start_response(w.response_code, response_headers)
     w.finalize()
 
-    return [response_body]
+    return [response_body.encode('utf-8')]
 
 if __name__ == '__main__':
     httpd = make_server('localhost', 8051, application)
