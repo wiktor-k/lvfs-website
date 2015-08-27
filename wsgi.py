@@ -26,11 +26,37 @@ from Cookie import SimpleCookie
 import locale
 import cgi
 import hashlib
-import MySQLdb as mdb
+import math
 
 import cabarchive
 import appstream
 from affidavit import Affidavit, NoKeyError
+from db import LvfsDatabase, CursorError
+from db_users import _password_hash
+from db_firmware import LvfsFirmware
+
+def _qa_hash(value):
+    """ Generate a salted hash of the QA group """
+    salt = 'vendor%%%'
+    return hashlib.sha1(salt + value).hexdigest()
+
+def _password_check(value):
+    """ Check the password for suitability """
+    if len(value) < 8:
+        return 'The password is too short, the minimum is 8 character'
+    if len(value) > 40:
+        return 'The password is too long, the maximum is 40 character'
+    if value.lower() == value:
+        return 'The password requires at least one uppercase character'
+    if value.isalnum():
+        return 'The password requires at least one non-alphanumeric character'
+    return None
+
+def _email_check(value):
+    """ Do a quick and dirty check on the email address """
+    if len(value) < 5 or value.find('@') == -1 or value.find('.') == -1:
+        return 'Invalid email address'
+    return None
 
 class LvfsWebsite(object):
     """ A helper class """
@@ -43,7 +69,7 @@ class LvfsWebsite(object):
         self.qa_capability = False
         self.fields = None
         self.qs_get = None
-        self.db = None
+        self._db = None
         self.client_address = None
         self.session_cookie = SimpleCookie()
         self.response_code = None
@@ -51,59 +77,14 @@ class LvfsWebsite(object):
 
     def _event_log(self, msg, username=None, is_important=False):
         """ Adds an item to the event log """
-        if not self.db:
-            print "No database, ignoring: %s" % msg
-            return
         if not username:
             username = self.username
-        cur = self.db.cursor()
-        try:
-            cur.execute("INSERT INTO event_log (username, addr, message, is_important) "
-                        "VALUES (%s, %s, %s, %s);",
-                        (username, self.client_address, msg, is_important,))
-        except mdb.Error, e:
-            return self._internal_error(self._format_cursor_error(cur, e))
+        self._db.eventlog.add(msg, username, self.client_address, is_important)
 
     def create_affidavit(self):
         """ Create an affidavit that can be used to sign files """
-
-        # create signing object
-        cur = self.db.cursor()
-        cur.execute("SELECT email FROM users WHERE username='admin'")
-        key_uid = cur.fetchone()
-        return Affidavit(key_uid[0], KEYRING_DIR)
-
-    def _password_hash(self, value):
-        """ Generate a salted hash of the password string """
-        salt = 'lvfs%%%'
-        return hashlib.sha1(salt + value).hexdigest()
-
-    def _qa_hash(self, value):
-        """ Generate a salted hash of the QA group """
-        salt = 'vendor%%%'
-        return hashlib.sha1(salt + value).hexdigest()
-
-    def _password_check(self, value):
-        """ Check the password for suitability """
-        if len(value) < 8:
-            return 'The password is too short, the minimum is 8 character'
-        if len(value) > 40:
-            return 'The password is too long, the maximum is 40 character'
-        if value.lower() == value:
-            return 'The password requires at least one uppercase character'
-        if value.isalnum():
-            return 'The password requires at least one non-alphanumeric character'
-        return None
-
-    def _email_check(self, value):
-        """ Do a quick and dirty check on the email address """
-        if len(value) < 5 or value.find('@') == -1 or value.find('.') == -1:
-            return 'Invalid email address'
-        return None
-
-    def _format_cursor_error(self, cur, e):
-        ''' return an HTML error string of the cursor error '''
-        return cgi.escape(cur._last_executed) + '&#10145; ' + cgi.escape(str(e))
+        key_uid = self._db.users.get_signing_uid()
+        return Affidavit(key_uid, KEYRING_DIR)
 
     def _set_response_code(self, rc):
         """ Set the response code if not already set """
@@ -111,7 +92,7 @@ class LvfsWebsite(object):
             return
         self.response_code = rc
 
-    def _gen_header(self, title):
+    def _gen_header(self, title, show_navigation=True):
         """ Generate a HTML header for all pages """
         html = """
 <!DOCTYPE html>
@@ -119,14 +100,29 @@ class LvfsWebsite(object):
      Licensed under the GNU General Public License Version 2 -->
 <html>
 <head>
-<title>%s</title>
+<title>LVFS: %s</title>
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
 <link rel="stylesheet" href="style.css" type="text/css" media="screen"/>
 <link rel="shortcut icon" href="favicon.ico"/>
 </head>
 <body>
 """
-        return html % title
+        html = html % title
+
+        # add navigation
+        if show_navigation:
+            html += '<ul class="navigation">\n'
+            html += '  <li class="navigation"><a class="navigation" href="?">Home</a></li>\n'
+            html += '  <li class="navigation"><a class="navigation" href="?action=existing">Firmware</a></li>\n'
+            html += '  <li class="navigation"><a class="navigation" href="?action=metadata">Metadata</a></li>\n'
+            if self.username == 'admin':
+                html += '  <li class="navigation"><a class="navigation" href="?action=userlist">User List</a></li>\n'
+                html += '  <li class="navigation"><a class="navigation" href="?action=eventlog">Event Log</a></li>\n'
+            html += '  <li class="navigation2"><a class="navigation" href="?action=logout">Log Out</a></li>\n'
+            html += '  <li class="navigation2"><a class="navigation" href="?action=profile">Profile</a></li>\n'
+            html += '</ul>\n'
+
+        return html
 
     def _gen_footer(self):
         """ Generate a footer at the bottom of the page """
@@ -139,32 +135,6 @@ class LvfsWebsite(object):
 """
         return html
 
-    def _gen_breadcrumb(self, show_back=True, show_profile=True):
-        """ Generate a breadcrumb header at the top of the page """
-        html = '<table class="breadcrumb"><tr>'
-
-        # back button
-        if show_back:
-            html += '<td>'
-            html += '<form method=\"get\" action=\"wsgi.py\">'
-            html += '<button class="breadcrumb">&lt;</button>'
-            html += '</form>'
-            html += '</td>\n'
-
-        # profile
-        html += '<td class="breadcrumb">'
-        if not show_profile:
-            html += "User %s" % self.username
-        else:
-            html += "User <a href=\"wsgi.py?action=profile\">%s</a>" % self.username
-
-        # log out
-        html += ' &#10145; <a href="wsgi.py?action=logout\">Log out</a>'
-        html += '</td>\n'
-        html += '</tr></table>\n'
-
-        return html
-
     def _action_login(self, error_msg=None):
         """ A login screen to allow access to the LVFS main page """
 
@@ -175,22 +145,22 @@ class LvfsWebsite(object):
 <p>
 The Linux Vendor Firmware Service is a secure portal which allows
 hardware vendors to upload firmware updates.
-Files can be uploaded privately and optionally embargod until a specific date.
+Files can be uploaded privately and optionally embargoed until a specific date.
 </p>
 <p>
 This site is used by all major Linux distributions to provide metadata
-for clients such as fwupd.
+for clients such as fwupdmgr and GNOME Software.
 In the last month we've provided %s firmware files to %s unique users.
 To upload firmware please login, or <a href="mailto:richard@hughsie.com">request a new account</a>.
 </p>
 <form method="post" action="wsgi.py">
 <table class="upload">
 <tr>
-<td><label for="username">Username:</label></td>
+<th class="upload"><label for="username">Username:</label></td>
 <td><input type="text" name="username" required></td>
 </tr>
 <tr>
-<td><label for="password">Password:</label></td>
+<th class="upload"><label for="password">Password:</label></td>
 <td><input type="password" name="password" required></td>
 </tr>
 </table>
@@ -199,28 +169,10 @@ To upload firmware please login, or <a href="mailto:richard@hughsie.com">request
 </body>
 </html>
 """
-
         # get the number of files we've provided
-        cur = self.db.cursor()
-        try:
-            cur.execute("SELECT SUM(download_cnt) FROM firmware")
-        except mdb.Error, e:
-            return self._internal_error(self._format_cursor_error(cur, e))
-        download_cnt = cur.fetchone()[0]
-        if not download_cnt:
-            download_cnt = 0
-        try:
-            cur.execute("SELECT COUNT(addr) FROM clients")
-        except mdb.Error, e:
-            return self._internal_error(self._format_cursor_error(cur, e))
-        user_cnt = cur.fetchone()[0]
-        if not user_cnt:
-            user_cnt = 0
-
-        # format the numbers
         locale.setlocale(locale.LC_ALL, 'en_US')
-        download_str = locale.format("%d", download_cnt, grouping=True)
-        user_str = locale.format("%d", user_cnt, grouping=True)
+        download_str = locale.format("%d", self._db.firmware.get_download_cnt(), grouping=True)
+        user_str = locale.format("%d", self._db.clients.get_metadata_download_cnt(), grouping=True)
         if error_msg:
             html = html % (error_msg, download_str, user_str)
         else:
@@ -228,7 +180,7 @@ To upload firmware please login, or <a href="mailto:richard@hughsie.com">request
 
         # set correct response code
         self._set_response_code('401 Unauthorized')
-        return self._gen_header('LVFS: Login') + html + self._gen_footer()
+        return self._gen_header('Login', show_navigation=False) + html + self._gen_footer()
 
     def _action_useradd(self):
         """ Add a user [ADMIN ONLY] """
@@ -245,59 +197,54 @@ To upload firmware please login, or <a href="mailto:richard@hughsie.com">request
             return self._action_permission_denied('Unable to add user an no data')
         if not 'email' in self.fields:
             return self._action_permission_denied('Unable to add user an no data')
-        cur = self.db.cursor()
         try:
-            cur.execute("SELECT is_enabled FROM users WHERE username=%s",
-                        (self.fields['username_new'].value,))
-        except mdb.Error, e:
-            return self._internal_error(self._format_cursor_error(cur, e))
-        auth = cur.fetchone()
+            auth = self._db.users.is_enabled(self.fields['username_new'].value)
+        except CursorError as e:
+            return self._internal_error(str(e))
         if auth:
             self._set_response_code('422 Entity Already Exists')
-            return self._action_profile('Already a entry with that username')
+            return self._action_userlist('Already a entry with that username')
 
         # verify password
         password = self.fields['password_new'].value
-        pw_check = self._password_check(password)
+        pw_check = _password_check(password)
         if pw_check:
             self._set_response_code('400 Bad Request')
-            return self._action_profile(pw_check)
-        pw_hash = self._password_hash(password)
+            return self._action_userlist(pw_check)
 
         # verify email
         email = self.fields['email'].value
-        email_check = self._email_check(email)
+        email_check = _email_check(email)
         if email_check:
             self._set_response_code('400 Bad Request')
-            return self._action_profile(email_check)
+            return self._action_userlist(email_check)
 
         # verify qa_group
         qa_group = self.fields['qa_group'].value
         if len(qa_group) < 3:
             self._set_response_code('400 Bad Request')
-            return self._action_profile('QA group invalid')
+            return self._action_userlist('QA group invalid')
 
         # verify name
         name = self.fields['name'].value
         if len(name) < 3:
             self._set_response_code('400 Bad Request')
-            return self._action_profile('Name invalid')
+            return self._action_userlist('Name invalid')
 
         # verify username
         username_new = self.fields['username_new'].value
         if len(username_new) < 3:
             self._set_response_code('400 Bad Request')
-            return self._action_profile('Username invalid')
+            return self._action_userlist('Username invalid')
         try:
-            cur.execute("INSERT INTO users (username, password, display_name, email, is_enabled, qa_group) "
-                        "VALUES (%s, %s, %s, %s, 1, %s);",
-                        (username_new, pw_hash, name, email, qa_group,))
-        except mdb.Error, e:
-            return self._internal_error(self._format_cursor_error(cur, e))
+            self._db.users.add(username_new, password, name, email, qa_group)
+        except CursorError as e:
+            #FIXME
+            pass
 
         self._event_log("Created user %s" % username_new)
         self._set_response_code('201 Created')
-        return self._action_profile('Added user')
+        return self._action_userlist('Added user')
 
     def _action_userinc(self, value):
         """ Adds or remove a capability to a user """
@@ -315,25 +262,17 @@ To upload firmware please login, or <a href="mailto:richard@hughsie.com">request
             return self._action_permission_denied('Unable to inc user as no data')
 
         # save new value
-        cur = self.db.cursor()
-        if key == 'qa':
-            try:
-                cur.execute("UPDATE users SET is_qa=%s WHERE username=%s;",
-                            (value, username_new,))
-            except mdb.Error, e:
-                return self._internal_error(self._format_cursor_error(cur, e))
-        elif key == 'enabled':
-            try:
-                cur.execute("UPDATE users SET is_enabled=%s WHERE username=%s;",
-                            (value, username_new,))
-            except mdb.Error, e:
-                return self._internal_error(self._format_cursor_error(cur, e))
-        else:
+        try:
+            self._db.users.set_property(username_new, key, value)
+        except CursorError as e:
+            return self._internal_error(str(e))
+        except RuntimeError as e:
             return self._action_permission_denied('Unable to change user as key invalid')
+
         # set correct response code
         self._event_log("Set %s=%s for user %s" % (key, value, username_new))
         self._set_response_code('200 OK')
-        return self._action_profile()
+        return self._action_userlist()
 
     def _action_userdel(self):
         """ Delete a user [ADMIN ONLY] """
@@ -343,24 +282,21 @@ To upload firmware please login, or <a href="mailto:richard@hughsie.com">request
         username_new = self.qs_get.get('username_new', [None])[0]
         if not username_new:
             return self._action_permission_denied('Unable to change user as no data')
-        cur = self.db.cursor()
+
         try:
-            cur.execute("SELECT is_enabled FROM users WHERE username=%s;",
-                        (username_new,))
-        except mdb.Error, e:
-            return self._internal_error(self._format_cursor_error(cur, e))
-        exists = cur.fetchone()
+            exists = self._db.users.is_enabled(username_new)
+        except CursorError as e:
+            return self._internal_error(str(e))
         if not exists:
             self._set_response_code('400 Bad Request')
-            return self._action_profile("No entry with username %s" % username_new)
+            return self._action_userlist("No entry with username %s" % username_new)
         try:
-            cur.execute("DELETE FROM users WHERE username=%s;",
-                        (username_new,))
-        except mdb.Error, e:
-            return self._internal_error(self._format_cursor_error(cur, e))
+            self._db.users.remove(username_new)
+        except CursorError as e:
+            return self._internal_error(str(e))
         self._event_log("Deleted user %s" % username_new)
         self._set_response_code('200 OK')
-        return self._action_profile('Deleted user')
+        return self._action_userlist('Deleted user')
 
     def _action_usermod(self):
         """ Change details about the current user """
@@ -373,28 +309,23 @@ To upload firmware please login, or <a href="mailto:richard@hughsie.com">request
             return self._action_permission_denied('Unable to change user as no data')
         if not 'email' in self.fields:
             return self._action_permission_denied('Unable to change user as no data')
-        cur = self.db.cursor()
         try:
-            pw_hash = self._password_hash(self.fields['password_old'].value)
-            cur.execute("SELECT is_enabled FROM users WHERE username=%s AND password=%s;",
-                        (self.username, pw_hash,))
-        except mdb.Error, e:
-            return self._internal_error(self._format_cursor_error(cur, e))
-        auth = cur.fetchone()
+            auth = self._db.users.verify(self.username, self.fields['password_old'].value)
+        except CursorError as e:
+            return self._internal_error(str(e))
         if not auth:
             return self._action_login('Incorrect existing password')
 
         # check password
         password = self.fields['password_new'].value
-        pw_check = self._password_check(password)
+        pw_check = _password_check(password)
         if pw_check:
             self._set_response_code('400 Bad Request')
             return self._action_profile(pw_check)
-        pw_hash = self._password_hash(password)
 
         # check email
         email = self.fields['email'].value
-        email_check = self._email_check(email)
+        email_check = _email_check(email)
         if email_check:
             return self._action_profile(email_check)
 
@@ -404,12 +335,10 @@ To upload firmware please login, or <a href="mailto:richard@hughsie.com">request
             self._set_response_code('400 Bad Request')
             return self._action_profile('Name invalid')
         try:
-            cur.execute("UPDATE users SET display_name=%s, email=%s, password=%s "
-                        "WHERE username=%s;",
-                        (name, email, pw_hash, self.username,))
-        except mdb.Error, e:
-            return self._internal_error(self._format_cursor_error(cur, e))
-        self.session_cookie['password'] = pw_hash
+            self._db.users.update(self.username, password, name, email)
+        except CursorError as e:
+            return self._internal_error(str(e))
+        self.session_cookie['password'] = _password_hash(password)
         self._event_log('Changed password')
         self._set_response_code('200 OK')
         return self._action_profile('Updated profile')
@@ -427,21 +356,21 @@ To upload firmware please login, or <a href="mailto:richard@hughsie.com">request
 A good password consists of upper and lower case with numbers.
 </p>
 <form method="post" action="wsgi.py?action=usermod">
-<table>
+<table class="upload">
 <tr>
-<td>Current Password:</td>
+<th class="upload">Current Password:</th>
 <td><input type="password" name="password_old" required></td>
 </tr>
 <tr>
-<td>New Password:</td>
+<th class="upload">New Password:</th>
 <td><input type="password" name="password_new" required></td>
 </tr>
 <tr>
-<td>Vendor Name:</td>
+<th class="upload">Vendor Name:</th>
 <td><input type="text" name="name" value="%s" required></td>
 </tr>
 <tr>
-<td>Contact Email:</td>
+<th class="upload">Contact Email:</th>
 <td><input type="text" name="email" value="%s" required></td>
 </tr>
 </table>
@@ -450,112 +379,131 @@ A good password consists of upper and lower case with numbers.
 """
 
         # auth check
-        cur = self.db.cursor()
         try:
-            cur.execute("SELECT display_name, email FROM users WHERE username = %s"
-                        " LIMIT 1;", (self.username,))
-        except mdb.Error, e:
-            return self._internal_error(self._format_cursor_error(cur, e))
-        res = cur.fetchone()
-        if not res:
+            item = self._db.users.get_item(self.username)
+        except CursorError as e:
+            return self._internal_error(str(e))
+        if not item:
             return self._action_login('Invalid username query')
 
         # add defaults
-        display_name = res[0]
-        if not display_name:
-            display_name = "Example Name"
-        email = res[1]
-        if not email:
-            email = "info@example.com"
+        if not item.display_name:
+            item.display_name = "Example Name"
+        if not item.email:
+            item.email = "info@example.com"
 
-        html = html % (msg, display_name, email)
+        html = html % (msg, item.display_name, item.email)
 
-        admin_html = ''
+        # add suitable warning
         if self.username == 'admin':
-            admin_html = """
-<h1>Userlist</h1>
-<table class="history">
-<tr>
-<th>Username</th>
-<th>Password</th>
-<th>Name</th>
-<th>Email</th>
-<th>Group</th>
-<th>Actions</th>
-</tr>
-%s
-</table>
-"""
+            html += '<p>The email address set here will be used as the signing key for all firmware and metadata.</p>'
 
-            try:
-                cur.execute("SELECT username, display_name, email, password, is_enabled, is_qa, qa_group FROM users;")
-            except mdb.Error, e:
-                return self._internal_error(self._format_cursor_error(cur, e))
-            res = cur.fetchall()
-            if not res:
-                return self._action_login('No users available!')
-            userlist = ''
-            for e in res:
-                if e[0] == 'admin':
-                    button = ''
+        self._set_response_code('200 OK')
+        return self._gen_header('Modify User') + html + self._gen_footer()
+
+    def _action_userlist(self, msg = None):
+        """
+        Show a list of all users
+        """
+
+        if self.username != 'admin':
+            return self._action_permission_denied('Unable to show event log for non-admin user')
+        html = "<h1>User List</h1>"
+        if msg:
+            html += '<p>%s</p>' % msg
+        html += '<table class="history">'
+        html += '<tr>'
+        html += '<th>Username</th>'
+        html += '<th>Password</th>'
+        html += '<th>Name</th>'
+        html += '<th>Email</th>'
+        html += '<th>Group</th>'
+        html += '<th>Actions</th>'
+        html += '</tr>'
+        try:
+            items = self._db.users.get_items()
+        except CursorError as e:
+            return self._internal_error(str(e))
+        for item in items:
+            if item.username == 'admin':
+                button = ''
+            else:
+                button = "<form method=\"get\" action=\"wsgi.py\">" \
+                         "<input type=\"hidden\" name=\"action\" value=\"userdel\"/>" \
+                         "<input type=\"hidden\" name=\"username_new\" value=\"%s\"/>" \
+                         "<button>Delete</button>" \
+                         "</form>" % item.username
+                if not item.is_enabled:
+                    button += "<form method=\"get\" action=\"wsgi.py\">" \
+                              "<input type=\"hidden\" name=\"action\" value=\"userinc\"/>" \
+                              "<input type=\"hidden\" name=\"username_new\" value=\"%s\"/>" \
+                              "<input type=\"hidden\" name=\"key\" value=\"%s\"/>" \
+                              "<button>Enable</button>" \
+                              "</form>" % (item.username, 'enabled')
                 else:
-                    button = "<form method=\"get\" action=\"wsgi.py\">" \
-                             "<input type=\"hidden\" name=\"action\" value=\"userdel\"/>" \
-                             "<input type=\"hidden\" name=\"username_new\" value=\"%s\"/>" \
-                             "<button>Delete</button>" \
-                             "</form>" % e[0]
-                    if not int(e[4]):
-                        button += "<form method=\"get\" action=\"wsgi.py\">" \
-                                  "<input type=\"hidden\" name=\"action\" value=\"userinc\"/>" \
-                                  "<input type=\"hidden\" name=\"username_new\" value=\"%s\"/>" \
-                                  "<input type=\"hidden\" name=\"key\" value=\"%s\"/>" \
-                                  "<button>Enable</button>" \
-                                  "</form>" % (e[0], 'enabled')
-                    else:
-                        button += "<form method=\"get\" action=\"wsgi.py\">" \
-                                  "<input type=\"hidden\" name=\"action\" value=\"userdec\"/>" \
-                                  "<input type=\"hidden\" name=\"username_new\" value=\"%s\"/>" \
-                                  "<input type=\"hidden\" name=\"key\" value=\"%s\"/>" \
-                                  "<button>Disable</button>" \
-                                  "</form>" % (e[0], 'enabled')
-                    if not int(e[5]):
-                        button += "<form method=\"get\" action=\"wsgi.py\">" \
-                                  "<input type=\"hidden\" name=\"action\" value=\"userinc\"/>" \
-                                  "<input type=\"hidden\" name=\"username_new\" value=\"%s\"/>" \
-                                  "<input type=\"hidden\" name=\"key\" value=\"%s\"/>" \
-                                  "<button>+QA</button>" \
-                                  "</form>" % (e[0], 'qa')
-                    else:
-                        button += "<form method=\"get\" action=\"wsgi.py\">" \
-                                  "<input type=\"hidden\" name=\"action\" value=\"userdec\"/>" \
-                                  "<input type=\"hidden\" name=\"username_new\" value=\"%s\"/>" \
-                                  "<input type=\"hidden\" name=\"key\" value=\"%s\"/>" \
-                                  "<button>-QA</button>" \
-                                  "</form>" % (e[0], 'qa')
-                userlist += '<tr>'
-                userlist += "<td>%s</td>\n" % e[0]
-                userlist += "<td>%s&hellip;</td>\n" % e[3][0:8]
-                userlist += "<td>%s</td>\n" % e[1]
-                userlist += "<td>%s</td>\n" % e[2]
-                userlist += "<td>%s</td>\n" % e[6]
-                userlist += "<td>%s</td>\n" % button
-                userlist += '</tr>'
+                    button += "<form method=\"get\" action=\"wsgi.py\">" \
+                              "<input type=\"hidden\" name=\"action\" value=\"userdec\"/>" \
+                              "<input type=\"hidden\" name=\"username_new\" value=\"%s\"/>" \
+                              "<input type=\"hidden\" name=\"key\" value=\"%s\"/>" \
+                              "<button>Disable</button>" \
+                              "</form>" % (item.username, 'enabled')
+                if not item.is_qa:
+                    button += "<form method=\"get\" action=\"wsgi.py\">" \
+                              "<input type=\"hidden\" name=\"action\" value=\"userinc\"/>" \
+                              "<input type=\"hidden\" name=\"username_new\" value=\"%s\"/>" \
+                              "<input type=\"hidden\" name=\"key\" value=\"%s\"/>" \
+                              "<button>+QA</button>" \
+                              "</form>" % (item.username, 'qa')
+                else:
+                    button += "<form method=\"get\" action=\"wsgi.py\">" \
+                              "<input type=\"hidden\" name=\"action\" value=\"userdec\"/>" \
+                              "<input type=\"hidden\" name=\"username_new\" value=\"%s\"/>" \
+                              "<input type=\"hidden\" name=\"key\" value=\"%s\"/>" \
+                              "<button>-QA</button>" \
+                              "</form>" % (item.username, 'qa')
+            html += '<tr>'
+            html += "<td>%s</td>\n" % item.username
+            html += "<td>%s&hellip;</td>\n" % item.password[0:8]
+            html += "<td>%s</td>\n" % item.display_name
+            html += "<td>%s</td>\n" % item.email
+            html += "<td>%s</td>\n" % item.qa_group
+            html += "<td>%s</td>\n" % button
+            html += '</tr>'
 
-            # add new user form
-            userlist += "<tr>" \
-                        "<form method=\"post\" action=\"wsgi.py?action=useradd\">" \
-                        "<td><input type=\"text\" size=\"8\" name=\"username_new\" placeholder=\"username\" required></td>" \
-                        "<td><input type=\"password\" size=\"8\" name=\"password_new\" placeholder=\"password\" required></td>" \
-                        "<td><input type=\"text\" size=\"14\" name=\"name\" placeholder=\"Example Name\" required></td>" \
-                        "<td><input type=\"text\" size=\"14\" name=\"email\" placeholder=\"info@example.com\" required></td>" \
-                        "<td><input type=\"text\" size=\"8\" name=\"qa_group\" placeholder=\"example\" required></td>" \
-                        "<td><input type=\"submit\" class=\"button\" value=\"Add\"></td>" \
-                        "</form>" \
-                        "</tr>\n"
-            admin_html = admin_html % userlist
+        # add new user form
+        html += "<tr>"
+        html += "<form method=\"post\" action=\"wsgi.py?action=useradd\">"
+        html += "<td><input type=\"text\" size=\"8\" name=\"username_new\" placeholder=\"username\" required></td>"
+        html += "<td><input type=\"password\" size=\"8\" name=\"password_new\" placeholder=\"password\" required></td>"
+        html += "<td><input type=\"text\" size=\"14\" name=\"name\" placeholder=\"Example Name\" required></td>"
+        html += "<td><input type=\"text\" size=\"14\" name=\"email\" placeholder=\"info@example.com\" required></td>"
+        html += "<td><input type=\"text\" size=\"8\" name=\"qa_group\" placeholder=\"example\" required></td>"
+        html += "<td><input type=\"submit\" class=\"button\" value=\"Add\"></td>"
+        html += "</form>"
+        html += "</tr>\n"
+        html += '</table>'
 
-            # add event log
-            tbldata = """
+        self._set_response_code('200 OK')
+        return self._gen_header('User List') + html + self._gen_footer()
+
+    def _action_eventlog(self):
+        """
+        Show an event log of user actions.
+        """
+        if self.username != 'admin':
+            return self._action_permission_denied('Unable to show event log for non-admin user')
+
+        # get parameters
+        start = self.qs_get.get('start', [0])[0]
+        length = self.qs_get.get('length', [0])[0]
+        if length == 0:
+            length = 20
+
+        # get the page selection correct
+        eventlog_len = self._db.eventlog.size()
+        nr_pages = int(math.ceil(eventlog_len / float(length)))
+
+        html = """
 <h1>Event Log</h1>
 <table class="history">
 <tr>
@@ -566,31 +514,32 @@ A good password consists of upper and lower case with numbers.
 <th>Message</th>
 </tr>
 """
+        try:
+            items = self._db.eventlog.get_items(int(start), int(length))
+        except CursorError as e:
+            return self._internal_error(str(e))
+        if len(items) == 0:
+            return self._internal_error('No event log available!')
+        for item in items:
+            html += '<tr>'
+            html += '<td class="history">%s</td>' % str(item.timestamp).split('.')[0]
+            html += '<td class="history">%s</td>' % item.address
+            html += '<td class="history">%s</td>' % item.username
+            if item.is_important == 1:
+                html += '<td class="history">&#x272a;</td>'
+            else:
+                html += '<td class="history"></td>'
+            html += '<td class="history">%s</td>' % item.message
+            html += '</tr>\n'
+        html += '</table>'
 
-            try:
-                cur.execute("SELECT timestamp, username, addr, message, is_important FROM event_log ORDER BY timestamp DESC LIMIT 20;")
-            except mdb.Error, e:
-                return self._internal_error(self._format_cursor_error(cur, e))
-            res = cur.fetchall()
-            if not res:
-                return self._action_login('No users available!')
-            for e in res:
-                tbldata += '<tr>'
-                tbldata += "<td>%s</td>" % str(e[0]).split('.')[0]
-                tbldata += "<td>%s</td>" % e[2]
-                tbldata += "<td>%s</td>" % e[1]
-                if e[4] == 1:
-                    tbldata += "<td>&#x272a;</td>"
-                else:
-                    tbldata += "<td></td>"
-                tbldata += "<td>%s</td>" % e[3]
-                tbldata += '</tr>\n'
-            tbldata += '</table>'
+        for i in range(nr_pages):
+            if int(start) == i * int(length):
+                html += '%i ' % (i + 1)
+            else:
+                html += '<a href="?action=eventlog&start=%i&length=%s">%i</a> ' % (i * int(length), int(length), i + 1)
 
-            admin_html += tbldata
-
-        self._set_response_code('200 OK')
-        return self._gen_header('LVFS: Modify User') + self._gen_breadcrumb(show_profile=False) + html + admin_html + self._gen_footer()
+        return self._gen_header('Event Log') + html + self._gen_footer()
 
     def _action_firmware(self):
         """
@@ -599,13 +548,20 @@ A good password consists of upper and lower case with numbers.
         """
 
         html = """
-<h1>Add New Firmware</h1>
+<h1>Introduction</h1>
+LVFS provides functionality for hardware vendors to submit packaged firmware updates.
+There is no charge to vendors for the hosting or distribution of content.
+"""
+
+        html += """
+<h2>Add New Firmware</h2>
 <p>By uploading a firmware file you must agree that:</p>
 <ul>
 <li>You are legally permitted to submit the firmware</li>
 <li>The submitted firmware file is permitted to be mirrored by our site</li>
+<li>We can extract and repackage the information inside the metainfo file</li>
 <li>The firmware installation must complete without requiring user input</li>
-<li>Firmware must not engage in malicious activity (e.g. be a virus or to exploit security issues)</li>
+<li>The update must not be malicious e.g. be a virus or to exploit security issues</li>
 </ul>
 """
 
@@ -616,47 +572,44 @@ A good password consists of upper and lower case with numbers.
 
         # can the user upload directly to stable
         if self.qa_capability:
-            html += """
-
-<tr>
-<th width="150px">Target:</th>
-<td>
-<select name="target" onChange="changeTargetLabel();" id="targetSelection" required>
-<option value="private">Private</option>
-<option value="embargo">Embargoed</option>
-<option value="testing">Testing</option>
-<option value="stable">Stable</option>
-</select>
-</td>
-</tr>
-"""
+            html += '<tr>'
+            html += '<th width="150px" class="upload"><label for="target">Target:</label></th>'
+            html += '<td>'
+            html += '<select name="target" onChange="changeTargetLabel();" id="targetSelection" required>'
+            html += '<option value="private">Private</option>'
+            html += '<option value="embargo">Embargoed</option>'
+            html += '<option value="testing">Testing</option>'
+            html += '<option value="stable">Stable</option>'
+            html += '</select>'
+            html += '</td>'
+            html += '</tr>'
         else:
-            html += """
-<tr>
-<th width="150px">Target:</th>
-<td>
-<select name="target" id="targetSelection" required>
-<option value="private">Private</option>
-</select>
-</td>
-</tr>
-"""
+            html += '<tr>'
+            html += '<th width="150px" class="upload"><label for="target">Target:</label></th>'
+            html += '<td>'
+            html += '<select name="target" id="targetSelection" required>'
+            html += '<option value="private">Private</option>'
+            html += '</select>'
+            html += '</td>'
+            html += '</tr>'
 
         # all enabled users can upload
-        html += """
-<tr><th width="150px">Firmware:</th><td><input type="file" name="file" required/></td></tr>
-</table>
-<input type="submit" class="submit" value="Upload"/>
-</form>
-<p>
- Updates normally go through these stages:
- Private &#8594; Embargoed &#8594; Testing &#8594; Stable
-</p>
-<p id="targetLabel">This user account is restricted to private uploading.</p>
-<h1>Existing Firmware</h1>
-%s
-</table>
+        html += '<tr>'
+        html += '<th width="150px" class="upload"><label for="file">Cab Archive:</label></th>'
+        html += '<td><input type="file" name="file" required/></td>'
+        html += '</tr>'
+        html += '</table>'
 
+        html += '<input type="submit" class="submit" value="Upload"/>'
+        html += '</form>'
+        html += '<p>'
+        html += ' Updates normally go through these stages:'
+        html += ' Private &#8594; Embargoed &#8594; Testing &#8594; Stable'
+        html += '</p>'
+        html += '<p id="targetLabel">This user account is restricted to private uploading.</p>'
+        html += '</table>'
+
+        html += """
 <script type="text/JavaScript">
 function changeTargetLabel() {
     var combo = document.getElementById("targetSelection");
@@ -680,50 +633,102 @@ function changeTargetLabel() {
 changeTargetLabel();
 </script>
 """
-        # add the firmware files
-        cur = self.db.cursor()
+        embargo_url = 'downloads/firmware-%s.xml.gz' % _qa_hash(self.qa_group)
+        return self._gen_header('Home') + html % embargo_url + self._gen_footer()
+
+    def _action_existing(self):
+        """
+        Show all previsouly uploaded firmware for this user.
+        """
+        html = '<h1>Existing Firmware</h1>'
         try:
-            if self.username == 'admin':
-                cur.execute("SELECT filename, hash, target, timestamp, "
-                            "md_name, md_version FROM firmware ORDER BY timestamp DESC;")
-            else:
-                cur.execute("SELECT filename, hash, target, timestamp, "
-                            "md_name, md_version FROM firmware "
-                            "WHERE qa_group = %s ORDER BY timestamp DESC;", (self.qa_group,))
-        except mdb.Error, e:
-            return self._internal_error(self._format_cursor_error(cur, e))
-        res = cur.fetchall()
-        fwlist = ''
-        if res and len(res) > 0:
-            fwlist += "<table class=\"history\">" \
-                      "<tr>" \
-                      "<th>Submitted</td>" \
-                      "<th>Name</td>" \
-                      "<th>Version</td>" \
-                      "<th>Target</td>" \
-                      "<th></td>" \
-                      "</tr>\n"
-            for e in res:
+            items = self._db.firmware.get_items()
+        except CursorError as e:
+            return self._internal_error(str(e))
+        if len(items) > 0:
+            html += "<p>These firmware files have been uploaded to the " \
+                    "&lsquo;%s&rsquo; QA group:</p>" % self.qa_group
+            html += "<table class=\"history\">"
+            html += "<tr>"
+            html += "<th>Submitted</td>"
+            html += "<th>Name</td>"
+            html += "<th>Version</td>"
+            html += "<th>Target</td>"
+            html += "<th></td>"
+            html += "</tr>\n"
+            for item in items:
+
+                # admin can see everything
+                if self.username != 'admin':
+                    if item.qa_group != self.qa_group:
+                        continue
+
                 buttons = "<form method=\"get\" action=\"wsgi.py\">" \
                           "<input type=\"hidden\" name=\"action\" value=\"fwshow\"/>" \
                           "<input type=\"hidden\" name=\"id\" value=\"%s\"/>" \
                           "<button>Details</button>" \
-                          "</form>" % e[1]
-                fwlist += '<tr>'
-                fwlist += "<td>%s</td>" % e[3]
-                fwlist += "<td>%s</td>" % e[4]
-                fwlist += "<td>%s</td>" % e[5]
-                fwlist += "<td>%s</td>" % e[2]
-                fwlist += "<td>%s</td>" % buttons
-                fwlist += '</tr>\n'
+                          "</form>" % item.fwid
+                html += '<tr>'
+                html += "<td>%s</td>" % item.timestamp
+                html += "<td>%s</td>" % item.md_name
+                html += "<td>%s</td>" % item.md_version
+                html += "<td>%s</td>" % item.target
+                html += "<td>%s</td>" % buttons
+                html += '</tr>\n'
+            html += "</table>"
         else:
-            fwlist += "<p>No firmware available</p>"
+            html += "<p>No firmware has been uploaded to the " \
+                    "&lsquo;%s&rsquo; QA group yet.</p>" % self.qa_group
+        return self._gen_header('Existing') + html + self._gen_footer()
 
-        # this is secret enough as you have to know the SHA1 hash
-        embargo_url = 'downloads/firmware-%s.xml.gz' % self._qa_hash(self.qa_group)
-        html = html % (fwlist, embargo_url)
-
-        return self._gen_header('LVFS: Firmware') + self._gen_breadcrumb(show_back=False) + html + self._gen_footer()
+    def _action_metadata(self):
+        """
+        Show all metadata available to this usr.
+        """
+        html = '<h1>Metadata</h1>'
+        html += "<p>The metadata URLs can be used in <code>/etc/fwupd.conf</code> " \
+                "to perform end-to-end tests. It is important to not share the " \
+                "QA Group URL with external users if you want the embargoed " \
+                "firmware to remain hidden from the public.</p>" \
+                "<p>You also may need to do <code>fwupdmgr refresh</code> on each " \
+                "client to show new updates.</p>"
+        html += '<table class=\"history\">'
+        html += '<tr>'
+        html += '<th>Description</t>'
+        html += '<th>Private</th>'
+        html += '<th>Embargo</th>'
+        html += '<th>Testing</th>'
+        html += '<th>Stable</th>'
+        html += '<th>URL</th>'
+        html += '</tr>'
+        html += '<tr>'
+        html += '<td>QA Group &lsquo;%s&rsquo;</td>' % self.qa_group
+        html += '<td>No</td>'
+        html += '<td><b>Yes</b></td>'
+        html += '<td><b>Yes</b></td>'
+        html += '<td><b>Yes</b></td>'
+        qa_url = 'firmware-%s.xml.gz' % _qa_hash(self.qa_group)
+        qa_disp = 'firmware-%s&hellip;.xml.gz' % _qa_hash(self.qa_group)[0:8]
+        html += '<td><a href="downloads/%s">%s</td>' % (qa_url, qa_disp)
+        html += '</tr>\n'
+        html += '<tr>'
+        html += '<td>Testing</td>'
+        html += '<td>No</td>'
+        html += '<td>No</td>'
+        html += '<td><b>Yes</b></td>'
+        html += '<td><b>Yes</b></td>'
+        html += '<td><a href="downloads/firmware-testing.xml.gz">firmware-testing.xml.gz</td>'
+        html += '</tr>\n'
+        html += '<tr>'
+        html += '<td>Stable</td>'
+        html += '<td>No</td>'
+        html += '<td>No</td>'
+        html += '<td>No</td>'
+        html += '<td><b>Yes</b></td>'
+        html += '<td><a href="downloads/firmware.xml.gz">firmware.xml.gz</td>'
+        html += '</tr>\n'
+        html += '</table>'
+        return self._gen_header('Metadata') + html + self._gen_footer()
 
     def _action_permission_denied(self, msg=None):
         """ The user tried to do something they did not have privs for """
@@ -735,7 +740,7 @@ changeTargetLabel();
         # set correct response code
         self._event_log("Permission denied: %s" % msg, is_important=True)
         self._set_response_code('401 Unauthorized')
-        return self._gen_header('LVFS: Permission Denied') + self._gen_breadcrumb(show_back=False, show_profile=False) + html + self._gen_footer()
+        return self._gen_header('Permission Denied') + html + self._gen_footer()
 
     def _upload_failed(self, msg=''):
         """ The file upload failed for some reason """
@@ -747,7 +752,7 @@ changeTargetLabel();
         html = html % msg
         # set correct response code
         self._set_response_code('400 Bad Request')
-        return self._gen_header('LVFS: Upload Failed') + self._gen_breadcrumb() + html + self._gen_footer()
+        return self._gen_header('Upload Failed') + html + self._gen_footer()
 
     def _internal_error(self, admin_only_msg=''):
         """ The file upload failed for some reason """
@@ -759,10 +764,10 @@ changeTargetLabel();
         if self.username == 'admin':
             html = html % admin_only_msg
         else:
-            html = html % 'No failure details available for this privaledge level.'
+            html = html % 'No failure details available for this privilege level.'
         # set correct response code
         self._set_response_code('406 Not Acceptable')
-        return self._gen_header('LVFS: Internal Error') + self._gen_breadcrumb() + html + self._gen_footer()
+        return self._gen_header('Internal Error') + html + self._gen_footer()
 
     def _upload_success(self):
         """ A file was successfully uploaded to the LVFS """
@@ -773,7 +778,7 @@ changeTargetLabel();
 """
         # set correct response code
         self._set_response_code('201 Created')
-        return self._gen_header('LVFS: Upload Success') + self._gen_breadcrumb() + html + self._gen_footer()
+        return self._gen_header('Upload Success') + html + self._gen_footer()
 
     def _action_fwdelete(self):
         """ Delete a firmware entry and also delete the file from disk """
@@ -784,48 +789,35 @@ changeTargetLabel();
             return self._upload_failed("No ID specified" % fwid)
 
         # check firmware exists in database
-        cur = self.db.cursor()
         try:
-            if self.username == 'admin':
-                cur.execute("SELECT filename, target FROM firmware WHERE "
-                            "hash = %s LIMIT 1;",
-                            (fwid,))
-            else:
-                cur.execute("SELECT filename, target FROM firmware WHERE "
-                            "hash = %s AND qa_group = %s LIMIT 1;",
-                            (fwid, self.qa_group,))
-        except mdb.Error, e:
-            return self._internal_error(self._format_cursor_error(cur, e))
-        res = cur.fetchone()
-        if not res:
+            item = self._db.firmware.get_item(fwid)
+        except CursorError as e:
+            return self._internal_error(str(e))
+        if not item:
             return self._upload_failed("No firmware file with hash %s exists" % fwid)
-        filename = res[0]
+        
+        if self.username != 'admin' and item.qa_group != self.qa_group:
+            return self._action_permission_denied("No QA access to %s" % fwid)
 
         # only QA users can delete once the firmware has gone stable
-        if not self.qa_capability and res[1] == 'stable':
+        if not self.qa_capability and item.target == 'stable':
             return self._action_permission_denied('Unable to delete stable firmware as not QA')
 
         # delete id from database
-        cur = self.db.cursor()
         try:
-            if self.username == 'admin':
-                cur.execute("DELETE FROM firmware WHERE hash = %s;",
-                            (fwid,))
-            else:
-                cur.execute("DELETE FROM firmware WHERE hash = %s AND qa_group = %s;",
-                            (fwid, self.qa_group,))
-        except mdb.Error, e:
-            return self._internal_error(self._format_cursor_error(cur, e))
+            self._db.firmware.remove(fwid)
+        except CursorError as e:
+            return self._internal_error(str(e))
 
         # delete file(s)
         for loc in [UPLOAD_DIR, DOWNLOAD_DIR]:
-            path = os.path.join(loc, filename)
+            path = os.path.join(loc, item.filename)
             if os.path.exists(path):
                 os.remove(path)
 
         # update everything
         try:
-            self.update_metadata(targets=['stable', 'unstable'], qa_group='')
+            self.update_metadata(targets=['stable', 'testing'], qa_group='')
         except NoKeyError as e:
             return self._upload_failed('Failed to sign metadata: ' + cgi.escape(str(e)))
 
@@ -842,51 +834,47 @@ changeTargetLabel();
             return self._internal_error('No ID specified')
 
         # get details about the firmware
-        cur = self.db.cursor()
         try:
-            cur.execute("SELECT qa_group, addr, timestamp, filename, target, "
-                        "md_guid, md_version, md_name, md_summary, md_id, download_cnt "
-                        "FROM firmware WHERE hash=%s LIMIT 1;", (fwid,))
-        except mdb.Error, e:
-            return self._internal_error(self._format_cursor_error(cur, e))
-        res = cur.fetchone()
-        if not res:
+            item = self._db.firmware.get_item(fwid)
+        except CursorError as e:
+            return self._internal_error(str(e))
+        if not item:
             return self._action_login('No firmware matched!')
 
         # we can only view our own firmware, unless admin
-        qa_group = res[0]
+        qa_group = item.qa_group
         if qa_group != self.qa_group and self.username != 'admin':
             return self._action_permission_denied('Unable to view other vendor firmware')
         if not qa_group:
             embargo_url = 'downloads/firmware.xml.gz'
             qa_group = 'None'
         else:
-            embargo_url = 'downloads/firmware-%s.xml.gz' % self._qa_hash(qa_group)
-        file_uri = 'downloads/' + res[3]
+            embargo_url = 'downloads/firmware-%s.xml.gz' % _qa_hash(qa_group)
+        file_uri = 'downloads/' + item.filename
 
         buttons = ''
-        if self.qa_capability or res[4] == 'private':
+        if self.qa_capability or item.target == 'private':
             buttons += "<form method=\"get\" action=\"wsgi.py\">" \
                        "<input type=\"hidden\" name=\"action\" value=\"fwdelete\"/>" \
                        "<input type=\"hidden\" name=\"id\" value=\"%s\"/>" \
                        "<button>Delete</button>" \
                        "</form>" % fwid
         if self.qa_capability:
-            if res[4] == 'private':
+            if item.target == 'private':
                 buttons += "<form method=\"get\" action=\"wsgi.py\">" \
                            "<input type=\"hidden\" name=\"action\" value=\"fwpromote\"/>" \
                            "<input type=\"hidden\" name=\"target\" value=\"embargo\"/>" \
                            "<input type=\"hidden\" name=\"id\" value=\"%s\"/>" \
                            "<button>&#8594; Embargo</button>" \
                            "</form>" % fwid
-            elif res[4] == 'embargo':
+            elif item.target == 'embargo':
                 buttons += "<form method=\"get\" action=\"wsgi.py\">" \
                            "<input type=\"hidden\" name=\"action\" value=\"fwpromote\"/>" \
                            "<input type=\"hidden\" name=\"target\" value=\"testing\"/>" \
                            "<input type=\"hidden\" name=\"id\" value=\"%s\"/>" \
                            "<button>&#8594; Testing</button>" \
                            "</form>" % fwid
-            elif res[4] == 'testing':
+            elif item.target == 'testing':
                 buttons += "<form method=\"get\" action=\"wsgi.py\">" \
                            "<input type=\"hidden\" name=\"action\" value=\"fwpromote\"/>" \
                            "<input type=\"hidden\" name=\"target\" value=\"stable\"/>" \
@@ -894,24 +882,24 @@ changeTargetLabel();
                            "<button>&#8594; Stable</button>" \
                            "</form>" % fwid
 
-        html = '<h1>%s</h1>' % res[7]
-        html += '<p>%s</p>' % res[8]
+        html = '<h1>%s</h1>' % item.md_name
+        html += '<p>%s</p>' % item.md_summary
         html += '<table class="history">'
-        html += '<tr><th>ID</th><td>%s</td></tr>' % res[9]
-        html += '<tr><th>Filename</th><td><a href=\"%s\">%s</a></td></tr>' % (file_uri, res[3])
-        html += '<tr><th>Device GUID</th><td>%s</td></tr>' % res[5]
-        html += '<tr><th>Version</th><td>%s</td></tr>' % res[6]
-        html += '<tr><th>Current Target</th><td>%s</td></tr>' % res[4]
-        html += '<tr><th>Submitted</th><td>%s</td></tr>' % res[2]
+        html += '<tr><th>ID</th><td>%s</td></tr>' % item.md_id
+        html += '<tr><th>Filename</th><td><a href=\"%s\">%s</a></td></tr>' % (file_uri, item.filename)
+        html += '<tr><th>Device GUID</th><td>%s</td></tr>' % item.md_guid
+        html += '<tr><th>Version</th><td>%s</td></tr>' % item.md_version
+        html += '<tr><th>Current Target</th><td>%s</td></tr>' % item.target
+        html += '<tr><th>Submitted</th><td>%s</td></tr>' % item.timestamp
         html += '<tr><th>QA Group</th><td><a href="%s">%s</a></td></tr>' % (embargo_url, qa_group)
-        html += '<tr><th>Uploaded from</th><td>%s</td></tr>' % res[1]
-        html += '<tr><th>Downloads</th><td>%i</td></tr>' % res[10]
+        html += '<tr><th>Uploaded from</th><td>%s</td></tr>' % item.addr
+        html += '<tr><th>Downloads</th><td>%i</td></tr>' % item.download_cnt
         html += '<tr><th>Actions</th><td>%s</td></tr>' % buttons
         html += '</table>'
 
         # set correct response code
         self._set_response_code('200 OK')
-        return self._gen_header('LVFS: Firmware Details') + self._gen_breadcrumb() + html + self._gen_footer()
+        return self._gen_header('Firmware Details') + html + self._gen_footer()
 
     def _action_fwpromote(self):
         """
@@ -936,17 +924,16 @@ changeTargetLabel();
             return self._internal_error("Target %s invalid" % target)
 
         # check firmware exists in database
-        cur = self.db.cursor()
         try:
-            cur.execute("UPDATE firmware SET target=%s WHERE hash=%s;", (target, fwid,))
-        except mdb.Error, e:
-            return self._internal_error(self._format_cursor_error(cur, e))
+            self._db.firmware.set_target(fwid, target)
+        except CursorError as e:
+            return self._internal_error(str(e))
         # set correct response code
         self._event_log("Moved firmware %s to %s" % (fwid, target))
 
         # update everything
         try:
-            self.update_metadata(targets=['stable', 'unstable'], qa_group='')
+            self.update_metadata(targets=['stable', 'testing'], qa_group='')
         except NoKeyError as e:
             return self._upload_failed('Failed to sign metadata: ' + cgi.escape(str(e)))
 
@@ -1011,29 +998,28 @@ changeTargetLabel();
             return self._upload_failed('The metadata file did not validate: ' + cgi.escape(str(e)))
 
         # check the file does not already exist
-        file_id = hashlib.sha1(data).hexdigest()
-        cur = self.db.cursor()
+        fwid = hashlib.sha1(data).hexdigest()
         try:
-            cur.execute("SELECT * FROM firmware WHERE hash = %s LIMIT 1;", (file_id,))
-        except mdb.Error, e:
-            return self._internal_error(self._format_cursor_error(cur, e))
-        if cur.fetchone():
+            item = self._db.firmware.get_item(fwid)
+        except CursorError as e:
+            return self._internal_error(str(e))
+        if item:
             self._set_response_code('422 Entity Already Exists')
-            return self._upload_failed("A firmware file with hash %s already exists" % file_id)
+            return self._upload_failed("A firmware file with hash %s already exists" % fwid)
 
         # check the guid and version does not already exist
         try:
-            cur.execute("SELECT * FROM firmware WHERE md_guid=%s AND md_version=%s LIMIT 1;",
-                        (app.provides[0].value, app.releases[0].version,))
-        except mdb.Error, e:
-            return self._internal_error(self._format_cursor_error(cur, e))
-        if cur.fetchone():
-            self._set_response_code('422 Entity Already Exists')
-            return self._upload_failed("A firmware file for this version already exists")
+            items = self._db.firmware.get_items()
+        except CursorError as e:
+            return self._internal_error(str(e))
+        for item in items:
+            if item.md_guid == app.provides[0].value and item.md_version == app.releases[0].version:
+                self._set_response_code('422 Entity Already Exists')
+                return self._upload_failed("A firmware file for this version already exists")
 
         # only save if we passed all tests
         basename = os.path.basename(fileitem.filename)
-        new_filename = file_id + '-' + basename
+        new_filename = fwid + '-' + basename
         if not os.path.exists(UPLOAD_DIR):
             os.mkdir(UPLOAD_DIR)
         open(os.path.join(UPLOAD_DIR, new_filename), 'wb').write(data)
@@ -1050,7 +1036,6 @@ changeTargetLabel();
         # add the detached signature
         try:
             affidavit = self.create_affidavit()
-            print affidavit
         except NoKeyError as e:
             return self._upload_failed('Failed to sign archive: ' + cgi.escape(str(e)))
         cff = cabarchive.CabFile(fw_data.filename + '.asc',
@@ -1067,47 +1052,40 @@ changeTargetLabel();
         fn = os.path.join(DOWNLOAD_DIR, new_filename)
         open(fn, 'wb').write(cab_data)
 
-        # log to database
-        cur = self.db.cursor()
+        # add to database
         target = self.fields['target'].value
         try:
-            cur.execute("INSERT INTO firmware (qa_group, addr, timestamp, "
-                        "filename, hash, target, md_id, md_guid, md_version, "
-                        "md_name, md_summary, md_checksum_contents, md_release_description, "
-                        "md_release_timestamp, md_developer_name, md_metadata_license, "
-                        "md_project_license, md_url_homepage, md_description, "
-                        "md_checksum_container, md_filename_contents) "
-                        "VALUES (%s, %s, CURRENT_TIMESTAMP, %s, %s, %s, %s, "
-                        "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);",
-                        (self.qa_group,
-                         self.client_address,
-                         new_filename,
-                         file_id,
-                         target,
-                         app.id,
-                         app.provides[0].value,
-                         app.releases[0].version,
-                         app.name,
-                         app.summary,
-                         checksum_contents,
-                         app.releases[0].description,
-                         app.releases[0].timestamp,
-                         app.developer_name,
-                         app.metadata_license,
-                         app.project_license,
-                         app.urls['homepage'],
-                         app.description,
-                         checksum_container,
-                         fw_data.filename,))
-        except mdb.Error, e:
-            return self._internal_error(self._format_cursor_error(cur, e))
+            fwobj = LvfsFirmware()
+            fwobj.qa_group = self.qa_group
+            fwobj.addr = self.client_address
+            fwobj.filename = new_filename
+            fwobj.fwid = fwid
+            fwobj.target = target
+            fwobj.md_id = app.id
+            fwobj.md_guid = app.provides[0].value
+            fwobj.md_version = app.releases[0].version
+            fwobj.md_name = app.name
+            fwobj.md_summary = app.summary
+            fwobj.md_checksum_contents = checksum_contents
+            fwobj.md_release_description = app.releases[0].description
+            fwobj.md_release_timestamp = app.releases[0].timestamp
+            fwobj.md_developer_name = app.developer_name
+            fwobj.md_metadata_license = app.metadata_license
+            fwobj.md_project_license = app.project_license
+            fwobj.md_url_homepage = app.urls['homepage']
+            fwobj.md_description = app.description
+            fwobj.md_checksum_container = checksum_container
+            fwobj.md_filename_contents = fw_data.filename
+            self._db.firmware.add(fwobj)
+        except CursorError as e:
+            return self._internal_error(str(e))
         # set correct response code
         self._event_log("Uploaded file %s to %s" % (new_filename, target))
         self._set_response_code('201 Created')
 
         # ensure up to date
         try:
-            self.update_metadata(targets=['stable', 'unstable'], qa_group='')
+            self.update_metadata(targets=['stable', 'testing'], qa_group='')
             if target in ['stable', 'testing']:
                 self.update_metadata(targets=[target])
             elif target == 'embargo':
@@ -1124,19 +1102,16 @@ changeTargetLabel();
         if not self.username:
             self._set_response_code('401 Unauthorized')
             return self._action_login()
-        cur = self.db.cursor()
         try:
-            cur.execute("SELECT is_enabled, is_qa, qa_group FROM users WHERE username = %s AND password = %s"
-                        " LIMIT 1;", (self.username, self.password,))
-        except mdb.Error, e:
-            return self._internal_error(self._format_cursor_error(cur, e))
-        auth = cur.fetchone()
-        if not auth:
+            item = self._db.users.get_item(self.username, self.password)
+        except CursorError as e:
+            return self._internal_error(str(e))
+        if not item:
             return self._action_login('Incorrect username or password')
-        if not int(auth[0]):
+        if not item.is_enabled:
             return self._action_login('User account has been disabled')
-        self.qa_capability = int(auth[1])
-        self.qa_group = auth[2]
+        self.qa_capability = item.is_qa
+        self.qa_group = item.qa_group
 
         # perform login-required actions
         action = self.qs_get.get('action', [None])[0]
@@ -1167,6 +1142,14 @@ changeTargetLabel();
             return self._action_fwpromote()
         elif action == 'fwshow':
             return self._action_fwshow()
+        elif action == 'eventlog':
+            return self._action_eventlog()
+        elif action == 'userlist':
+            return self._action_userlist()
+        elif action == 'existing':
+            return self._action_existing()
+        elif action == 'metadata':
+            return self._action_metadata()
         else:
             self.session_cookie['username'] = self.username
             self.session_cookie['username']['Path'] = '/'
@@ -1176,76 +1159,68 @@ changeTargetLabel();
             self.session_cookie['password']['max-age'] = 2 * 60 * 60
             return self._action_firmware()
 
-    def _generate_metadata_kind(self, filename, target=None, qa_group=None):
+    def _generate_metadata_kind(self, filename, targets=None, qa_group=None):
         """ Generates AppStream metadata of a specific kind """
-
-        cur = self.db.cursor()
-        cur.execute("SELECT filename, md_checksum_contents, md_id, "
-                    "md_name, md_summary, md_guid, md_description, "
-                    "md_release_description, md_url_homepage, "
-                    "md_metadata_license, md_project_license, "
-                    "md_developer_name, md_release_timestamp, "
-                    "md_version, hash, qa_group, target, "
-                    "md_filename_contents FROM firmware "
-                    "WHERE target != 'private';")
-        res = cur.fetchall()
-
+        try:
+            items = self._db.firmware.get_items()
+        except CursorError as e:
+            return self._internal_error(str(e))
         store = appstream.Store('lvfs')
-        for r in res:
+        for item in items:
 
             # filter
-            if target:
-                if target != r[16]:
-                    continue
-            if qa_group:
-                if qa_group != r[15]:
-                    continue
+            if item.target == 'private':
+                continue
+            if targets and item.target not in targets:
+                continue
+            if qa_group and qa_group != item.qa_group:
+                continue
 
             # add component
             app = appstream.Component()
-            app.id = r[2]
+            app.id = item.md_id
             app.kind = 'firmware'
-            app.name = r[3]
-            app.summary = r[4]
-            app.description = r[6]
-            if r[8]:
-                app.urls['homepage'] = r[8]
-            app.metadata_license = r[9]
-            app.project_license = r[10]
-            app.developer_name = r[11]
+            app.name = item.md_name
+            app.summary = item.md_summary
+            app.description = item.md_description
+            if item.md_url_homepage:
+                app.urls['homepage'] = item.md_url_homepage
+            app.metadata_license = item.md_metadata_license
+            app.project_license = item.md_project_license
+            app.developer_name = item.md_developer_name
 
             # add provide
-            if r[5]:
+            if item.md_guid:
                 prov = appstream.Provide()
                 prov.kind = 'firmware-flashed'
-                prov.value = r[5]
+                prov.value = item.md_guid
                 app.add_provide(prov)
 
             # add release
-            if r[13]:
+            if item.md_version:
                 rel = appstream.Release()
-                rel.version = r[13]
-                rel.description = r[7]
-                if r[12]:
-                    rel.timestamp = r[12]
+                rel.version = item.md_version
+                rel.description = item.md_release_description
+                if item.md_release_timestamp:
+                    rel.timestamp = item.md_release_timestamp
                 rel.checksums = []
-                rel.location = 'https://secure-lvfs.rhcloud.com/downloads/' + r[0]
+                rel.location = 'https://secure-lvfs.rhcloud.com/downloads/' + item.filename
                 app.add_release(rel)
 
                 # add container checksum
-                if r[14]:
+                if item.fwid:
                     csum = appstream.Checksum()
                     csum.target = 'container'
-                    csum.value = r[14]
-                    csum.filename = r[0]
+                    csum.value = item.fwid
+                    csum.filename = item.filename
                     rel.add_checksum(csum)
 
                 # add content checksum
-                if r[1]:
+                if item.md_checksum_contents:
                     csum = appstream.Checksum()
                     csum.target = 'content'
-                    csum.value = r[1]
-                    csum.filename = r[17]
+                    csum.value = item.md_checksum_contents
+                    csum.filename = item.md_filename_contents
                     rel.add_checksum(csum)
 
             # add app
@@ -1262,8 +1237,8 @@ changeTargetLabel();
         affidavit.create_detached(filename)
 
         # log
-        if target:
-            self._event_log("Generated metadata for %s target" % target)
+        if targets:
+            self._event_log("Generated metadata for %s target" % ', '.join(targets))
         if qa_group:
             self._event_log("Generated metadata for %s QA group" % qa_group)
 
@@ -1275,154 +1250,27 @@ changeTargetLabel();
             for target in targets:
                 if target == 'stable':
                     filename = 'firmware.xml.gz'
+                    self._generate_metadata_kind(filename, targets=['stable'])
+                elif target == 'testing':
+                    filename = 'firmware-testing.xml.gz'
+                    self._generate_metadata_kind(filename, targets=['stable', 'testing'])
                 else:
                     filename = 'firmware-%s.xml.gz' % target
-                self._generate_metadata_kind(filename, target=target)
+                    self._generate_metadata_kind(filename, targets=[target])
 
         # each vendor
-        if qa_group == '':
-            cur = self.db.cursor()
-            try:
-                cur.execute("SELECT DISTINCT qa_group FROM firmware;")
-            except mdb.Error, e:
-                return self._internal_error(self._format_cursor_error(cur, e))
-            res = cur.fetchall()
-            for r in res:
-                filename = 'firmware-%s.xml.gz' % self._qa_hash(r[0])
-                self._generate_metadata_kind(filename, qa_group=r[0])
-        else:
-            self._generate_metadata_kind(filename, qa_group=qa_group)
-
-    def _fixup_database(self):
-        ''' Fix any database problems automatically '''
-
-        # test firmware list exists
-        cur = self.db.cursor()
-        try:
-            cur.execute("SELECT * FROM firmware LIMIT 1;")
-        except mdb.Error, e:
-            sql_db = """
-                CREATE TABLE firmware (
-                  qa_group VARCHAR(40) NOT NULL DEFAULT '',
-                  addr VARCHAR(40) DEFAULT NULL,
-                  timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                  filename VARCHAR(255) DEFAULT NULL,
-                  target VARCHAR(255) DEFAULT NULL,
-                  hash VARCHAR(40) DEFAULT NULL,
-                  download_cnt INTEGER DEFAULT 0,
-                  md_checksum_contents VARCHAR(40) DEFAULT NULL,
-                  md_checksum_container VARCHAR(40) DEFAULT NULL,
-                  md_id TEXT DEFAULT NULL,
-                  md_name TEXT DEFAULT NULL,
-                  md_summary TEXT DEFAULT NULL,
-                  md_guid VARCHAR(36) DEFAULT NULL,
-                  md_description TEXT DEFAULT NULL,
-                  md_release_description TEXT DEFAULT NULL,
-                  md_url_homepage TEXT DEFAULT NULL,
-                  md_metadata_license TEXT DEFAULT NULL,
-                  md_project_license TEXT DEFAULT NULL,
-                  md_developer_name TEXT DEFAULT NULL,
-                  md_filename_contents TEXT DEFAULT NULL,
-                  md_release_timestamp INTEGER DEFAULT 0,
-                  md_version VARCHAR(255) DEFAULT NULL
-                ) CHARSET=utf8;
-            """
-            cur.execute(sql_db)
-
-        # fixup NULL fields
-        try:
-            cur.execute("SELECT * FROM firmware WHERE md_filename_contents IS NULL;")
-            if cur.fetchone():
-                sql_db = "UPDATE firmware SET md_filename_contents='firmware.bin' " \
-                         "WHERE md_filename_contents IS NULL;"
-                cur.execute(sql_db)
-        except mdb.Error, e:
-            pass
-
-        # test user list exists
-        try:
-            cur.execute("SELECT * FROM users LIMIT 1;")
-        except mdb.Error, e:
-            sql_db = """
-                CREATE TABLE users (
-                  username VARCHAR(40) NOT NULL DEFAULT '',
-                  password VARCHAR(40) NOT NULL DEFAULT '',
-                  display_name VARCHAR(128) DEFAULT NULL,
-                  email VARCHAR(255) DEFAULT NULL,
-                  is_enabled TINYINT DEFAULT 0,
-                  is_qa TINYINT DEFAULT 0,
-                  qa_group VARCHAR(40) NOT NULL DEFAULT ''
-                ) CHARSET=utf8;
-            """
-            cur.execute(sql_db)
-
-        # test event log exists
-        try:
-            cur.execute("SELECT * FROM event_log LIMIT 1;")
-        except mdb.Error, e:
-            sql_db = """
-                CREATE TABLE event_log (
-                  timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                  username VARCHAR(40) NOT NULL DEFAULT '',
-                  addr VARCHAR(40) DEFAULT NULL,
-                  message TEXT DEFAULT NULL,
-                  is_important TINYINT DEFAULT 0
-                ) CHARSET=utf8;
-            """
-            cur.execute(sql_db)
-
-        # test client table exists
-        try:
-            cur.execute("SELECT * FROM clients LIMIT 1;")
-        except mdb.Error, e:
-            sql_db = """
-                CREATE TABLE clients (
-                  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                  addr VARCHAR(40) DEFAULT NULL UNIQUE,
-                  cnt INTEGER DEFAULT 1
-                ) CHARSET=utf8;
-            """
-            cur.execute(sql_db)
-
-        # ensure an admin user always exists
-        cur.execute("SELECT is_enabled FROM users WHERE username='admin';")
-        if not cur.fetchone():
-            self._event_log('Creating admin user')
-            sql_db = """
-                INSERT INTO users (username, password, display_name, email, is_enabled, is_qa, qa_group)
-                    VALUES ('admin', 'Pa$$w0rd', 'Admin User', 'sign-test@fwupd.org', 1, 1, '');
-            """
-            cur.execute(sql_db)
-
-        # convert legacy passwords from strings to hashes
-        cur.execute("SELECT username, password FROM users;")
-        res = cur.fetchall()
-        for l in res:
-            if len(l[1]) == 40:
-                continue
-            cur.execute("UPDATE users SET password=%s WHERE username=%s;",
-                        (self._password_hash(l[1]), l[0],))
-
-        # ensure admin has all privs
-        cur.execute("UPDATE users SET is_enabled=1, is_qa=1, qa_group='' WHERE username='admin';")
-
-    def inc_firmware_cnt_by_fn(self, filename):
-        """ Increment the downloaded count """
-        cur = self.db.cursor()
-        try:
-            cur.execute("UPDATE firmware SET download_cnt = download_cnt + 1 "
-                        "WHERE filename=%s", (filename,))
-        except mdb.Error, e:
-            return self._internal_error(self._format_cursor_error(cur, e))
-
-    def inc_client_cnt(self, filename):
-        """ Increment the client count """
-        cur = self.db.cursor()
-        try:
-            cur.execute("INSERT INTO clients (addr) VALUES (%s) "
-                        "ON DUPLICATE KEY UPDATE cnt=cnt+1;", (self.client_address,))
-        except mdb.Error, e:
-            return self._internal_error(self._format_cursor_error(cur, e))
+        if qa_group:
+            if qa_group == '':
+                try:
+                    qa_groups = self._db.firmware.get_qa_groups()
+                except CursorError as e:
+                    return self._internal_error(str(e))
+                for qa_group in qa_groups:
+                    filename = 'firmware-%s.xml.gz' % _qa_hash(qa_group)
+                    self._generate_metadata_kind(filename, qa_group=qa_group)
+            else:
+                filename = 'firmware-%s.xml.gz' % _qa_hash(qa_group)
+                self._generate_metadata_kind(filename, qa_group=qa_group)
 
     def init(self, environ):
         """ Set up the website helper with the calling environment """
@@ -1443,7 +1291,7 @@ changeTargetLabel();
             if 'username' in self.fields:
                 self.username = self.fields['username'].value
             if 'password' in self.fields:
-                self.password = self._password_hash(self.fields['password'].value)
+                self.password = _password_hash(self.fields['password'].value)
         if environ.has_key('HTTP_COOKIE'):
             print environ['HTTP_COOKIE']
             self.session_cookie.load(environ['HTTP_COOKIE'])
@@ -1451,35 +1299,12 @@ changeTargetLabel();
                 self.username = self.session_cookie['username'].value
             if not self.password and 'password' in self.session_cookie:
                 self.password = self.session_cookie['password'].value
-        try:
-            if 'OPENSHIFT_MYSQL_DB_HOST' in environ:
-                self.db = mdb.connect(environ['OPENSHIFT_MYSQL_DB_HOST'],
-                                      environ['OPENSHIFT_MYSQL_DB_USERNAME'],
-                                      environ['OPENSHIFT_MYSQL_DB_PASSWORD'],
-                                      'secure',
-                                      int(environ['OPENSHIFT_MYSQL_DB_PORT']),
-                                      use_unicode=True, charset='utf8')
-            else:
-                # mysql -u root -p
-                # CREATE DATABASE secure;
-                # CREATE USER 'test'@'localhost' IDENTIFIED BY 'test';
-                # USE secure;
-                # GRANT ALL ON secure.* TO 'test'@'localhost';
-                self.db = mdb.connect('localhost', 'test', 'test', 'secure',
-                                      use_unicode=True, charset='utf8')
-            self.db.autocommit(True)
-        except mdb.Error, e:
-            print "Error %d: %s" % (e.args[0], e.args[1])
 
-        self._fixup_database()
+        # the data source for our controller
+        self._db = LvfsDatabase(environ)
 
         if self.fields:
             self._event_log('Logged on')
-
-    def finalize(self):
-        """ Clean up the website helper """
-        if self.db:
-            self.db.close()
 
 def static_app(fn, start_response, content_type, download=False):
     """ Return a static image or resource """
@@ -1520,10 +1345,10 @@ def application(environ, start_response):
 
     # handle files
     if fn.endswith(".cab"):
-        w.inc_firmware_cnt_by_fn(fn)
+        w._db.firmware.increment_filename_cnt(fn)
         return static_app(fn, start_response, 'application/vnd.ms-cab-compressed', download=True)
     if fn.endswith(".xml.gz"):
-        w.inc_client_cnt(fn)
+        w._db.clients.add(w.client_address)
         return static_app(fn, start_response, 'application/gzip', download=True)
 
     # get response
@@ -1541,7 +1366,6 @@ def application(environ, start_response):
                             in w.session_cookie.values())
     print w.response_code, response_headers
     start_response(w.response_code, response_headers)
-    w.finalize()
 
     return [response_body.encode('utf-8')]
 
