@@ -69,6 +69,7 @@ class LvfsWebsite(object):
         self.qa_capability = False
         self.fields = None
         self.qs_get = None
+        self._is_login_from_post = False
         self._db = None
         self.client_address = None
         self.session_cookie = SimpleCookie()
@@ -135,6 +136,61 @@ class LvfsWebsite(object):
 """
         return html
 
+    def _action_newaccount(self):
+        html = """
+<h1>Applying for a new account</h1>
+<p>
+ Vendors who can submit automatic firmware updates are in a privileged position where files
+ can be installed on user systems without authentication.
+ This means we have to do careful checks on vendors, and it's important
+ for vendors to understand the ramifications of getting it wrong.
+</p>
+<p>
+ The Linux Vendor Firmware Project signs the firmware image and repacks
+ the files into a new cabinet file for several reasons:
+</p>
+<ul>
+ <li>
+  Only trusted vendors have access to the LVFS service, so we can be
+  sure the firmware actually came from the vendor.
+ </li>
+ <li>
+  Clients do not (yet) verify the signatures in the catalog file.
+ </li>
+ <li>
+  Not all software trusts the Microsoft WHQL certificate.
+ </li>
+ <li>
+  Only required files are included in the compressed cabinet file,
+  typically making the download size much smaller.
+ </li>
+</ul>
+
+<p>
+ When creating an account we can optionally create two classes of user,
+ which allows you to have your firmware engineers do the upload and QA users
+ control who can access the firmware:
+</p>
+<ul>
+ <li>Unprivileged users can upload files to the private target</li>
+ <li>QA users can move the firmware from Private &#8594; Embargoed &#8594; Testing &#8594; Stable</li>
+</ul>
+<p>
+ We can create as many different users of each type as required, and
+ each can have a different password.
+ Some vendors just need one 'QA User' as the person uploading the
+ firmware is also the person who decides when to move the update from
+ testing to stable.
+</p>
+
+<p>
+ If you would like to know more, or want to request a new account,
+ please <a href="mailto:richard@hughsie.com">email me</a> for more details.
+</p>
+"""
+        self._set_response_code('200 OK')
+        return self._gen_header('New Account', show_navigation=False) + html + self._gen_footer()
+
     def _action_login(self, error_msg=None):
         """ A login screen to allow access to the LVFS main page """
 
@@ -151,7 +207,7 @@ Files can be uploaded privately and optionally embargoed until a specific date.
 This site is used by all major Linux distributions to provide metadata
 for clients such as fwupdmgr and GNOME Software.
 In the last month we've provided %s firmware files to %s unique users.
-To upload firmware please login, or <a href="mailto:richard@hughsie.com">request a new account</a>.
+To upload firmware please login, or <a href="?action=newaccount">request a new account</a>.
 </p>
 <form method="post" action="wsgi.py">
 <table class="upload">
@@ -401,7 +457,7 @@ A good password consists of upper and lower case with numbers.
         self._set_response_code('200 OK')
         return self._gen_header('Modify User') + html + self._gen_footer()
 
-    def _action_userlist(self, msg = None):
+    def _action_userlist(self, msg=None):
         """
         Show a list of all users
         """
@@ -795,7 +851,6 @@ changeTargetLabel();
             return self._internal_error(str(e))
         if not item:
             return self._upload_failed("No firmware file with hash %s exists" % fwid)
-        
         if self.username != 'admin' and item.qa_group != self.qa_group:
             return self._action_permission_denied("No QA access to %s" % fwid)
 
@@ -1098,6 +1153,11 @@ changeTargetLabel();
     def get_response(self):
         """ Get the correct page using the page POST and GET data """
 
+        # perform anon actions
+        action = self.qs_get.get('action', [None])[0]
+        if action == 'newaccount':
+            return self._action_newaccount()
+
         # auth check
         if not self.username:
             self._set_response_code('401 Unauthorized')
@@ -1107,14 +1167,23 @@ changeTargetLabel();
         except CursorError as e:
             return self._internal_error(str(e))
         if not item:
+            # log failure
+            if self._is_login_from_post:
+                self._event_log('Failed login attempt')
             return self._action_login('Incorrect username or password')
         if not item.is_enabled:
+            # log failure
+            if self._is_login_from_post:
+                self._event_log('Failed login attempt (user disabled)')
             return self._action_login('User account has been disabled')
         self.qa_capability = item.is_qa
         self.qa_group = item.qa_group
 
+        # log success
+        if self._is_login_from_post:
+            self._event_log('Logged on')
+
         # perform login-required actions
-        action = self.qs_get.get('action', [None])[0]
         if action == 'logout':
             self.session_cookie['username']['Path'] = '/'
             self.session_cookie['username']['max-age'] = -1
@@ -1290,8 +1359,9 @@ changeTargetLabel();
         if self.fields:
             if 'username' in self.fields:
                 self.username = self.fields['username'].value
-            if 'password' in self.fields:
-                self.password = _password_hash(self.fields['password'].value)
+                if 'password' in self.fields:
+                    self.password = _password_hash(self.fields['password'].value)
+                    self._is_login_from_post = True
         if environ.has_key('HTTP_COOKIE'):
             print environ['HTTP_COOKIE']
             self.session_cookie.load(environ['HTTP_COOKIE'])
@@ -1302,9 +1372,6 @@ changeTargetLabel();
 
         # the data source for our controller
         self._db = LvfsDatabase(environ)
-
-        if self.fields:
-            self._event_log('Logged on')
 
 def static_app(fn, start_response, content_type, download=False):
     """ Return a static image or resource """
