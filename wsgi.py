@@ -1277,10 +1277,10 @@ changeTargetLabel();
                 app.add_release(rel)
 
                 # add container checksum
-                if item.fwid:
+                if item.md_checksum_container:
                     csum = appstream.Checksum()
                     csum.target = 'container'
-                    csum.value = item.fwid
+                    csum.value = item.md_checksum_container
                     csum.filename = item.filename
                     rel.add_checksum(csum)
 
