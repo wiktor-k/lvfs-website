@@ -22,16 +22,33 @@ import xml.etree.ElementTree as ET
 
 from errors import ParseError, ValidationError
 
+def _join_lines(txt):
+    """ Remove whitespace from XML input """
+    val = ''
+    lines = txt.split('\n')
+    for line in lines:
+        stripped = line.strip()
+        if len(stripped) == 0:
+            continue
+        val += stripped + ' '
+    return val.strip()
+
 def _parse_desc(node):
     """ A quick'n'dirty description parser """
-    lines = ET.tostring(node[0]).split('\n')
     desc = ''
-    for line in lines:
-        new_ln = line.strip()
-        if len(desc) > 0 and desc[-1] != '>':
-            if len(new_ln) > 0 and new_ln[0] != '<':
-                new_ln = ' ' + new_ln
-        desc += new_ln
+    for n in node:
+        if n.tag == 'p':
+            desc += '<p>' + _join_lines(n.text) + '</p>'
+        elif n.tag == 'ol' or n.tag == 'ul':
+            desc += '<ul>'
+            for c in n:
+                if c.tag == 'li':
+                    desc += '<li>' + _join_lines(c.text) + '</li>'
+                else:
+                    raise ParseError('Expected <li> in <%s>, got <%s>', n.tag, c.tag)
+            desc += '</ul>'
+        else:
+            raise ParseError('Expected <p>, <ul>, <ol> in <%s>, got <%s>', node.tag, n.tag)
     return desc
 
 class Checksum(object):
@@ -236,15 +253,15 @@ class Component(object):
 
             # <developer_name>
             elif c1.tag == 'developer_name':
-                self.developer_name = c1.text
+                self.developer_name = _join_lines(c1.text)
 
             # <name>
             elif c1.tag == 'name' and not self.name:
-                self.name = c1.text
+                self.name = _join_lines(c1.text)
 
             # <summary>
             elif c1.tag == 'summary' and not self.summary:
-                self.summary = c1.text
+                self.summary = _join_lines(c1.text)
 
             # <description>
             elif c1.tag == 'description' and not self.description:
