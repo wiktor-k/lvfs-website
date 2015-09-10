@@ -645,6 +645,7 @@ There is no charge to vendors for the hosting or distribution of content.
             html += '<td>'
             html += '<select name="target" id="targetSelection" required>'
             html += '<option value="private">Private</option>'
+            html += '<option value="embargo">Embargoed</option>'
             html += '</select>'
             html += '</td>'
             html += '</tr>'
@@ -1004,9 +1005,9 @@ changeTargetLabel();
             return self._upload_failed('No file')
 
         # can the user upload directly to stable
-        if self.fields['target'].value == 'stable':
+        if self.fields['target'].value in ['stable', 'testing']:
             if not self.qa_capability:
-                return self._action_permission_denied('Unable to upload to stable as not QA')
+                return self._action_permission_denied('Unable to upload to this target as not QA user')
 
         # check size < 50Mb
         fileitem = self.fields['file']

@@ -52,6 +52,10 @@ def main():
     r = w.action_upload(FILE, 'stable')
     assert r.status_code == 401, "expected error when !QA upload file to stable"
 
+    # upload new fw to stable as a non QA user
+    r = w.action_upload(FILE, 'testing')
+    assert r.status_code == 401, "expected error when !QA upload file to testing"
+
     # upload random fw
     r = w.action_upload('./contrib/check.py', 'testing')
     assert r.status_code == 415, "expected error when uploading random file : %s" % r.status_code
