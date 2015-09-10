@@ -27,6 +27,7 @@ import locale
 import cgi
 import hashlib
 import math
+import glob
 
 import cabarchive
 import appstream
@@ -487,35 +488,35 @@ A good password consists of upper and lower case with numbers.
                 button = "<form method=\"get\" action=\"wsgi.py\">" \
                          "<input type=\"hidden\" name=\"action\" value=\"userdel\"/>" \
                          "<input type=\"hidden\" name=\"username_new\" value=\"%s\"/>" \
-                         "<button>Delete</button>" \
+                         "<button class=\"fixedwidth\">Delete</button>" \
                          "</form>" % item.username
                 if not item.is_enabled:
                     button += "<form method=\"get\" action=\"wsgi.py\">" \
                               "<input type=\"hidden\" name=\"action\" value=\"userinc\"/>" \
                               "<input type=\"hidden\" name=\"username_new\" value=\"%s\"/>" \
                               "<input type=\"hidden\" name=\"key\" value=\"%s\"/>" \
-                              "<button>Enable</button>" \
+                              "<button class=\"fixedwidth\">Enable</button>" \
                               "</form>" % (item.username, 'enabled')
                 else:
                     button += "<form method=\"get\" action=\"wsgi.py\">" \
                               "<input type=\"hidden\" name=\"action\" value=\"userdec\"/>" \
                               "<input type=\"hidden\" name=\"username_new\" value=\"%s\"/>" \
                               "<input type=\"hidden\" name=\"key\" value=\"%s\"/>" \
-                              "<button>Disable</button>" \
+                              "<button class=\"fixedwidth\">Disable</button>" \
                               "</form>" % (item.username, 'enabled')
                 if not item.is_qa:
                     button += "<form method=\"get\" action=\"wsgi.py\">" \
                               "<input type=\"hidden\" name=\"action\" value=\"userinc\"/>" \
                               "<input type=\"hidden\" name=\"username_new\" value=\"%s\"/>" \
                               "<input type=\"hidden\" name=\"key\" value=\"%s\"/>" \
-                              "<button>+QA</button>" \
+                              "<button class=\"fixedwidth\">+QA</button>" \
                               "</form>" % (item.username, 'qa')
                 else:
                     button += "<form method=\"get\" action=\"wsgi.py\">" \
                               "<input type=\"hidden\" name=\"action\" value=\"userdec\"/>" \
                               "<input type=\"hidden\" name=\"username_new\" value=\"%s\"/>" \
                               "<input type=\"hidden\" name=\"key\" value=\"%s\"/>" \
-                              "<button>-QA</button>" \
+                              "<button class=\"fixedwidth\">-QA</button>" \
                               "</form>" % (item.username, 'qa')
             html += '<tr>'
             html += "<td>%s</td>\n" % item.username
@@ -534,7 +535,7 @@ A good password consists of upper and lower case with numbers.
         html += "<td><input type=\"text\" size=\"14\" name=\"name\" placeholder=\"Example Name\" required></td>"
         html += "<td><input type=\"text\" size=\"14\" name=\"email\" placeholder=\"info@example.com\" required></td>"
         html += "<td><input type=\"text\" size=\"8\" name=\"qa_group\" placeholder=\"example\" required></td>"
-        html += "<td><input type=\"submit\" class=\"button\" value=\"Add\"></td>"
+        html += "<td><input type=\"submit\" style=\"width: 6em\" value=\"Add\"></td>"
         html += "</form>"
         html += "</tr>\n"
         html += '</table>'
@@ -589,6 +590,10 @@ A good password consists of upper and lower case with numbers.
             html += '</tr>\n'
         html += '</table>'
 
+        # limit this to keep the UI sane
+        if nr_pages > 20:
+            nr_pages = 20
+
         for i in range(nr_pages):
             if int(start) == i * int(length):
                 html += '%i ' % (i + 1)
@@ -631,7 +636,7 @@ There is no charge to vendors for the hosting or distribution of content.
             html += '<tr>'
             html += '<th width="150px" class="upload"><label for="target">Target:</label></th>'
             html += '<td>'
-            html += '<select name="target" onChange="changeTargetLabel();" id="targetSelection" required>'
+            html += '<select name="target" onChange="changeTargetLabel();" id="targetSelection" class="fixedwidth" required>'
             html += '<option value="private">Private</option>'
             html += '<option value="embargo">Embargoed</option>'
             html += '<option value="testing">Testing</option>'
@@ -723,7 +728,7 @@ changeTargetLabel();
                 buttons = "<form method=\"get\" action=\"wsgi.py\">" \
                           "<input type=\"hidden\" name=\"action\" value=\"fwshow\"/>" \
                           "<input type=\"hidden\" name=\"id\" value=\"%s\"/>" \
-                          "<button>Details</button>" \
+                          "<button class=\"fixedwidth\">Details</button>" \
                           "</form>" % item.fwid
                 html += '<tr>'
                 html += "<td>%s</td>" % item.timestamp
@@ -737,6 +742,61 @@ changeTargetLabel();
             html += "<p>No firmware has been uploaded to the " \
                     "&lsquo;%s&rsquo; QA group yet.</p>" % self.qa_group
         return self._gen_header('Existing') + html + self._gen_footer()
+
+    def _update_metadata_from_fn(self, fwobj, fn):
+        """
+        Re-parses the .cab file and updates the database version.
+        """
+
+        # load cab file
+        arc = cabarchive.CabArchive()
+        try:
+            arc.parse_file(fn)
+        except cabarchive.CorruptionError as e:
+            return self._internal_error('Invalid file type: %s' % str(e))
+
+        # parse the MetaInfo file
+        cf = arc.find_file("*.metainfo.xml")
+        if not cf:
+            return self._internal_error('The firmware file had no valid metadata')
+        app = appstream.Component()
+        try:
+            app.parse(str(cf.contents))
+        except appstream.ParseError as e:
+            return self._internal_error('The metadata could not be parsed: ' + cgi.escape(str(e)))
+
+        # update the descriptions
+        fwobj.md_release_description = app.releases[0].description
+        fwobj.md_description = app.description
+        self._db.firmware.update(fwobj)
+        return None
+
+    def _action_metadata_rebuild(self):
+        """
+        Forces a rebuild of all metadata.
+        """
+        if self.username != 'admin':
+            return self._action_permission_denied('Only admin is allowed to force-rebuild firmware')
+
+        # go through existing files and fix descriptions
+        try:
+            items = self._db.firmware.get_items()
+        except CursorError as e:
+            return self._internal_error(str(e))
+        for fn in glob.glob(os.path.join(UPLOAD_DIR, "*.cab")):
+            fwupd = os.path.basename(fn).split('-')[0]
+            for fwobj in items:
+                if fwobj.fwid == fwupd:
+                    err_page = self._update_metadata_from_fn(fwobj, fn)
+                    if err_page:
+                        return err_page
+
+        # update metadata
+        try:
+            self.update_metadata(targets=['stable', 'testing'], qa_group='')
+        except NoKeyError as e:
+            return self._upload_failed('Failed to sign metadata: ' + cgi.escape(str(e)))
+        return self._action_metadata()
 
     def _action_metadata(self):
         """
@@ -785,6 +845,15 @@ changeTargetLabel();
         html += '<td><a href="downloads/firmware.xml.gz">firmware.xml.gz</td>'
         html += '</tr>\n'
         html += '</table>'
+
+        # admin only actions
+        if self.username == 'admin':
+            html += '<h2>Actions</h2>'
+            html += "<form method=\"get\" action=\"wsgi.py\">" \
+                    "<input type=\"hidden\" name=\"action\" value=\"metadata_rebuild\"/>" \
+                    "<button>Force Rebuild Metadata</button>" \
+                    "</form>"
+
         return self._gen_header('Metadata') + html + self._gen_footer()
 
     def _action_permission_denied(self, msg=None):
@@ -913,7 +982,7 @@ changeTargetLabel();
             buttons += "<form method=\"get\" action=\"wsgi.py\">" \
                        "<input type=\"hidden\" name=\"action\" value=\"fwdelete\"/>" \
                        "<input type=\"hidden\" name=\"id\" value=\"%s\"/>" \
-                       "<button>Delete</button>" \
+                       "<button class=\"fixedwidth\">Delete</button>" \
                        "</form>" % fwid
         if self.qa_capability:
             if item.target == 'private':
@@ -921,21 +990,21 @@ changeTargetLabel();
                            "<input type=\"hidden\" name=\"action\" value=\"fwpromote\"/>" \
                            "<input type=\"hidden\" name=\"target\" value=\"embargo\"/>" \
                            "<input type=\"hidden\" name=\"id\" value=\"%s\"/>" \
-                           "<button>&#8594; Embargo</button>" \
+                           "<button class=\"fixedwidth\">&#8594; Embargo</button>" \
                            "</form>" % fwid
             elif item.target == 'embargo':
                 buttons += "<form method=\"get\" action=\"wsgi.py\">" \
                            "<input type=\"hidden\" name=\"action\" value=\"fwpromote\"/>" \
                            "<input type=\"hidden\" name=\"target\" value=\"testing\"/>" \
                            "<input type=\"hidden\" name=\"id\" value=\"%s\"/>" \
-                           "<button>&#8594; Testing</button>" \
+                           "<button class=\"fixedwidth\">&#8594; Testing</button>" \
                            "</form>" % fwid
             elif item.target == 'testing':
                 buttons += "<form method=\"get\" action=\"wsgi.py\">" \
                            "<input type=\"hidden\" name=\"action\" value=\"fwpromote\"/>" \
                            "<input type=\"hidden\" name=\"target\" value=\"stable\"/>" \
                            "<input type=\"hidden\" name=\"id\" value=\"%s\"/>" \
-                           "<button>&#8594; Stable</button>" \
+                           "<button class=\"fixedwidth\">&#8594; Stable</button>" \
                            "</form>" % fwid
 
         html = '<h1>%s</h1>' % item.md_name
@@ -1220,6 +1289,8 @@ changeTargetLabel();
             return self._action_existing()
         elif action == 'metadata':
             return self._action_metadata()
+        elif action == 'metadata_rebuild':
+            return self._action_metadata_rebuild()
         else:
             self.session_cookie['username'] = self.username
             self.session_cookie['username']['Path'] = '/'

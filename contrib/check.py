@@ -57,15 +57,21 @@ def main():
     assert r.status_code == 401, "expected error when !QA upload file to testing"
 
     # upload random fw
-    r = w.action_upload('./contrib/check.py', 'testing')
+    r = w.action_upload('./contrib/check.py', 'private')
     assert r.status_code == 415, "expected error when uploading random file : %s" % r.status_code
 
-    # upload new fw
+    # upload new fw to non embargo without credentials
+    r = w.action_upload(FILE, 'stable')
+    assert r.status_code == 401, "expected error when uploading to stable"
     r = w.action_upload(FILE, 'testing')
+    assert r.status_code == 401, "expected error when uploading to testing"
+
+    # upload new fw
+    r = w.action_upload(FILE, 'embargoed')
     assert r.status_code == 201, "failed to upload file: %i" % r.status_code
 
     # upload existing fw again
-    r = w.action_upload(FILE, 'testing')
+    r = w.action_upload(FILE, 'embargoed')
     assert r.status_code == 422, "expected error when reuploading file : %s" % r.status_code
 
     # delete the test file without login
@@ -85,6 +91,14 @@ def main():
     # delete the test file
     r = w.action_fwdelete('3d69d6c68c915d7cbb4faa029230c92933263f42')
     assert r.status_code == 200, "failed to delete file"
+
+    # regenerate metadata as non-admin user
+    r = w.action_metadata_rebuild(auth='user')
+    assert r.status_code == 401, "expected error when rebuild as user"
+
+    # regenerate metadata as admin user
+    r = w.action_metadata_rebuild(auth='admin')
+    assert r.status_code == 200, "failed to rebuild metadata"
 
     # delete the test user
     r = w.action_userdel('test', auth='admin')

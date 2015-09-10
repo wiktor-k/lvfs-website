@@ -154,14 +154,15 @@ form {
   padding: 2px;
 }
 
-input.button, button {
+input.button.fixedwidth, button.fixedwidth {
   width: 6em;
 }
 
-select {
+select.fixedwidth {
   width: 10em;
 }
- ul.navigation {
+
+ul.navigation {
   list-style-type: none;
   margin: 1em -1em 2em;
   padding: 0;

@@ -158,6 +158,19 @@ class LvfsDatabaseFirmware(object):
             qa_groups.append(r[0])
         return qa_groups
 
+    def update(self, fwobj):
+        """ Update firmware details """
+        assert fwobj
+        try:
+            cur = self._db.cursor()
+            cur.execute("UPDATE firmware SET md_description=%s, md_release_description=%s "
+                        "WHERE hash=%s;",
+                        (fwobj.md_description,
+                         fwobj.md_release_description,
+                         fwobj.fwid,))
+        except mdb.Error, e:
+            raise CursorError(cur, e)
+
     def add(self, fwobj):
         """ Add a firmware object to the database """
         try:
@@ -221,7 +234,6 @@ class LvfsDatabaseFirmware(object):
         for e in res:
             item = _create_firmware_item(e)
             items.append(item)
-        print items
         return items
 
     def get_item(self, fwid):

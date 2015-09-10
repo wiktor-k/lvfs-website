@@ -37,6 +37,11 @@ class LvfsClient(object):
         uri = "%s/wsgi.py?action=fwdelete&id=%s" % (self.server, fwid)
         return requests.post(uri, data=self._get_payload(auth))
 
+    def action_metadata_rebuild(self, auth='user'):
+        """ Rebuild metadata """
+        uri = "%s/wsgi.py?action=metadata_rebuild" % self.server
+        return requests.post(uri, data=self._get_payload(auth))
+
     def action_useradd(self, username, password, qa_group, name, email, auth='user'):
         """ Add a user """
         uri = "%s/wsgi.py?action=useradd&username_new=%s&password_new=%s&" \
