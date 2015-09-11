@@ -669,7 +669,7 @@ There is no charge to vendors for the hosting or distribution of content.
             html += '<tr>'
             html += '<th width="150px" class="upload"><label for="target">Target:</label></th>'
             html += '<td>'
-            html += '<select name="target" onChange="changeTargetLabel();" id="targetSelection" class="fixedwidth" required>'
+            html += '<select name="target" class="fixedwidth" required>'
             html += '<option value="private">Private</option>'
             html += '<option value="embargo">Embargoed</option>'
             html += '<option value="testing">Testing</option>'
@@ -681,7 +681,7 @@ There is no charge to vendors for the hosting or distribution of content.
             html += '<tr>'
             html += '<th width="150px" class="upload"><label for="target">Target:</label></th>'
             html += '<td>'
-            html += '<select name="target" id="targetSelection" required>'
+            html += '<select name="target" class="fixedwidth" required>'
             html += '<option value="private">Private</option>'
             html += '<option value="embargo">Embargoed</option>'
             html += '</select>'
@@ -698,38 +698,24 @@ There is no charge to vendors for the hosting or distribution of content.
         html += '<input type="submit" class="submit" value="Upload"/>'
         html += '</form>'
         html += '<p>'
-        html += ' Updates normally go through these stages:'
-        html += ' Private &#8594; Embargoed &#8594; Testing &#8594; Stable'
+        html += ' Updates normally go through these stages: '
+        html += '<a href="#" title="The private target keeps the firmware secret ' \
+                'and is only downloadable from this admin console. An admin or ' \
+                'QA user can move the firmware to either embargo, testing or ' \
+                'stable.">Private</a> &#8594; '
+        html += '<a href="#" title="The embargo target makes the firmware ' \
+                'available to users knowing a secret metdata URL. An admin or ' \
+                'QA user can move the firmware to testing when the hardware has ' \
+                'been released.">Embargoed</a> &#8594; '
+        html += '<a href="#" title="The testing target makes the firmware ' \
+                'available to some users. An admin or QA user can move the ' \
+                'firmware to stable when testing is complete.">Testing</a> &#8594; '
+        html += '<a href="#" title="The stable target makes the firmware ' \
+                'available to all users. Make sure the firmware has been ' \
+                'carefully tested before using this target.">Stable</a>'
         html += '</p>'
-        html += '<p id="targetLabel">This user account is restricted to private uploading.</p>'
         html += '</table>'
-
-        html += """
-<script type="text/JavaScript">
-function changeTargetLabel() {
-    var combo = document.getElementById("targetSelection");
-    var label = document.getElementById("targetLabel");
-    if (combo.selectedIndex == 0) {
-        label.innerHTML = "The private target keeps the firmware secret and is only downloadable from this admin console.<br>" +
-                          "An admin or QA user can move the firmware to either embargo, testing or stable.";
-    } else if (combo.selectedIndex == 1) {
-        label.innerHTML = "The embargo target makes the firmware available to users knowing <a href=%s>this URL.</a><br>" +
-                          "An admin or QA user can move the firmware to testing when the hardware has been released.";
-    } else if (combo.selectedIndex == 2) {
-        label.innerHTML = "The testing target makes the firmware available to some users.<br>" +
-                          "An admin or QA user can move the firmware to stable when testing is complete.";
-    } else if (combo.selectedIndex == 3) {
-        label.innerHTML = "The stable target makes the firmware available to all users.<br>" +
-                          "Make sure the firmware has been carefully tested before using this target.";
-    }
-}
-
-// Ensure run at startup
-changeTargetLabel();
-</script>
-"""
-        embargo_url = 'downloads/firmware-%s.xml.gz' % _qa_hash(self.qa_group)
-        return self._gen_header('Home') + html % embargo_url + self._gen_footer()
+        return self._gen_header('Home') + html + self._gen_footer()
 
     def _action_existing(self):
         """
