@@ -175,15 +175,14 @@ li.navigation2 {
 a:link.navigation, a:visited.navigation {
   display: block;
   width: 7em;
-  color: #acacac;
+  color: #4c4c4c;
   text-align: center;
   text-decoration: none;
   border-bottom: 3px solid transparent;
-
 }
 
 a:hover.navigation {
-  color: #7c7c7c;
+  color: #0c0c0c;
   border-bottom-color: #9c9c9c;
 }
 
