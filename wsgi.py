@@ -9,6 +9,7 @@ STATIC_DIR = 'static'
 UPLOAD_DIR = 'uploads'
 DOWNLOAD_DIR = 'downloads'
 KEYRING_DIR = 'gnupg'
+CABEXTRACT_CMD = '/usr/bin/cabextract'
 if 'OPENSHIFT_PYTHON_DIR' in os.environ:
     virtenv = os.environ['OPENSHIFT_PYTHON_DIR'] + '/virtenv/'
     virtualenv = os.path.join(virtenv, 'bin/activate_this.py')
@@ -20,6 +21,16 @@ if 'OPENSHIFT_PYTHON_DIR' in os.environ:
     UPLOAD_DIR = os.path.join(os.environ['OPENSHIFT_DATA_DIR'], 'uploads')
     DOWNLOAD_DIR = os.path.join(os.environ['OPENSHIFT_DATA_DIR'], 'downloads')
     KEYRING_DIR = os.path.join(os.environ['OPENSHIFT_DATA_DIR'], 'gnupg')
+
+    # this needs to be setup using:
+    # cd app-root/data/
+    # wget http://www.cabextract.org.uk/cabextract-1.6.tar.gz
+    # tar xvfz cabextract-1.6.tar.gz
+    # cd cabextract-1.6 && ./configure --prefix=/tmp && make
+    # rm cabextract-1.6.tar.gz
+    CABEXTRACT_CMD = os.path.join(os.environ['OPENSHIFT_DATA_DIR'],
+                                  'cabextract-1.6',
+                                  'cabextract')
 
 from wsgiref.simple_server import make_server
 from Cookie import SimpleCookie
@@ -750,6 +761,7 @@ changeTargetLabel();
 
         # load cab file
         arc = cabarchive.CabArchive()
+        arc.set_decompressor(CABEXTRACT_CMD)
         try:
             arc.parse_file(fn)
         except cabarchive.CorruptionError as e:
@@ -1093,6 +1105,7 @@ changeTargetLabel();
 
         # parse the file
         arc = cabarchive.CabArchive()
+        arc.set_decompressor(CABEXTRACT_CMD)
         try:
             arc.parse(data)
         except cabarchive.CorruptionError as e:
