@@ -137,15 +137,9 @@ td.title {
 input.submit {
   display: block;
   margin: 0 auto;
-  outline: none;
   margin-top: 1em;
-  border-width: 0px;
-  border-radius: 5px;
-  border-image: linear-gradient(to bottom, #1e5894, #033266);
   padding: 10px;
   font-weight: bold;
-  background-image: linear-gradient(to bottom, #3e78b4, #235296);
-  color: white;
   width: 60%;
 }
 
