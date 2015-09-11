@@ -24,6 +24,7 @@ def _create_user_item(e):
     item.is_enabled = bool(e[4])
     item.is_qa = bool(e[5])
     item.qa_group = e[6]
+    item.is_locked = bool(e[7])
     return item
 
 class LvfsUser(object):
@@ -36,6 +37,7 @@ class LvfsUser(object):
         self.is_enabled = False
         self.is_qa = False
         self.qa_group = None
+        self.is_locked = False
     def __repr__(self):
         return "LvfsUser object %s" % self.username
 
@@ -58,8 +60,18 @@ class LvfsDatabaseUsers(object):
                   email VARCHAR(255) DEFAULT NULL,
                   is_enabled TINYINT DEFAULT 0,
                   is_qa TINYINT DEFAULT 0,
-                  qa_group VARCHAR(40) NOT NULL DEFAULT ''
+                  qa_group VARCHAR(40) NOT NULL DEFAULT '',
+                  is_locked TINYINT DEFAULT 0
                 ) CHARSET=utf8;
+            """
+            cur.execute(sql_db)
+
+         # FIXME, remove after a few days
+        try:
+            cur.execute("SELECT is_locked FROM users LIMIT 1;")
+        except mdb.Error, e:
+            sql_db = """
+                ALTER TABLE users ADD is_locked TINYINT DEFAULT 0;
             """
             cur.execute(sql_db)
 
@@ -67,8 +79,8 @@ class LvfsDatabaseUsers(object):
         cur.execute("SELECT is_enabled FROM users WHERE username='admin';")
         if not cur.fetchone():
             sql_db = """
-                INSERT INTO users (username, password, display_name, email, is_enabled, is_qa, qa_group)
-                    VALUES ('admin', 'Pa$$w0rd', 'Admin User', 'sign-test@fwupd.org', 1, 1, 'admin');
+                INSERT INTO users (username, password, display_name, email, is_enabled, is_qa, is_locked, qa_group)
+                    VALUES ('admin', 'Pa$$w0rd', 'Admin User', 'sign-test@fwupd.org', 1, 1, 0, 'admin');
             """
             cur.execute(sql_db)
 
@@ -82,7 +94,7 @@ class LvfsDatabaseUsers(object):
                         (_password_hash(l[1]), l[0],))
 
         # ensure admin has all privs
-        cur.execute("UPDATE users SET is_enabled=1, is_qa=1, qa_group='admin' "
+        cur.execute("UPDATE users SET is_enabled=1, is_qa=1, is_locked=0, qa_group='admin' "
                     "WHERE username='admin';")
 
     def get_signing_uid(self):
@@ -105,7 +117,8 @@ class LvfsDatabaseUsers(object):
         pw_hash = _password_hash(password)
         try:
             cur = self._db.cursor()
-            cur.execute("INSERT INTO users (username, password, display_name, email, is_enabled, qa_group) "
+            cur.execute("INSERT INTO users (username, password, display_name, "
+                        "email, is_enabled, qa_group) "
                         "VALUES (%s, %s, %s, %s, 1, %s);",
                         (username, pw_hash, name, email, qa_group,))
         except mdb.Error, e:
@@ -135,6 +148,12 @@ class LvfsDatabaseUsers(object):
         elif key == 'enabled':
             try:
                 cur.execute("UPDATE users SET is_enabled=%s WHERE username=%s;",
+                            (value, username,))
+            except mdb.Error, e:
+                raise CursorError(cur, e)
+        elif key == 'locked':
+            try:
+                cur.execute("UPDATE users SET is_locked=%s WHERE username=%s;",
                             (value, username,))
             except mdb.Error, e:
                 raise CursorError(cur, e)
@@ -189,7 +208,7 @@ class LvfsDatabaseUsers(object):
         try:
             cur = self._db.cursor()
             cur.execute("SELECT username, display_name, email, password, "
-                        "is_enabled, is_qa, qa_group FROM users;")
+                        "is_enabled, is_qa, qa_group, is_locked FROM users;")
         except mdb.Error, e:
             raise CursorError(cur, e)
         res = cur.fetchall()
@@ -207,12 +226,12 @@ class LvfsDatabaseUsers(object):
             cur = self._db.cursor()
             if password:
                 cur.execute("SELECT username, display_name, email, password, "
-                            "is_enabled, is_qa, qa_group FROM users "
+                            "is_enabled, is_qa, qa_group, is_locked FROM users "
                             "WHERE username = %s AND password = %s LIMIT 1;",
                             (username, password,))
             else:
                 cur.execute("SELECT username, display_name, email, password, "
-                            "is_enabled, is_qa, qa_group FROM users "
+                            "is_enabled, is_qa, qa_group, is_locked FROM users "
                             "WHERE username = %s LIMIT 1;",
                             (username,))
         except mdb.Error, e:

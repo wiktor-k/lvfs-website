@@ -79,6 +79,7 @@ class LvfsWebsite(object):
         self.password = '' # hashed
         self.qa_group = ''
         self.qa_capability = False
+        self.is_locked = False
         self.fields = None
         self.qs_get = None
         self._is_login_from_post = False
@@ -132,7 +133,8 @@ class LvfsWebsite(object):
                 html += '  <li class="navigation"><a class="navigation" href="?action=userlist">User List</a></li>\n'
                 html += '  <li class="navigation"><a class="navigation" href="?action=eventlog">Event Log</a></li>\n'
             html += '  <li class="navigation2"><a class="navigation" href="?action=logout">Log Out</a></li>\n'
-            html += '  <li class="navigation2"><a class="navigation" href="?action=profile">Profile</a></li>\n'
+            if not self.is_locked:
+                html += '  <li class="navigation2"><a class="navigation" href="?action=profile">Profile</a></li>\n'
             html += '</ul>\n'
 
         return html
@@ -369,6 +371,8 @@ To upload firmware please login, or <a href="?action=newaccount">request a new a
     def _action_usermod(self):
         """ Change details about the current user """
 
+        if self.is_locked:
+            return self._action_permission_denied('Unable to change user as account locked')
         if not 'password_new' in self.fields:
             return self._action_permission_denied('Unable to change user as no data')
         if not 'password_old' in self.fields:
@@ -416,6 +420,10 @@ To upload firmware please login, or <a href="?action=newaccount">request a new a
         Allows the normal user to change details about the account,
         and also the admin user to add or remove user accounts.
          """
+
+        # security check
+        if self.is_locked:
+            return self._action_permission_denied('Unable to view profile as account locked')
 
         html = """
 <p>%s</p>
@@ -515,6 +523,20 @@ A good password consists of upper and lower case with numbers.
                               "<input type=\"hidden\" name=\"key\" value=\"%s\"/>" \
                               "<button class=\"fixedwidth\">Disable</button>" \
                               "</form>" % (item.username, 'enabled')
+                if not item.is_locked:
+                    button += "<form method=\"get\" action=\"wsgi.py\">" \
+                              "<input type=\"hidden\" name=\"action\" value=\"userinc\"/>" \
+                              "<input type=\"hidden\" name=\"username_new\" value=\"%s\"/>" \
+                              "<input type=\"hidden\" name=\"key\" value=\"%s\"/>" \
+                              "<button class=\"fixedwidth\">Lock</button>" \
+                              "</form>" % (item.username, 'locked')
+                else:
+                    button += "<form method=\"get\" action=\"wsgi.py\">" \
+                              "<input type=\"hidden\" name=\"action\" value=\"userdec\"/>" \
+                              "<input type=\"hidden\" name=\"username_new\" value=\"%s\"/>" \
+                              "<input type=\"hidden\" name=\"key\" value=\"%s\"/>" \
+                              "<button class=\"fixedwidth\">Unlock</button>" \
+                              "</form>" % (item.username, 'locked')
                 if not item.is_qa:
                     button += "<form method=\"get\" action=\"wsgi.py\">" \
                               "<input type=\"hidden\" name=\"action\" value=\"userinc\"/>" \
@@ -1261,6 +1283,7 @@ changeTargetLabel();
             return self._action_login('User account has been disabled')
         self.qa_capability = item.is_qa
         self.qa_group = item.qa_group
+        self.is_locked = item.is_locked
 
         # log success
         if self._is_login_from_post:
