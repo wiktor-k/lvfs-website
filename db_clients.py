@@ -24,31 +24,32 @@ class LvfsDatabaseClients(object):
         # test client table exists
         try:
             cur = self._db.cursor()
-            cur.execute("SELECT * FROM clients LIMIT 1;")
+            cur.execute("SELECT * FROM clients_v2 LIMIT 1;")
         except mdb.Error, e:
             sql_db = """
-                CREATE TABLE clients (
-                  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                  addr VARCHAR(40) DEFAULT NULL UNIQUE,
-                  cnt INTEGER DEFAULT 1
+                CREATE TABLE clients_v2 (
+                  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP UNIQUE,
+                  addr VARCHAR(40) DEFAULT NULL,
+                  is_firmware TINYINT DEFAULT 0
                 ) CHARSET=utf8;
             """
             cur.execute(sql_db)
 
-        # convert from strings to hashes
-        cur.execute("SELECT timestamp, addr FROM clients;")
-        res = cur.fetchall()
-        for l in res:
-            if len(l[1]) == 40:
-                continue
-            cur.execute("UPDATE clients SET addr=%s WHERE timestamp=%s;",
-                        (_addr_hash(l[1]), l[0],))
+            # convert data
+            cur.execute("SELECT timestamp, addr FROM clients;")
+            res = cur.fetchall()
+            for l in res:
+                print l
+                try:
+                    cur.execute("INSERT INTO clients_v2 (timestamp, addr) VALUES (%s, %s);", (l[0], l[1],))
+                except mdb.Error, e:
+                    print "ignoring:", str(e)
 
-    def get_metadata_download_cnt(self):
+    def get_firmware_count_unique(self):
         """ get the number of metadata files we've provided """
         try:
             cur = self._db.cursor()
-            cur.execute("SELECT COUNT(addr) FROM clients")
+            cur.execute("SELECT DISTINCT(COUNT(addr)) FROM clients_v2")
         except mdb.Error, e:
             raise CursorError(cur, e)
         user_cnt = cur.fetchone()[0]
@@ -56,17 +57,24 @@ class LvfsDatabaseClients(object):
             return 0
         return user_cnt
 
-    def add(self, address):
+    def add_metadata(self, address):
         """ Adds a client address into the database """
         try:
             cur = self._db.cursor()
-            cur.execute("INSERT INTO clients (addr) VALUES (%s) "
-                        "ON DUPLICATE KEY UPDATE cnt=cnt+1;", (_addr_hash(address),))
+            cur.execute("INSERT INTO clients_v2 (addr, is_firmware) VALUES (%s, 0);", (_addr_hash(address),))
         except mdb.Error, e:
             raise CursorError(cur, e)
 
-    def get_usage_data(self, size=30, interval=2):
-        """ Gets usage data """
+    def add_firmware(self, address):
+        """ Adds a client address into the database """
+        try:
+            cur = self._db.cursor()
+            cur.execute("INSERT INTO clients_v2 (addr, is_firmware) VALUES (%s, 1);", (_addr_hash(address),))
+        except mdb.Error, e:
+            raise CursorError(cur, e)
+
+    def _get_stats(self, size, interval, is_firmware):
+        """ Gets stats data """
         data = []
         now = datetime.date.today()
 
@@ -77,10 +85,18 @@ class LvfsDatabaseClients(object):
             end = now - datetime.timedelta((i * interval) - 1)
             try:
                 cur = self._db.cursor()
-                cur.execute("SELECT COUNT(*) FROM clients "
-                            "WHERE timestamp >= '%s' AND timestamp <  '%s'" % (start, end))
-                print start, end
+                cur.execute("SELECT COUNT(*) FROM clients_v2 "
+                            "WHERE is_firmware = %s AND timestamp >= %s "
+                            "AND timestamp <  %s", (is_firmware, start, end,))
             except mdb.Error, e:
                 raise CursorError(cur, e)
             data.append(int(cur.fetchone()[0]))
         return data
+
+    def get_metadata_stats(self, size=30, interval=2):
+        """ Gets metadata statistics """
+        return self._get_stats(size, interval, 0)
+
+    def get_firmware_stats(self, size=30, interval=2):
+        """ Gets firmware statistics """
+        return self._get_stats(size, interval, 1)

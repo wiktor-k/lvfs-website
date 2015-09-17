@@ -256,7 +256,7 @@ To upload firmware please login, or <a href="?action=newaccount">request a new a
         # get the number of files we've provided
         locale.setlocale(locale.LC_ALL, 'en_US')
         download_str = locale.format("%d", self._db.firmware.get_download_cnt(), grouping=True)
-        user_str = locale.format("%d", self._db.clients.get_metadata_download_cnt(), grouping=True)
+        user_str = locale.format("%d", self._db.clients.get_firmware_count_unique(), grouping=True)
         if error_msg:
             html = html % (error_msg, download_str, user_str)
         else:
@@ -274,9 +274,10 @@ To upload firmware please login, or <a href="?action=newaccount">request a new a
             return self._action_permission_denied('Unable to view analytics')
 
         # add chart
-        data = self._db.clients.get_usage_data(12, 30)
+        data_md = self._db.clients.get_metadata_stats(12, 30)
+        data_fw = self._db.clients.get_firmware_stats(12, 30)
         html = '<h1>Analytics</h1>'
-        html += '<h2>Unique metadata downloads</h2>'
+        html += '<h2>Metadata and Firmware Downloads</h2>'
         html += '<canvas id="metadataChart" width="800" height="400"></canvas>'
         html += '<script src="Chart.js"></script>'
         html += '<script>'
@@ -285,14 +286,24 @@ To upload firmware please login, or <a href="?action=newaccount">request a new a
         html += '    labels: %s,' % _get_chart_labels()[::-1]
         html += '    datasets: ['
         html += '        {'
-        html += '            label: "Unique metadata downloads",'
-        html += '            fillColor: "rgba(20,220,220,0.2)",'
-        html += '            strokeColor: "rgba(220,220,220,1)",'
-        html += '            pointColor: "rgba(220,220,220,1)",'
+        html += '            label: "Metadata",'
+        html += '            fillColor: "rgba(20,120,220,0.2)",'
+        html += '            strokeColor: "rgba(20,120,120,0.1)",'
+        html += '            pointColor: "rgba(20,120,120,0.3)",'
         html += '            pointStrokeColor: "#fff",'
         html += '            pointHighlightFill: "#fff",'
         html += '            pointHighlightStroke: "rgba(220,220,220,1)",'
-        html += '            data: %s' % data[::-1]
+        html += '            data: %s' % data_md[::-1]
+        html += '        },'
+        html += '        {'
+        html += '            label: "Firmware",'
+        html += '            fillColor: "rgba(251,14,5,0.2)",'
+        html += '            strokeColor: "rgba(151,14,5,0.1)",'
+        html += '            pointColor: "rgba(151,14,5,0.3)",'
+        html += '            pointStrokeColor: "#fff",'
+        html += '            pointHighlightFill: "#fff",'
+        html += '            pointHighlightStroke: "rgba(151,187,205,1)",'
+        html += '            data: %s' % data_fw[::-1]
         html += '        },'
         html += '    ]'
         html += '};'
@@ -1561,10 +1572,17 @@ def application(environ, start_response):
 
     # handle files
     if fn.endswith(".cab"):
-        w._db.firmware.increment_filename_cnt(fn)
+        try:
+            w._db.clients.add_firmware(w.client_address)
+            w._db.firmware.increment_filename_cnt(fn)
+        except CursorError as e:
+            pass
         return static_app(fn, start_response, 'application/vnd.ms-cab-compressed', download=True)
     if fn.endswith(".xml.gz"):
-        w._db.clients.add(w.client_address)
+        try:
+            w._db.clients.add_metadata(w.client_address)
+        except CursorError as e:
+            pass
         return static_app(fn, start_response, 'application/gzip', download=True)
 
     # get response
