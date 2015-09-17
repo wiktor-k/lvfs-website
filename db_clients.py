@@ -6,6 +6,7 @@
 
 import MySQLdb as mdb
 import hashlib
+import datetime
 
 from db import CursorError
 
@@ -63,3 +64,23 @@ class LvfsDatabaseClients(object):
                         "ON DUPLICATE KEY UPDATE cnt=cnt+1;", (_addr_hash(address),))
         except mdb.Error, e:
             raise CursorError(cur, e)
+
+    def get_usage_data(self, size=30, interval=2):
+        """ Gets usage data """
+        data = []
+        now = datetime.date.today()
+
+        # yes, there's probably a way to do this in one query with a
+        # 30-level INNER JOIN or something clever...
+        for i in range(size):
+            start = now - datetime.timedelta((i * interval) + interval - 1)
+            end = now - datetime.timedelta((i * interval) - 1)
+            try:
+                cur = self._db.cursor()
+                cur.execute("SELECT COUNT(*) FROM clients "
+                            "WHERE timestamp >= '%s' AND timestamp <  '%s'" % (start, end))
+                print start, end
+            except mdb.Error, e:
+                raise CursorError(cur, e)
+            data.append(int(cur.fetchone()[0]))
+        return data

@@ -70,6 +70,19 @@ def _email_check(value):
         return 'Invalid email address'
     return None
 
+def _get_chart_labels():
+    """ Gets the chart labels """
+    import calendar
+    import datetime
+    now = datetime.date.today()
+    labels = []
+    offset = 0
+    for i in range(0,12):
+        if now.month - i == 0:
+            offset = 1;
+        labels.append(calendar.month_name[now.month - i - offset])
+    return labels
+
 class LvfsWebsite(object):
     """ A helper class """
 
@@ -130,8 +143,9 @@ class LvfsWebsite(object):
             html += '  <li class="navigation"><a class="navigation" href="?action=existing">Firmware</a></li>\n'
             html += '  <li class="navigation"><a class="navigation" href="?action=metadata">Metadata</a></li>\n'
             if self.username == 'admin':
-                html += '  <li class="navigation"><a class="navigation" href="?action=userlist">User List</a></li>\n'
+                html += '  <li class="navigation"><a class="navigation" href="?action=userlist">Users</a></li>\n'
                 html += '  <li class="navigation"><a class="navigation" href="?action=eventlog">Event Log</a></li>\n'
+                html += '  <li class="navigation"><a class="navigation" href="?action=analytics">Analytics</a></li>\n'
             html += '  <li class="navigation2"><a class="navigation" href="?action=logout">Log Out</a></li>\n'
             if not self.is_locked:
                 html += '  <li class="navigation2"><a class="navigation" href="?action=profile">Profile</a></li>\n'
@@ -251,6 +265,43 @@ To upload firmware please login, or <a href="?action=newaccount">request a new a
         # set correct response code
         self._set_response_code('401 Unauthorized')
         return self._gen_header('Login', show_navigation=False) + html + self._gen_footer()
+
+    def _action_analytics(self):
+        """ A analytics screen to show information about users """
+
+        # admin only
+        if self.username != 'admin':
+            return self._action_permission_denied('Unable to view analytics')
+
+        # add chart
+        data = self._db.clients.get_usage_data(12, 30)
+        html = '<h1>Analytics</h1>'
+        html += '<h2>Unique metadata downloads</h2>'
+        html += '<canvas id="metadataChart" width="800" height="400"></canvas>'
+        html += '<script src="Chart.js"></script>'
+        html += '<script>'
+        html += 'var ctx = document.getElementById("metadataChart").getContext("2d");'
+        html += 'var data = {'
+        html += '    labels: %s,' % _get_chart_labels()[::-1]
+        html += '    datasets: ['
+        html += '        {'
+        html += '            label: "Unique metadata downloads",'
+        html += '            fillColor: "rgba(20,220,220,0.2)",'
+        html += '            strokeColor: "rgba(220,220,220,1)",'
+        html += '            pointColor: "rgba(220,220,220,1)",'
+        html += '            pointStrokeColor: "#fff",'
+        html += '            pointHighlightFill: "#fff",'
+        html += '            pointHighlightStroke: "rgba(220,220,220,1)",'
+        html += '            data: %s' % data[::-1]
+        html += '        },'
+        html += '    ]'
+        html += '};'
+        html += 'var myLineChart = new Chart(ctx).Line(data, null);'
+        html += '</script>'
+
+        # set correct response code
+        self._set_response_code('200 OK')
+        return self._gen_header('Analytics') + html + self._gen_footer()
 
     def _action_useradd(self):
         """ Add a user [ADMIN ONLY] """
@@ -1285,6 +1336,8 @@ There is no charge to vendors for the hosting or distribution of content.
             return self._action_login('Successfully logged out. Log in again to perform any vendor actions.')
         elif action == 'profile':
             return self._action_profile()
+        elif action == 'analytics':
+            return self._action_analytics()
         elif action == 'usermod':
             return self._action_usermod()
         elif action == 'useradd':
@@ -1496,6 +1549,8 @@ def application(environ, start_response):
         return static_app(fn, start_response, 'image/png')
     if fn.endswith(".ico"):
         return static_app(fn, start_response, 'image/x-icon')
+    if fn.endswith(".js"):
+        return static_app(fn, start_response, 'application/javascript')
     if fn.endswith(".xml.gz.asc"):
         return static_app(fn, start_response, 'text/plain', download=True)
 
