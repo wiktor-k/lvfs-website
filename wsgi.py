@@ -39,6 +39,8 @@ import cgi
 import hashlib
 import math
 import glob
+import calendar
+import datetime
 
 import cabarchive
 import appstream
@@ -70,10 +72,8 @@ def _email_check(value):
         return 'Invalid email address'
     return None
 
-def _get_chart_labels():
+def _get_chart_labels_months():
     """ Gets the chart labels """
-    import calendar
-    import datetime
     now = datetime.date.today()
     labels = []
     offset = 0
@@ -81,6 +81,16 @@ def _get_chart_labels():
         if now.month - i == 0:
             offset = 1;
         labels.append(calendar.month_name[now.month - i - offset])
+    return labels
+
+def _get_chart_labels_days():
+    """ Gets the chart labels """
+    now = datetime.date.today()
+    labels = []
+    offset = 0
+    for i in range(0,30):
+        then = now - datetime.timedelta(i)
+        labels.append("%02i-%02i-%02i" % (then.year, then.month, then.day))
     return labels
 
 class LvfsWebsite(object):
@@ -273,17 +283,19 @@ To upload firmware please login, or <a href="?action=newaccount">request a new a
         if self.username != 'admin':
             return self._action_permission_denied('Unable to view analytics')
 
-        # add chart
-        data_md = self._db.clients.get_metadata_stats(12, 30)
-        data_fw = self._db.clients.get_firmware_stats(12, 30)
-        html = '<h1>Analytics</h1>'
-        html += '<h2>Metadata and Firmware Downloads</h2>'
-        html += '<canvas id="metadataChart" width="800" height="400"></canvas>'
-        html += '<script src="Chart.js"></script>'
+        # load external resource
+        html = '<script src="Chart.js"></script>'
+        html += '<h1>Analytics</h1>'
+
+        # add days
+        data_md = self._db.clients.get_metadata_stats(30, 1)
+        data_fw = self._db.clients.get_firmware_stats(30, 1)
+        html += '<h2>Metadata and Firmware Downloads (day)</h2>'
+        html += '<canvas id="metadataChartMonthsDays" width="800" height="400"></canvas>'
         html += '<script>'
-        html += 'var ctx = document.getElementById("metadataChart").getContext("2d");'
+        html += 'var ctx = document.getElementById("metadataChartMonthsDays").getContext("2d");'
         html += 'var data = {'
-        html += '    labels: %s,' % _get_chart_labels()[::-1]
+        html += '    labels: %s,' % _get_chart_labels_days()[::-1]
         html += '    datasets: ['
         html += '        {'
         html += '            label: "Metadata",'
@@ -307,7 +319,42 @@ To upload firmware please login, or <a href="?action=newaccount">request a new a
         html += '        },'
         html += '    ]'
         html += '};'
-        html += 'var myLineChart = new Chart(ctx).Line(data, null);'
+        html += 'var myLineChartDays = new Chart(ctx).Line(data, null);'
+        html += '</script>'
+
+        # add months
+        data_md = self._db.clients.get_metadata_stats(12, 30)
+        data_fw = self._db.clients.get_firmware_stats(12, 30)
+        html += '<h2>Metadata and Firmware Downloads (month)</h2>'
+        html += '<canvas id="metadataChartMonths" width="800" height="400"></canvas>'
+        html += '<script>'
+        html += 'var ctx = document.getElementById("metadataChartMonths").getContext("2d");'
+        html += 'var data = {'
+        html += '    labels: %s,' % _get_chart_labels_months()[::-1]
+        html += '    datasets: ['
+        html += '        {'
+        html += '            label: "Metadata",'
+        html += '            fillColor: "rgba(20,120,220,0.2)",'
+        html += '            strokeColor: "rgba(20,120,120,0.1)",'
+        html += '            pointColor: "rgba(20,120,120,0.3)",'
+        html += '            pointStrokeColor: "#fff",'
+        html += '            pointHighlightFill: "#fff",'
+        html += '            pointHighlightStroke: "rgba(220,220,220,1)",'
+        html += '            data: %s' % data_md[::-1]
+        html += '        },'
+        html += '        {'
+        html += '            label: "Firmware",'
+        html += '            fillColor: "rgba(251,14,5,0.2)",'
+        html += '            strokeColor: "rgba(151,14,5,0.1)",'
+        html += '            pointColor: "rgba(151,14,5,0.3)",'
+        html += '            pointStrokeColor: "#fff",'
+        html += '            pointHighlightFill: "#fff",'
+        html += '            pointHighlightStroke: "rgba(151,187,205,1)",'
+        html += '            data: %s' % data_fw[::-1]
+        html += '        },'
+        html += '    ]'
+        html += '};'
+        html += 'var myLineChartMonths = new Chart(ctx).Line(data, null);'
         html += '</script>'
 
         # set correct response code
