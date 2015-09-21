@@ -93,6 +93,13 @@ def _get_chart_labels_days():
         labels.append("%02i-%02i-%02i" % (then.year, then.month, then.day))
     return labels
 
+def _get_chart_labels_hours():
+    """ Gets the chart labels """
+    labels = []
+    for i in range(0,24):
+        labels.append("%02i" % i)
+    return labels
+
 class LvfsWebsite(object):
     """ A helper class """
 
@@ -355,6 +362,30 @@ To upload firmware please login, or <a href="?action=newaccount">request a new a
         html += '    ]'
         html += '};'
         html += 'var myLineChartMonths = new Chart(ctx).Line(data, null);'
+        html += '</script>'
+
+        # add hours
+        data_md = self._db.clients.get_metadata_by_hour()
+        html += '<h2>Metadata and Firmware Downloads (hour)</h2>'
+        html += '<canvas id="metadataChartHours" width="800" height="400"></canvas>'
+        html += '<script>'
+        html += 'var ctx = document.getElementById("metadataChartHours").getContext("2d");'
+        html += 'var data = {'
+        html += '    labels: %s,' % _get_chart_labels_hours()
+        html += '    datasets: ['
+        html += '        {'
+        html += '            label: "Metadata",'
+        html += '            fillColor: "rgba(20,120,220,0.2)",'
+        html += '            strokeColor: "rgba(20,120,120,0.1)",'
+        html += '            pointColor: "rgba(20,120,120,0.3)",'
+        html += '            pointStrokeColor: "#fff",'
+        html += '            pointHighlightFill: "#fff",'
+        html += '            pointHighlightStroke: "rgba(220,220,220,1)",'
+        html += '            data: %s' % data_md
+        html += '        },'
+        html += '    ]'
+        html += '};'
+        html += 'var myLineChartHours = new Chart(ctx).Line(data, null);'
         html += '</script>'
 
         # set correct response code

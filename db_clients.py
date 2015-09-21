@@ -100,3 +100,14 @@ class LvfsDatabaseClients(object):
     def get_firmware_stats(self, size=30, interval=2):
         """ Gets firmware statistics """
         return self._get_stats(size, interval, 1)
+
+    def get_metadata_by_hour(self):
+        data = []
+        for i in range(24):
+            try:
+                cur = self._db.cursor()
+                cur.execute("SELECT COUNT(*) FROM clients WHERE HOUR(timestamp) = %s;", (i,))
+            except mdb.Error, e:
+                raise CursorError(cur, e)
+            data.append(int(cur.fetchone()[0]))
+        return data
