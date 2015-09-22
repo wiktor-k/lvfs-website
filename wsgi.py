@@ -41,6 +41,7 @@ import math
 import glob
 import calendar
 import datetime
+import ConfigParser
 
 import cabarchive
 import appstream
@@ -48,6 +49,7 @@ from affidavit import Affidavit, NoKeyError
 from db import LvfsDatabase, CursorError
 from db_users import _password_hash
 from db_firmware import LvfsFirmware
+from inf_parser import InfParser
 
 def _qa_hash(value):
     """ Generate a salted hash of the QA group """
@@ -1266,6 +1268,22 @@ There is no charge to vendors for the hosting or distribution of content.
         cf = arc.find_file("*.inf")
         if not cf:
             return self._upload_failed('The firmware file had no valid inf file')
+
+        # check .inf file is valid
+        cfg = InfParser()
+        cfg.read_data(cf.contents)
+        try:
+            tmp = cfg.get('Version', 'Class')
+        except ConfigParser.NoOptionError as e:
+            return self._upload_failed('The inf file Version:Class was missing')
+        if not tmp == 'Firmware':
+            return self._upload_failed('The inf file Version:Class was invalid')
+        try:
+            tmp = cfg.get('Version', 'ClassGuid')
+        except ConfigParser.NoOptionError as e:
+            return self._upload_failed('The inf file Version:ClassGuid was missing')
+        if not tmp == '{f2e7dd72-6468-4e36-b6f1-6488f42c1b52}':
+            return self._upload_failed('The inf file Version:ClassGuid was invalid')
 
         # check metainfo exists
         cf = arc.find_file("*.metainfo.xml")
