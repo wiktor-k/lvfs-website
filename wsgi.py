@@ -77,9 +77,9 @@ def _get_chart_labels_months():
     now = datetime.date.today()
     labels = []
     offset = 0
-    for i in range(0,12):
+    for i in range(0, 12):
         if now.month - i == 0:
-            offset = 1;
+            offset = 1
         labels.append(calendar.month_name[now.month - i - offset])
     return labels
 
@@ -87,8 +87,7 @@ def _get_chart_labels_days():
     """ Gets the chart labels """
     now = datetime.date.today()
     labels = []
-    offset = 0
-    for i in range(0,30):
+    for i in range(0, 30):
         then = now - datetime.timedelta(i)
         labels.append("%02i-%02i-%02i" % (then.year, then.month, then.day))
     return labels
@@ -96,7 +95,7 @@ def _get_chart_labels_days():
 def _get_chart_labels_hours():
     """ Gets the chart labels """
     labels = []
-    for i in range(0,24):
+    for i in range(0, 24):
         labels.append("%02i" % i)
     return labels
 
@@ -1283,6 +1282,11 @@ There is no charge to vendors for the hosting or distribution of content.
         except appstream.ValidationError as e:
             return self._upload_failed('The metadata file did not validate: ' + cgi.escape(str(e)))
 
+        # check the file does not have any missing fields
+        if cf.contents.find('FIXME') != -1:
+            return self._upload_failed("The metadata file was not complete; "
+                                       "Any FIXME text must be replaced with the correct values.")
+
         # check the file does not already exist
         fwid = hashlib.sha1(data).hexdigest()
         try:
@@ -1302,6 +1306,12 @@ There is no charge to vendors for the hosting or distribution of content.
             if item.md_guid == app.provides[0].value and item.md_version == app.releases[0].version:
                 self._set_response_code('422 Entity Already Exists')
                 return self._upload_failed("A firmware file for this version already exists")
+
+        # check the ID hasn't been reused by a different GUID
+        for item in items:
+            if item.md_id == app.id and not item.md_guid == app.provides[0].value:
+                self._set_response_code('422 Entity Already Exists')
+                return self._upload_failed("The %s ID has already been used by GUID %s" % (item.md_id, item.md_guid))
 
         # only save if we passed all tests
         basename = os.path.basename(fileitem.filename)
