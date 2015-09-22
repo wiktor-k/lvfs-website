@@ -106,7 +106,7 @@ class LvfsDatabaseClients(object):
         for i in range(24):
             try:
                 cur = self._db.cursor()
-                cur.execute("SELECT COUNT(*) FROM clients WHERE HOUR(timestamp) = %s;", (i,))
+                cur.execute("SELECT COUNT(*) FROM clients_v2 WHERE HOUR(timestamp) = %s;", (i,))
             except mdb.Error, e:
                 raise CursorError(cur, e)
             data.append(int(cur.fetchone()[0]))
