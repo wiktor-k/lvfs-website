@@ -1348,6 +1348,12 @@ There is no charge to vendors for the hosting or distribution of content.
             self._set_response_code('422 Entity Already Exists')
             return self._upload_failed("A firmware file with hash %s already exists" % fwid)
 
+        # check the firmware provides something
+        if len(app.provides) == 0:
+            return self._upload_failed("The metadata file did not provide any GUID.")
+        if len(app.releases) == 0:
+            return self._upload_failed("The metadata file did not provide any releases.")
+
         # check the guid and version does not already exist
         try:
             items = self._db.firmware.get_items()
