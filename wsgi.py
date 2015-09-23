@@ -1269,6 +1269,11 @@ There is no charge to vendors for the hosting or distribution of content.
         if not cf:
             return self._upload_failed('The firmware file had no valid inf file')
 
+        # check the file does not have any missing fields
+        if cf.contents.find('FIXME') != -1:
+            return self._upload_failed("The inf file was not complete; "
+                                       "Any FIXME text must be replaced with the correct values.")
+
         # check .inf file is valid
         cfg = InfParser()
         cfg.read_data(cf.contents)
