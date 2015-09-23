@@ -929,9 +929,24 @@ There is no charge to vendors for the hosting or distribution of content.
         except appstream.ParseError as e:
             return self._internal_error('The metadata could not be parsed: ' + cgi.escape(str(e)))
 
+        # parse the inf file
+        cf = arc.find_file("*.inf")
+        if not cf:
+            return self._internal_error('The firmware file had no valid inf file')
+        cfg = InfParser()
+        cfg.read_data(cf.contents)
+        try:
+            tmp = cfg.get('Version', 'DriverVer')
+        except ConfigParser.NoOptionError as e:
+            return self._internal_error('The inf file Version:DriverVer was missing')
+        driver_ver = tmp.split(',')
+        if len(driver_ver) != 2:
+            return self._internal_error('The inf file Version:DriverVer was invalid')
+
         # update the descriptions
         fwobj.md_release_description = app.releases[0].description
         fwobj.md_description = app.description
+        fwobj.md_version_display = driver_ver[1]
         self._db.firmware.update(fwobj)
         return None
 

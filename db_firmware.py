@@ -175,10 +175,11 @@ class LvfsDatabaseFirmware(object):
         assert fwobj
         try:
             cur = self._db.cursor()
-            cur.execute("UPDATE firmware SET md_description=%s, md_release_description=%s "
+            cur.execute("UPDATE firmware SET md_description=%s, md_release_description=%s, md_version_display=%s "
                         "WHERE hash=%s;",
                         (fwobj.md_description,
                          fwobj.md_release_description,
+                         fwobj.md_version_display,
                          fwobj.fwid,))
         except mdb.Error, e:
             raise CursorError(cur, e)
