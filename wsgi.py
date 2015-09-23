@@ -1318,6 +1318,15 @@ There is no charge to vendors for the hosting or distribution of content.
         if len(driver_ver) != 2:
             return self._upload_failed('The inf file Version:DriverVer was invalid')
 
+        # this is optional, but if supplied must match the version in the XML
+        fw_version = None
+        try:
+            fw_version = cfg.get('Firmware_AddReg', 'HKR->FirmwareVersion')
+            if fw_version.startswith('0x'):
+                fw_version = str(int(fw_version[2:], 16))
+        except ConfigParser.NoOptionError as e:
+            pass
+
         # check metainfo exists
         cf = arc.find_file("*.metainfo.xml")
         if not cf:
@@ -1353,6 +1362,12 @@ There is no charge to vendors for the hosting or distribution of content.
             return self._upload_failed("The metadata file did not provide any GUID.")
         if len(app.releases) == 0:
             return self._upload_failed("The metadata file did not provide any releases.")
+
+        # check the inf file matches up with the .xml file
+        if fw_version and fw_version != app.releases[0].version:
+            return self._upload_failed("The inf Firmware_AddReg[HKR->FirmwareVersion] "
+                                       "'%s' did not match the metainfo.xml value '%s'."
+                                       % (fw_version, app.releases[0].version))
 
         # check the guid and version does not already exist
         try:

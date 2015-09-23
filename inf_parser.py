@@ -35,8 +35,21 @@ class InfParser(ConfigParser.RawConfigParser):
 
         return '\n'.join(fixed)
 
+    def read(self, fn):
+        fd = open(fn)
+        self.read_data(fd.read())
+
     def read_data(self, contents):
-        buf = StringIO.StringIO(contents)
+
+        # fix registry keys to have a sane key=value structure
+        contents_new = []
+        for ln in contents.split('\n'):
+            sect = ln.split(',')
+            if len(sect) == 5:
+                ln = '%s->%s=%s' % (sect[0].strip(), sect[2].strip(), sect[4].strip())
+            contents_new.append(ln)
+
+        buf = StringIO.StringIO('\n'.join(contents_new))
         self.readfp(buf)
 
 def main():
@@ -47,6 +60,9 @@ def main():
             print cfg.items(section)
         print cfg.get("Version", "CatalogFile")
         print cfg.get("Version", "Provider")
+        print cfg.get("Firmware_AddReg", "HKR->FirmwareId")
+        print cfg.get("Firmware_AddReg", "HKR->FirmwareVersion")
+        print cfg.get("Firmware_AddReg", "HKR->FirmwareFilename")
 
 if __name__ == "__main__":
     main()
