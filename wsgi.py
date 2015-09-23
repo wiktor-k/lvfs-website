@@ -893,7 +893,10 @@ There is no charge to vendors for the hosting or distribution of content.
                 html += '<tr>'
                 html += "<td>%s</td>" % item.timestamp
                 html += "<td>%s</td>" % item.md_name
-                html += "<td>%s</td>" % item.md_version
+                if not item.md_version_display or item.md_version == item.md_version_display:
+                    html += "<td>%s</td>" % item.md_version
+                else:
+                    html += "<td>%s [%s]</td>" % (item.md_version_display, item.md_version)
                 html += "<td>%s</td>" % item.target
                 html += "<td>%s</td>" % buttons
                 html += '</tr>\n'
@@ -1174,7 +1177,10 @@ There is no charge to vendors for the hosting or distribution of content.
         html += '<tr><th>ID</th><td>%s</td></tr>' % item.md_id
         html += '<tr><th>Filename</th><td><a href=\"%s\">%s</a></td></tr>' % (file_uri, item.filename)
         html += '<tr><th>Device GUID</th><td>%s</td></tr>' % item.md_guid
-        html += '<tr><th>Version</th><td>%s</td></tr>' % item.md_version
+        if not item.md_version_display or item.md_version == item.md_version_display:
+            html += '<tr><th>Version</th><td>%s</td></tr>' % item.md_version
+        else:
+            html += '<tr><th>Version</th><td>%s [%s]</td></tr>' % (item.md_version_display, item.md_version)
         html += '<tr><th>Current Target</th><td>%s</td></tr>' % item.target
         html += '<tr><th>Submitted</th><td>%s</td></tr>' % item.timestamp
         html += '<tr><th>QA Group</th><td><a href="%s">%s</a></td></tr>' % (embargo_url, qa_group)
@@ -1289,6 +1295,13 @@ There is no charge to vendors for the hosting or distribution of content.
             return self._upload_failed('The inf file Version:ClassGuid was missing')
         if not tmp == '{f2e7dd72-6468-4e36-b6f1-6488f42c1b52}':
             return self._upload_failed('The inf file Version:ClassGuid was invalid')
+        try:
+            tmp = cfg.get('Version', 'DriverVer')
+        except ConfigParser.NoOptionError as e:
+            return self._upload_failed('The inf file Version:DriverVer was missing')
+        driver_ver = tmp.split(',')
+        if len(driver_ver) != 2:
+            return self._upload_failed('The inf file Version:DriverVer was invalid')
 
         # check metainfo exists
         cf = arc.find_file("*.metainfo.xml")
@@ -1383,6 +1396,7 @@ There is no charge to vendors for the hosting or distribution of content.
             fwobj.md_id = app.id
             fwobj.md_guid = app.provides[0].value
             fwobj.md_version = app.releases[0].version
+            fwobj.md_version_display = driver_ver[1]
             fwobj.md_name = app.name
             fwobj.md_summary = app.summary
             fwobj.md_checksum_contents = checksum_contents

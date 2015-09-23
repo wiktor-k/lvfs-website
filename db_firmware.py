@@ -21,6 +21,7 @@ class LvfsFirmware(object):
         self.md_id = None
         self.md_guid = None
         self.md_version = None
+        self.md_version_display = None
         self.md_name = None
         self.md_summary = None
         self.md_checksum_contents = None
@@ -60,6 +61,7 @@ def _create_firmware_item(e):
     item.md_checksum_container = e[19]
     item.md_filename_contents = e[20]
     item.download_cnt = e[21]
+    item.md_version_display = e[22]
     return item
 
 class LvfsDatabaseFirmware(object):
@@ -96,8 +98,18 @@ class LvfsDatabaseFirmware(object):
                   md_developer_name TEXT DEFAULT NULL,
                   md_filename_contents TEXT DEFAULT NULL,
                   md_release_timestamp INTEGER DEFAULT 0,
-                  md_version VARCHAR(255) DEFAULT NULL
+                  md_version VARCHAR(255) DEFAULT NULL,
+                  md_version_display VARCHAR(255) DEFAULT NULL
                 ) CHARSET=utf8;
+            """
+            cur.execute(sql_db)
+
+         # FIXME, remove after a few days
+        try:
+            cur.execute("SELECT md_version_display FROM firmware LIMIT 1;")
+        except mdb.Error, e:
+            sql_db = """
+                ALTER TABLE firmware ADD md_version_display VARCHAR(255) DEFAULT NULL;
             """
             cur.execute(sql_db)
 
@@ -180,9 +192,9 @@ class LvfsDatabaseFirmware(object):
                         "md_name, md_summary, md_checksum_contents, md_release_description, "
                         "md_release_timestamp, md_developer_name, md_metadata_license, "
                         "md_project_license, md_url_homepage, md_description, "
-                        "md_checksum_container, md_filename_contents) "
+                        "md_checksum_container, md_filename_contents, md_version_display) "
                         "VALUES (%s, %s, CURRENT_TIMESTAMP, %s, %s, %s, %s, "
-                        "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);",
+                        "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);",
                         (fwobj.qa_group,
                          fwobj.addr,
                          fwobj.filename,
@@ -202,7 +214,8 @@ class LvfsDatabaseFirmware(object):
                          fwobj.md_url_homepage,
                          fwobj.md_description,
                          fwobj.md_checksum_container,
-                         fwobj.md_filename_contents,))
+                         fwobj.md_filename_contents,
+                         fwobj.md_version_display,))
         except mdb.Error, e:
             raise CursorError(cur, e)
 
@@ -223,7 +236,8 @@ class LvfsDatabaseFirmware(object):
                         "md_name, md_summary, md_checksum_contents, md_release_description, "
                         "md_release_timestamp, md_developer_name, md_metadata_license, "
                         "md_project_license, md_url_homepage, md_description, "
-                        "md_checksum_container, md_filename_contents, download_cnt "
+                        "md_checksum_container, md_filename_contents, "
+                        "download_cnt, md_version_display "
                         "FROM firmware ORDER BY timestamp DESC;")
         except mdb.Error, e:
             raise CursorError(cur, e)
