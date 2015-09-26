@@ -49,6 +49,7 @@ from affidavit import Affidavit, NoKeyError
 from db import LvfsDatabase, CursorError
 from db_users import _password_hash
 from db_firmware import LvfsFirmware
+from db_clients import LvfsDownloadKind
 from inf_parser import InfParser
 
 def _qa_hash(value):
@@ -296,8 +297,9 @@ To upload firmware please login, or <a href="?action=newaccount">request a new a
         html += '<h1>Analytics</h1>'
 
         # add days
-        data_md = self._db.clients.get_metadata_stats(30, 1)
-        data_fw = self._db.clients.get_firmware_stats(30, 1)
+        data_md = self._db.clients.get_stats(30, 1, LvfsDownloadKind.METADATA)
+        data_fw = self._db.clients.get_stats(30, 1, LvfsDownloadKind.FIRMWARE)
+        data_asc = self._db.clients.get_stats(30, 1, LvfsDownloadKind.SIGNING)
         html += '<h2>Metadata and Firmware Downloads (day)</h2>'
         html += '<canvas id="metadataChartMonthsDays" width="800" height="400"></canvas>'
         html += '<script>'
@@ -305,6 +307,16 @@ To upload firmware please login, or <a href="?action=newaccount">request a new a
         html += 'var data = {'
         html += '    labels: %s,' % _get_chart_labels_days()[::-1]
         html += '    datasets: ['
+        html += '        {'
+        html += '            label: "Signing",'
+        html += '            fillColor: "rgba(120,120,120,0.15)",'
+        html += '            strokeColor: "rgba(120,120,120,0.15)",'
+        html += '            pointColor: "rgba(120,120,120,0.20)",'
+        html += '            pointStrokeColor: "#fff",'
+        html += '            pointHighlightFill: "#fff",'
+        html += '            pointHighlightStroke: "rgba(220,220,220,1)",'
+        html += '            data: %s' % data_asc[::-1]
+        html += '        },'
         html += '        {'
         html += '            label: "Metadata",'
         html += '            fillColor: "rgba(20,120,220,0.2)",'
@@ -331,8 +343,8 @@ To upload firmware please login, or <a href="?action=newaccount">request a new a
         html += '</script>'
 
         # add months
-        data_md = self._db.clients.get_metadata_stats(12, 30)
-        data_fw = self._db.clients.get_firmware_stats(12, 30)
+        data_md = self._db.clients.get_stats(12, 30, LvfsDownloadKind.METADATA)
+        data_fw = self._db.clients.get_stats(12, 30, LvfsDownloadKind.FIRMWARE)
         html += '<h2>Metadata and Firmware Downloads (month)</h2>'
         html += '<canvas id="metadataChartMonths" width="800" height="400"></canvas>'
         html += '<script>'
@@ -1723,8 +1735,6 @@ def application(environ, start_response):
         return static_app(fn, start_response, 'image/x-icon')
     if fn.endswith(".js"):
         return static_app(fn, start_response, 'application/javascript')
-    if fn.endswith(".xml.gz.asc"):
-        return static_app(fn, start_response, 'text/plain', download=True)
 
     # use a helper class
     w = LvfsWebsite()
@@ -1732,16 +1742,22 @@ def application(environ, start_response):
     w.init(environ)
 
     # handle files
+    if fn.endswith(".xml.gz.asc"):
+        try:
+            w._db.clients.increment(w.client_address, LvfsDownloadKind.SIGNING)
+        except CursorError as e:
+            pass
+        return static_app(fn, start_response, 'text/plain', download=True)
     if fn.endswith(".cab"):
         try:
-            w._db.clients.add_firmware(w.client_address)
+            w._db.clients.increment(w.client_address, LvfsDownloadKind.FIRMWARE)
             w._db.firmware.increment_filename_cnt(fn)
         except CursorError as e:
             pass
         return static_app(fn, start_response, 'application/vnd.ms-cab-compressed', download=True)
     if fn.endswith(".xml.gz"):
         try:
-            w._db.clients.add_metadata(w.client_address)
+            w._db.clients.increment(w.client_address, LvfsDownloadKind.METADATA)
         except CursorError as e:
             pass
         return static_app(fn, start_response, 'application/gzip', download=True)

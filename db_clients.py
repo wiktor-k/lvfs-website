@@ -15,6 +15,11 @@ def _addr_hash(value):
     salt = 'addr%%%'
     return hashlib.sha1(salt + value).hexdigest()
 
+class LvfsDownloadKind(object):
+    METADATA = 0
+    FIRMWARE = 1
+    SIGNING = 2
+
 class LvfsDatabaseClients(object):
 
     def __init__(self, db):
@@ -41,7 +46,8 @@ class LvfsDatabaseClients(object):
             for l in res:
                 print l
                 try:
-                    cur.execute("INSERT INTO clients_v2 (timestamp, addr) VALUES (%s, %s);", (l[0], l[1],))
+                    cur.execute("INSERT INTO clients_v2 (timestamp, addr) "
+                                "VALUES (%s, %s);", (l[0], l[1],))
                 except mdb.Error, e:
                     print "ignoring:", str(e)
 
@@ -57,23 +63,16 @@ class LvfsDatabaseClients(object):
             return 0
         return user_cnt
 
-    def add_metadata(self, address):
+    def increment(self, address, kind):
         """ Adds a client address into the database """
         try:
             cur = self._db.cursor()
-            cur.execute("INSERT INTO clients_v2 (addr, is_firmware) VALUES (%s, 0);", (_addr_hash(address),))
+            cur.execute("INSERT INTO clients_v2 (addr, is_firmware) "
+                        "VALUES (%s, %s);", (_addr_hash(address), kind,))
         except mdb.Error, e:
             raise CursorError(cur, e)
 
-    def add_firmware(self, address):
-        """ Adds a client address into the database """
-        try:
-            cur = self._db.cursor()
-            cur.execute("INSERT INTO clients_v2 (addr, is_firmware) VALUES (%s, 1);", (_addr_hash(address),))
-        except mdb.Error, e:
-            raise CursorError(cur, e)
-
-    def _get_stats(self, size, interval, is_firmware):
+    def get_stats(self, size, interval, kind):
         """ Gets stats data """
         data = []
         now = datetime.date.today()
@@ -87,26 +86,19 @@ class LvfsDatabaseClients(object):
                 cur = self._db.cursor()
                 cur.execute("SELECT COUNT(*) FROM clients_v2 "
                             "WHERE is_firmware = %s AND timestamp >= %s "
-                            "AND timestamp <  %s", (is_firmware, start, end,))
+                            "AND timestamp <  %s", (kind, start, end,))
             except mdb.Error, e:
                 raise CursorError(cur, e)
             data.append(int(cur.fetchone()[0]))
         return data
-
-    def get_metadata_stats(self, size=30, interval=2):
-        """ Gets metadata statistics """
-        return self._get_stats(size, interval, 0)
-
-    def get_firmware_stats(self, size=30, interval=2):
-        """ Gets firmware statistics """
-        return self._get_stats(size, interval, 1)
 
     def get_metadata_by_hour(self):
         data = []
         for i in range(24):
             try:
                 cur = self._db.cursor()
-                cur.execute("SELECT COUNT(*) FROM clients_v2 WHERE HOUR(timestamp) = %s;", (i,))
+                cur.execute("SELECT COUNT(*) FROM clients_v2 "
+                            "WHERE HOUR(timestamp) = %s;", (i,))
             except mdb.Error, e:
                 raise CursorError(cur, e)
             data.append(int(cur.fetchone()[0]))
