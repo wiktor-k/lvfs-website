@@ -34,6 +34,8 @@ class LvfsFirmware(object):
         self.md_description = None
         self.md_checksum_container = None
         self.md_filename_contents = None
+        self.md_release_installed_size = 0
+        self.md_release_download_size = 0
     def __repr__(self):
         return "LvfsFirmware object %s" % self.fwid
 
@@ -62,6 +64,8 @@ def _create_firmware_item(e):
     item.md_filename_contents = e[20]
     item.download_cnt = e[21]
     item.md_version_display = e[22]
+    item.md_release_installed_size = e[23]
+    item.md_release_download_size = e[24]
     return item
 
 class LvfsDatabaseFirmware(object):
@@ -99,7 +103,9 @@ class LvfsDatabaseFirmware(object):
                   md_filename_contents TEXT DEFAULT NULL,
                   md_release_timestamp INTEGER DEFAULT 0,
                   md_version VARCHAR(255) DEFAULT NULL,
-                  md_version_display VARCHAR(255) DEFAULT NULL
+                  md_version_display VARCHAR(255) DEFAULT NULL,
+                  md_release_installed_size INTEGER DEFAULT 0,
+                  md_release_download_size INTEGER DEFAULT 0
                 ) CHARSET=utf8;
             """
             cur.execute(sql_db)
@@ -110,6 +116,16 @@ class LvfsDatabaseFirmware(object):
         except mdb.Error, e:
             sql_db = """
                 ALTER TABLE firmware ADD md_version_display VARCHAR(255) DEFAULT NULL;
+            """
+            cur.execute(sql_db)
+
+         # FIXME, remove after a few days
+        try:
+            cur.execute("SELECT md_release_download_size FROM firmware LIMIT 1;")
+        except mdb.Error, e:
+            sql_db = """
+                ALTER TABLE firmware ADD md_release_installed_size INTEGER DEFAULT 0;
+                ALTER TABLE firmware ADD md_release_download_size INTEGER DEFAULT 0;
             """
             cur.execute(sql_db)
 
@@ -175,11 +191,17 @@ class LvfsDatabaseFirmware(object):
         assert fwobj
         try:
             cur = self._db.cursor()
-            cur.execute("UPDATE firmware SET md_description=%s, md_release_description=%s, md_version_display=%s "
+            cur.execute("UPDATE firmware SET md_description=%s, "
+                        "md_release_description=%s, "
+                        "md_version_display=%s, "
+                        "md_release_installed_size=%s, "
+                        "md_release_download_size=%s "
                         "WHERE hash=%s;",
                         (fwobj.md_description,
                          fwobj.md_release_description,
                          fwobj.md_version_display,
+                         fwobj.md_release_installed_size,
+                         fwobj.md_release_download_size,
                          fwobj.fwid,))
         except mdb.Error, e:
             raise CursorError(cur, e)
@@ -193,9 +215,12 @@ class LvfsDatabaseFirmware(object):
                         "md_name, md_summary, md_checksum_contents, md_release_description, "
                         "md_release_timestamp, md_developer_name, md_metadata_license, "
                         "md_project_license, md_url_homepage, md_description, "
-                        "md_checksum_container, md_filename_contents, md_version_display) "
+                        "md_checksum_container, md_filename_contents, "
+                        "md_version_display, md_release_installed_size, "
+                        "md_release_download_size) "
                         "VALUES (%s, %s, CURRENT_TIMESTAMP, %s, %s, %s, %s, "
-                        "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);",
+                        "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, "
+                        "%s, %s, %s, %s, %s);",
                         (fwobj.qa_group,
                          fwobj.addr,
                          fwobj.filename,
@@ -216,7 +241,9 @@ class LvfsDatabaseFirmware(object):
                          fwobj.md_description,
                          fwobj.md_checksum_container,
                          fwobj.md_filename_contents,
-                         fwobj.md_version_display,))
+                         fwobj.md_version_display,
+                         fwobj.md_release_installed_size,
+                         fwobj.md_release_download_size,))
         except mdb.Error, e:
             raise CursorError(cur, e)
 
@@ -238,7 +265,8 @@ class LvfsDatabaseFirmware(object):
                         "md_release_timestamp, md_developer_name, md_metadata_license, "
                         "md_project_license, md_url_homepage, md_description, "
                         "md_checksum_container, md_filename_contents, "
-                        "download_cnt, md_version_display "
+                        "download_cnt, md_version_display, "
+                        "md_release_installed_size, md_release_download_size "
                         "FROM firmware ORDER BY timestamp DESC;")
         except mdb.Error, e:
             raise CursorError(cur, e)

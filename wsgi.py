@@ -57,6 +57,13 @@ def _qa_hash(value):
     salt = 'vendor%%%'
     return hashlib.sha1(salt + value).hexdigest()
 
+def sizeof_fmt(num, suffix='B'):
+    for unit in ['','Ki','Mi','Gi','Ti','Pi','Ei','Zi']:
+        if abs(num) < 1024.0:
+            return "%3.1f%s%s" % (num, unit, suffix)
+        num /= 1024.0
+    return "%.1f%s%s" % (num, 'Yi', suffix)
+
 def _password_check(value):
     """ Check the password for suitability """
     if len(value) < 8:
@@ -955,6 +962,17 @@ There is no charge to vendors for the hosting or distribution of content.
         if len(driver_ver) != 2:
             return self._internal_error('The inf file Version:DriverVer was invalid')
 
+        # get the contents
+        fw_data = arc.find_file('*.bin')
+        if not fw_data:
+            fw_data = arc.find_file('*.cap')
+        if not fw_data:
+            return self._internal_error('No firmware found in the archive: ' + cgi.escape(str(e)))
+
+        # update sizes
+        fwobj.md_release_installed_size = len(fw_data.contents)
+        fwobj.md_release_download_size = os.path.getsize(fn)
+
         # update the descriptions
         fwobj.md_release_description = app.releases[0].description
         fwobj.md_description = app.description
@@ -1208,6 +1226,8 @@ There is no charge to vendors for the hosting or distribution of content.
             html += '<tr><th>Version</th><td>%s</td></tr>' % item.md_version
         else:
             html += '<tr><th>Version</th><td>%s [%s]</td></tr>' % (item.md_version_display, item.md_version)
+        html += '<tr><th>Installed Size</th><td>%s</td></tr>' % sizeof_fmt(item.md_release_installed_size)
+        html += '<tr><th>Download Size</th><td>%s</td></tr>' % sizeof_fmt(item.md_release_download_size)
         html += '<tr><th>Current Target</th><td>%s</td></tr>' % item.target
         html += '<tr><th>Submitted</th><td>%s</td></tr>' % item.timestamp
         html += '<tr><th>QA Group</th><td><a href="%s">%s</a></td></tr>' % (embargo_url, qa_group)
@@ -1457,6 +1477,8 @@ There is no charge to vendors for the hosting or distribution of content.
             fwobj.md_description = app.description
             fwobj.md_checksum_container = checksum_container
             fwobj.md_filename_contents = fw_data.filename
+            fwobj.md_release_installed_size = len(fw_data.contents)
+            fwobj.md_release_download_size = len(data)
             self._db.firmware.add(fwobj)
         except CursorError as e:
             return self._internal_error(str(e))
