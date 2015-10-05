@@ -58,7 +58,8 @@ def _qa_hash(value):
     return hashlib.sha1(salt + value).hexdigest()
 
 def sizeof_fmt(num, suffix='B'):
-    for unit in ['','Ki','Mi','Gi','Ti','Pi','Ei','Zi']:
+    """ Generate user-visible size """
+    for unit in ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']:
         if abs(num) < 1024.0:
             return "%3.1f%s%s" % (num, unit, suffix)
         num /= 1024.0
@@ -67,9 +68,9 @@ def sizeof_fmt(num, suffix='B'):
 def _password_check(value):
     """ Check the password for suitability """
     if len(value) < 8:
-        return 'The password is too short, the minimum is 8 character'
+        return 'The password is too short, the minimum is 8 characters'
     if len(value) > 40:
-        return 'The password is too long, the maximum is 40 character'
+        return 'The password is too long, the maximum is 40 characters'
     if value.lower() == value:
         return 'The password requires at least one uppercase character'
     if value.isalnum():
@@ -956,11 +957,11 @@ There is no charge to vendors for the hosting or distribution of content.
         cfg.read_data(cf.contents)
         try:
             tmp = cfg.get('Version', 'DriverVer')
+            driver_ver = tmp.split(',')
+            if len(driver_ver) != 2:
+                return self._internal_error('The inf file Version:DriverVer was invalid')
         except ConfigParser.NoOptionError as e:
-            return self._internal_error('The inf file Version:DriverVer was missing')
-        driver_ver = tmp.split(',')
-        if len(driver_ver) != 2:
-            return self._internal_error('The inf file Version:DriverVer was invalid')
+            driver_ver = None
 
         # get the contents
         fw_data = arc.find_file('*.bin')
@@ -976,7 +977,8 @@ There is no charge to vendors for the hosting or distribution of content.
         # update the descriptions
         fwobj.md_release_description = app.releases[0].description
         fwobj.md_description = app.description
-        fwobj.md_version_display = driver_ver[1]
+        if driver_ver:
+            fwobj.md_version_display = driver_ver[1]
         self._db.firmware.update(fwobj)
         return None
 
