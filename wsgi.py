@@ -1346,11 +1346,11 @@ There is no charge to vendors for the hosting or distribution of content.
             return self._upload_failed('The inf file Version:ClassGuid was invalid')
         try:
             tmp = cfg.get('Version', 'DriverVer')
+            driver_ver = tmp.split(',')
+            if len(driver_ver) != 2:
+                return self._upload_failed('The inf file Version:DriverVer was invalid')
         except ConfigParser.NoOptionError as e:
-            return self._upload_failed('The inf file Version:DriverVer was missing')
-        driver_ver = tmp.split(',')
-        if len(driver_ver) != 2:
-            return self._upload_failed('The inf file Version:DriverVer was invalid')
+            driver_ver = None
 
         # this is optional, but if supplied must match the version in the XML
         fw_version = None
@@ -1466,7 +1466,8 @@ There is no charge to vendors for the hosting or distribution of content.
             fwobj.md_id = app.id
             fwobj.md_guid = app.provides[0].value
             fwobj.md_version = app.releases[0].version
-            fwobj.md_version_display = driver_ver[1]
+            if driver_ver:
+                fwobj.md_version_display = driver_ver[1]
             fwobj.md_name = app.name
             fwobj.md_summary = app.summary
             fwobj.md_checksum_contents = checksum_contents
