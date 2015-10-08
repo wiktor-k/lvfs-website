@@ -1006,7 +1006,8 @@ There is no charge to vendors for the hosting or distribution of content.
 
         # update metadata
         try:
-            self.update_metadata(targets=['stable', 'testing'], qa_group='')
+            self.update_metadata_by_qa_group(None)
+            self.update_metadata_by_targets(['stable', 'testing'])
         except NoKeyError as e:
             return self._upload_failed('Failed to sign metadata: ' + cgi.escape(str(e)))
         return self._action_metadata()
@@ -1155,7 +1156,11 @@ There is no charge to vendors for the hosting or distribution of content.
 
         # update everything
         try:
-            self.update_metadata(targets=['stable', 'testing'], qa_group='')
+            self.update_metadata_by_qa_group(item.qa_group)
+            if item.target == 'stable':
+                self.update_metadata_by_targets(targets=['stable', 'testing'])
+            elif item.target == 'testing':
+                self.update_metadata_by_targets(targets=['testing'])
         except NoKeyError as e:
             return self._upload_failed('Failed to sign metadata: ' + cgi.escape(str(e)))
 
@@ -1282,7 +1287,11 @@ There is no charge to vendors for the hosting or distribution of content.
 
         # update everything
         try:
-            self.update_metadata(targets=['stable', 'testing'], qa_group='')
+            self.update_metadata_by_qa_group(item.qa_group)
+            if target == 'stable':
+                self.update_metadata_by_targets(['stable', 'testing'])
+            elif target == 'testing':
+                self.update_metadata_by_targets(['testing'])
         except NoKeyError as e:
             return self._upload_failed('Failed to sign metadata: ' + cgi.escape(str(e)))
 
@@ -1499,11 +1508,12 @@ There is no charge to vendors for the hosting or distribution of content.
 
         # ensure up to date
         try:
-            self.update_metadata(targets=['stable', 'testing'], qa_group='')
-            if target in ['stable', 'testing']:
-                self.update_metadata(targets=[target])
-            elif target == 'embargo':
-                self.update_metadata(qa_group=self.qa_group)
+            if target != 'private':
+                self.update_metadata_by_qa_group(fwobj.qa_group)
+            if target == 'stable':
+                self.update_metadata_by_targets(['stable', 'testing'])
+            elif target == 'testing':
+                self.update_metadata_by_targets(['testing'])
         except NoKeyError as e:
             return self._upload_failed('Failed to sign metadata: ' + cgi.escape(str(e)))
 
@@ -1675,35 +1685,33 @@ There is no charge to vendors for the hosting or distribution of content.
         if qa_group:
             self._event_log("Generated metadata for %s QA group" % qa_group)
 
-    def update_metadata(self, targets=None, qa_group=None):
-        """ Updates metadata """
+    def update_metadata_by_qa_group(self, qa_group):
+        """ updates metadata for a specific qa_group """
 
-        # normal metadata
-        if targets:
-            for target in targets:
-                if target == 'stable':
-                    filename = 'firmware.xml.gz'
-                    self._generate_metadata_kind(filename, targets=['stable'])
-                elif target == 'testing':
-                    filename = 'firmware-testing.xml.gz'
-                    self._generate_metadata_kind(filename, targets=['stable', 'testing'])
-                else:
-                    filename = 'firmware-%s.xml.gz' % target
-                    self._generate_metadata_kind(filename, targets=[target])
-
-        # each vendor
+        # explicit
         if qa_group:
-            if qa_group == '':
-                try:
-                    qa_groups = self._db.firmware.get_qa_groups()
-                except CursorError as e:
-                    return self._internal_error(str(e))
-                for qa_group in qa_groups:
-                    filename = 'firmware-%s.xml.gz' % _qa_hash(qa_group)
-                    self._generate_metadata_kind(filename, qa_group=qa_group)
-            else:
-                filename = 'firmware-%s.xml.gz' % _qa_hash(qa_group)
-                self._generate_metadata_kind(filename, qa_group=qa_group)
+            filename = 'firmware-%s.xml.gz' % _qa_hash(qa_group)
+            self._generate_metadata_kind(filename, qa_group=qa_group)
+            return
+
+        # do for all
+        try:
+            qa_groups = self._db.firmware.get_qa_groups()
+        except CursorError as e:
+            return self._internal_error(str(e))
+        for qa_group in qa_groups:
+            filename = 'firmware-%s.xml.gz' % _qa_hash(qa_group)
+            self._generate_metadata_kind(filename, qa_group=qa_group)
+
+    def update_metadata_by_targets(self, targets):
+        """ updates metadata for a specific target """
+        for target in targets:
+            if target == 'stable':
+                filename = 'firmware.xml.gz'
+                self._generate_metadata_kind(filename, targets=['stable'])
+            elif target == 'testing':
+                filename = 'firmware-testing.xml.gz'
+                self._generate_metadata_kind(filename, targets=['stable', 'testing'])
 
     def init(self, environ):
         """ Set up the website helper with the calling environment """
