@@ -1266,6 +1266,12 @@ There is no charge to vendors for the hosting or distribution of content.
 
         # check firmware exists in database
         try:
+            item = self._db.firmware.get_item(fwid)
+        except CursorError as e:
+            return self._internal_error(str(e))
+        if self.username != 'admin' and item.qa_group != self.qa_group:
+            return self._action_permission_denied("No QA access to %s" % fwid)
+        try:
             self._db.firmware.set_target(fwid, target)
         except CursorError as e:
             return self._internal_error(str(e))
