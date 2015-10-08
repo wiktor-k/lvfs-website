@@ -56,6 +56,10 @@ table.history {
   white-space: nowrap;
 }
 
+.history th {
+  width: 40%;
+}
+
 td.history:last-child {
   width: 100%;
 }

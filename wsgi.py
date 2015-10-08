@@ -48,7 +48,7 @@ import appstream
 from affidavit import Affidavit, NoKeyError
 from db import LvfsDatabase, CursorError
 from db_users import _password_hash
-from db_firmware import LvfsFirmware
+from db_firmware import LvfsFirmware, LvfsFirmwareMd
 from db_clients import LvfsDownloadKind
 from inf_parser import InfParser
 
@@ -914,11 +914,11 @@ There is no charge to vendors for the hosting or distribution of content.
                           "</form>" % item.fwid
                 html += '<tr>'
                 html += "<td>%s</td>" % item.timestamp
-                html += "<td>%s</td>" % item.md_name
-                if not item.md_version_display or item.md_version == item.md_version_display:
-                    html += "<td>%s</td>" % item.md_version
+                html += "<td>%s</td>" % item.mds[0].name
+                if not item.version_display or item.mds[0].version == item.version_display:
+                    html += "<td>%s</td>" % item.mds[0].version
                 else:
-                    html += "<td>%s [%s]</td>" % (item.md_version_display, item.md_version)
+                    html += "<td>%s [%s]</td>" % (item.version_display, item.mds[0].version)
                 html += "<td>%s</td>" % item.target
                 html += "<td>%s</td>" % buttons
                 html += '</tr>\n'
@@ -968,19 +968,21 @@ There is no charge to vendors for the hosting or distribution of content.
         # get the contents
         fw_data = arc.find_file('*.bin')
         if not fw_data:
+            fw_data = arc.find_file('*.rom')
+        if not fw_data:
             fw_data = arc.find_file('*.cap')
         if not fw_data:
-            return self._internal_error('No firmware found in the archive: ' + cgi.escape(str(e)))
+            return self._internal_error('No firmware found in the archive')
 
         # update sizes
-        fwobj.md_release_installed_size = len(fw_data.contents)
-        fwobj.md_release_download_size = os.path.getsize(fn)
+        fwobj.mds[0].release_installed_size = len(fw_data.contents)
+        fwobj.mds[0].release_download_size = os.path.getsize(fn)
 
         # update the descriptions
-        fwobj.md_release_description = app.releases[0].description
-        fwobj.md_description = app.description
+        fwobj.mds[0].release_description = app.releases[0].description
+        fwobj.mds[0].description = app.description
         if driver_ver:
-            fwobj.md_version_display = driver_ver[1]
+            fwobj.version_display = driver_ver[1]
         self._db.firmware.update(fwobj)
         return None
 
@@ -1225,25 +1227,31 @@ There is no charge to vendors for the hosting or distribution of content.
                            "<button class=\"fixedwidth\">&#8594; Stable</button>" \
                            "</form>" % fwid
 
-        html = '<h1>%s</h1>' % item.md_name
-        html += '<p>%s</p>' % item.md_summary
+        html = '<h1>Firmware Details</h1>'
         html += '<table class="history">'
-        html += '<tr><th>ID</th><td>%s</td></tr>' % item.md_id
-        html += '<tr><th>Filename</th><td><a href=\"%s\">%s</a></td></tr>' % (file_uri, item.filename)
-        html += '<tr><th>Device GUID</th><td>%s</td></tr>' % item.md_guid
-        if not item.md_version_display or item.md_version == item.md_version_display:
-            html += '<tr><th>Version</th><td>%s</td></tr>' % item.md_version
-        else:
-            html += '<tr><th>Version</th><td>%s [%s]</td></tr>' % (item.md_version_display, item.md_version)
-        html += '<tr><th>Installed Size</th><td>%s</td></tr>' % sizeof_fmt(item.md_release_installed_size)
-        html += '<tr><th>Download Size</th><td>%s</td></tr>' % sizeof_fmt(item.md_release_download_size)
+        orig_filename = '-'.join(item.filename.split('-')[1:])
+        html += '<tr><th>Filename</th><td><a href=\"%s\">%s</a></td></tr>' % (file_uri, orig_filename)
         html += '<tr><th>Current Target</th><td>%s</td></tr>' % item.target
         html += '<tr><th>Submitted</th><td>%s</td></tr>' % item.timestamp
         html += '<tr><th>QA Group</th><td><a href="%s">%s</a></td></tr>' % (embargo_url, qa_group)
         html += '<tr><th>Uploaded from</th><td>%s</td></tr>' % item.addr
+        if item.version_display:
+            html += '<tr><th>Version (display only)</th><td>%s</td></tr>' % item.version_display
         html += '<tr><th>Downloads</th><td>%i</td></tr>' % item.download_cnt
         html += '<tr><th>Actions</th><td>%s</td></tr>' % buttons
         html += '</table>'
+
+        # show each component
+        for md in item.mds:
+            html += '<h2>%s</h2>' % md.name
+            html += '<p>%s</p>' % md.summary
+            html += '<table class="history">'
+            html += '<tr><th>ID</th><td>%s</td></tr>' % md.cid
+            html += '<tr><th>Device GUID</th><td><code>%s</code></td></tr>' % md.guid
+            html += '<tr><th>Version</th><td>%s</td></tr>' % md.version
+            html += '<tr><th>Installed Size</th><td>%s</td></tr>' % sizeof_fmt(md.release_installed_size)
+            html += '<tr><th>Download Size</th><td>%s</td></tr>' % sizeof_fmt(md.release_download_size)
+            html += '</table>'
 
         # set correct response code
         self._set_response_code('200 OK')
@@ -1324,6 +1332,16 @@ There is no charge to vendors for the hosting or distribution of content.
         if len(data) < 1024:
             return self._upload_failed('File too small, mimimum is 1k')
 
+        # check the file does not already exist
+        fwid = hashlib.sha1(data).hexdigest()
+        try:
+            item = self._db.firmware.get_item(fwid)
+        except CursorError as e:
+            return self._internal_error(str(e))
+        if item:
+            self._set_response_code('422 Entity Already Exists')
+            return self._upload_failed("A firmware file with hash %s already exists" % fwid)
+
         # parse the file
         arc = cabarchive.CabArchive()
         arc.set_decompressor(CABEXTRACT_CMD)
@@ -1337,104 +1355,102 @@ There is no charge to vendors for the hosting or distribution of content.
             return self._upload_failed('The file is unsupported: %s' % str(e))
 
         # check .inf exists
+        fw_version_inf = None
+        fw_version_display_inf = None
         cf = arc.find_file("*.inf")
-        if not cf:
-            return self._upload_failed('The firmware file had no valid inf file')
+        if cf:
+            if cf.contents.find('FIXME') != -1:
+                return self._upload_failed("The inf file was not complete; "
+                                           "Any FIXME text must be replaced with the correct values.")
 
-        # check the file does not have any missing fields
-        if cf.contents.find('FIXME') != -1:
-            return self._upload_failed("The inf file was not complete; "
-                                       "Any FIXME text must be replaced with the correct values.")
+            # check .inf file is valid
+            cfg = InfParser()
+            cfg.read_data(cf.contents)
+            try:
+                tmp = cfg.get('Version', 'Class')
+            except (ConfigParser.NoOptionError, ConfigParser.NoSectionError) as e:
+                return self._upload_failed('The inf file Version:Class was missing')
+            if not tmp == 'Firmware':
+                return self._upload_failed('The inf file Version:Class was invalid')
+            try:
+                tmp = cfg.get('Version', 'ClassGuid')
+            except ConfigParser.NoOptionError as e:
+                return self._upload_failed('The inf file Version:ClassGuid was missing')
+            if not tmp == '{f2e7dd72-6468-4e36-b6f1-6488f42c1b52}':
+                return self._upload_failed('The inf file Version:ClassGuid was invalid')
+            try:
+                tmp = cfg.get('Version', 'DriverVer')
+                fw_version_display_inf = tmp.split(',')
+                if len(fw_version_display_inf) != 2:
+                    return self._upload_failed('The inf file Version:DriverVer was invalid')
+            except ConfigParser.NoOptionError as e:
+                pass
 
-        # check .inf file is valid
-        cfg = InfParser()
-        cfg.read_data(cf.contents)
-        try:
-            tmp = cfg.get('Version', 'Class')
-        except ConfigParser.NoOptionError as e:
-            return self._upload_failed('The inf file Version:Class was missing')
-        if not tmp == 'Firmware':
-            return self._upload_failed('The inf file Version:Class was invalid')
-        try:
-            tmp = cfg.get('Version', 'ClassGuid')
-        except ConfigParser.NoOptionError as e:
-            return self._upload_failed('The inf file Version:ClassGuid was missing')
-        if not tmp == '{f2e7dd72-6468-4e36-b6f1-6488f42c1b52}':
-            return self._upload_failed('The inf file Version:ClassGuid was invalid')
-        try:
-            tmp = cfg.get('Version', 'DriverVer')
-            driver_ver = tmp.split(',')
-            if len(driver_ver) != 2:
-                return self._upload_failed('The inf file Version:DriverVer was invalid')
-        except ConfigParser.NoOptionError as e:
-            driver_ver = None
-
-        # this is optional, but if supplied must match the version in the XML
-        fw_version = None
-        try:
-            fw_version = cfg.get('Firmware_AddReg', 'HKR->FirmwareVersion')
-            if fw_version.startswith('0x'):
-                fw_version = str(int(fw_version[2:], 16))
-        except ConfigParser.NoOptionError as e:
-            pass
+            # this is optional, but if supplied must match the version in the XML
+            # -- also note this will not work with multi-firmware .cab files
+            try:
+                fw_version_inf = cfg.get('Firmware_AddReg', 'HKR->FirmwareVersion')
+                if fw_version_inf.startswith('0x'):
+                    fw_version_inf = str(int(fw_version_inf[2:], 16))
+                if fw_version_inf == '0':
+                    fw_version_inf = None
+            except (ConfigParser.NoOptionError, ConfigParser.NoSectionError) as e:
+                pass
 
         # check metainfo exists
-        cf = arc.find_file("*.metainfo.xml")
-        if not cf:
+        cfs = arc.find_files("*.metainfo.xml")
+        if len(cfs) == 0:
             return self._upload_failed('The firmware file had no valid metadata')
 
-        # parse the MetaInfo file
-        app = appstream.Component()
-        try:
-            app.parse(str(cf.contents))
-            app.validate()
-        except appstream.ParseError as e:
-            return self._upload_failed('The metadata could not be parsed: ' + cgi.escape(str(e)))
-        except appstream.ValidationError as e:
-            return self._upload_failed('The metadata file did not validate: ' + cgi.escape(str(e)))
+        # parse each MetaInfo file
+        apps = []
+        for cf in cfs:
+            app = appstream.Component()
+            try:
+                app.parse(str(cf.contents))
+                app.validate()
+            except appstream.ParseError as e:
+                return self._upload_failed('The metadata could not be parsed: ' + cgi.escape(str(e)))
+            except appstream.ValidationError as e:
+                return self._upload_failed('The metadata file did not validate: ' + cgi.escape(str(e)))
 
-        # check the file does not have any missing fields
-        if cf.contents.find('FIXME') != -1:
-            return self._upload_failed("The metadata file was not complete; "
-                                       "Any FIXME text must be replaced with the correct values.")
+            # check the file does not have any missing fields
+            if cf.contents.find('FIXME') != -1:
+                return self._upload_failed("The metadata file was not complete; "
+                                           "Any FIXME text must be replaced with the correct values.")
 
-        # check the file does not already exist
-        fwid = hashlib.sha1(data).hexdigest()
-        try:
-            item = self._db.firmware.get_item(fwid)
-        except CursorError as e:
-            return self._internal_error(str(e))
-        if item:
-            self._set_response_code('422 Entity Already Exists')
-            return self._upload_failed("A firmware file with hash %s already exists" % fwid)
+            # check the firmware provides something
+            if len(app.provides) == 0:
+                return self._upload_failed("The metadata file did not provide any GUID.")
+            if len(app.releases) == 0:
+                return self._upload_failed("The metadata file did not provide any releases.")
 
-        # check the firmware provides something
-        if len(app.provides) == 0:
-            return self._upload_failed("The metadata file did not provide any GUID.")
-        if len(app.releases) == 0:
-            return self._upload_failed("The metadata file did not provide any releases.")
+            # check the inf file matches up with the .xml file
+            if fw_version_inf and fw_version_inf != app.releases[0].version:
+                return self._upload_failed("The inf Firmware_AddReg[HKR->FirmwareVersion] "
+                                           "'%s' did not match the metainfo.xml value '%s'."
+                                           % (fw_version_inf, app.releases[0].version))
 
-        # check the inf file matches up with the .xml file
-        if fw_version and fw_version != app.releases[0].version:
-            return self._upload_failed("The inf Firmware_AddReg[HKR->FirmwareVersion] "
-                                       "'%s' did not match the metainfo.xml value '%s'."
-                                       % (fw_version, app.releases[0].version))
+            # check the guid and version does not already exist
+            try:
+                items = self._db.firmware.get_items()
+            except CursorError as e:
+                return self._internal_error(str(e))
+            for item in items:
+                for md in item.mds:
+                    if md.guid == app.provides[0].value and md.version == app.releases[0].version:
+                        self._set_response_code('422 Entity Already Exists')
+                        return self._upload_failed("A firmware file for this version already exists")
 
-        # check the guid and version does not already exist
-        try:
-            items = self._db.firmware.get_items()
-        except CursorError as e:
-            return self._internal_error(str(e))
-        for item in items:
-            if item.md_guid == app.provides[0].value and item.md_version == app.releases[0].version:
-                self._set_response_code('422 Entity Already Exists')
-                return self._upload_failed("A firmware file for this version already exists")
+            # check the ID hasn't been reused by a different GUID
+            for item in items:
+                for md in item.mds:
+                    if md.cid == app.id and not md.guid == app.provides[0].value:
+                        self._set_response_code('422 Entity Already Exists')
+                        return self._upload_failed("The %s ID has already been used by GUID %s" % (md.cid, md.guid))
 
-        # check the ID hasn't been reused by a different GUID
-        for item in items:
-            if item.md_id == app.id and not item.md_guid == app.provides[0].value:
-                self._set_response_code('422 Entity Already Exists')
-                return self._upload_failed("The %s ID has already been used by GUID %s" % (item.md_id, item.md_guid))
+            # add to array
+            apps.append(app)
 
         # only save if we passed all tests
         basename = os.path.basename(fileitem.filename)
@@ -1444,22 +1460,37 @@ There is no charge to vendors for the hosting or distribution of content.
         open(os.path.join(UPLOAD_DIR, new_filename), 'wb').write(data)
         print "wrote %i bytes to %s" % (len(data), new_filename)
 
-        # get the contents checksum
-        fw_data = arc.find_file('*.bin')
-        if not fw_data:
-            fw_data = arc.find_file('*.cap')
-        if not fw_data:
-            return self._upload_failed('No firmware found in the archive: ' + cgi.escape(str(e)))
-        checksum_contents = hashlib.sha1(fw_data.contents).hexdigest()
+        # fix up the checksums and add the detached signature
+        for app in apps:
 
-        # add the detached signature
-        try:
-            affidavit = self.create_affidavit()
-        except NoKeyError as e:
-            return self._upload_failed('Failed to sign archive: ' + cgi.escape(str(e)))
-        cff = cabarchive.CabFile(fw_data.filename + '.asc',
-                                 affidavit.create(fw_data.contents))
-        arc.add_file(cff)
+            # ensure there's always a container checksum
+            release = app.releases[0]
+            csum = release.get_checksum_by_target('content')
+            if not csum:
+                csum = appstream.Checksum()
+                csum.target = 'content'
+                csum.filename = 'firmware.bin'
+                app.releases[0].add_checksum(csum)
+
+            # get the contents checksum
+            fw_data = arc.find_file(csum.filename)
+            if not fw_data:
+                return self._upload_failed('No %s found in the archive' % csum.filename)
+            csum.kind = 'sha1'
+            csum.value = hashlib.sha1(fw_data.contents).hexdigest()
+
+            # set the sizes
+            release.size_installed = len(fw_data.contents)
+            release.size_download = len(data)
+
+            # add the detached signature
+            try:
+                affidavit = self.create_affidavit()
+            except NoKeyError as e:
+                return self._upload_failed('Failed to sign archive: ' + cgi.escape(str(e)))
+            cff = cabarchive.CabFile(fw_data.filename + '.asc',
+                                     affidavit.create(fw_data.contents))
+            arc.add_file(cff)
 
         # export the new archive and get the checksum
         cab_data = arc.save(compressed=True)
@@ -1471,34 +1502,52 @@ There is no charge to vendors for the hosting or distribution of content.
         fn = os.path.join(DOWNLOAD_DIR, new_filename)
         open(fn, 'wb').write(cab_data)
 
-        # add to database
+        # create parent firmware object
         target = self.fields['target'].value
+        fwobj = LvfsFirmware()
+        fwobj.qa_group = self.qa_group
+        fwobj.addr = self.client_address
+        fwobj.filename = new_filename
+        fwobj.fwid = fwid
+        fwobj.target = target
+        if fw_version_display_inf:
+            fwobj.version_display = fw_version_display_inf[1]
+
+        # create child metadata object for the component
+        for app in apps:
+            md = LvfsFirmwareMd()
+            md.fwid = fwid
+            md.cid = app.id
+            md.name = app.name
+            md.summary = app.summary
+            md.developer_name = app.developer_name
+            md.metadata_license = app.metadata_license
+            md.project_license = app.project_license
+            md.url_homepage = app.urls['homepage']
+            md.description = app.description
+            md.checksum_container = checksum_container
+
+            # from the provide
+            prov = app.provides[0]
+            md.guid = prov.value
+
+            # from the release
+            rel = app.releases[0]
+            md.version = rel.version
+            md.release_description = rel.description
+            md.release_timestamp = rel.timestamp
+            md.release_installed_size = rel.size_installed
+            md.release_download_size = rel.size_download
+
+            # from the content checksum
+            csum = app.releases[0].get_checksum_by_target('content')
+            md.checksum_contents = csum.value
+            md.filename_contents = csum.filename
+
+            fwobj.mds.append(md)
+
+        # add to database
         try:
-            fwobj = LvfsFirmware()
-            fwobj.qa_group = self.qa_group
-            fwobj.addr = self.client_address
-            fwobj.filename = new_filename
-            fwobj.fwid = fwid
-            fwobj.target = target
-            fwobj.md_id = app.id
-            fwobj.md_guid = app.provides[0].value
-            fwobj.md_version = app.releases[0].version
-            if driver_ver:
-                fwobj.md_version_display = driver_ver[1]
-            fwobj.md_name = app.name
-            fwobj.md_summary = app.summary
-            fwobj.md_checksum_contents = checksum_contents
-            fwobj.md_release_description = app.releases[0].description
-            fwobj.md_release_timestamp = app.releases[0].timestamp
-            fwobj.md_developer_name = app.developer_name
-            fwobj.md_metadata_license = app.metadata_license
-            fwobj.md_project_license = app.project_license
-            fwobj.md_url_homepage = app.urls['homepage']
-            fwobj.md_description = app.description
-            fwobj.md_checksum_container = checksum_container
-            fwobj.md_filename_contents = fw_data.filename
-            fwobj.md_release_installed_size = len(fw_data.contents)
-            fwobj.md_release_download_size = len(data)
             self._db.firmware.add(fwobj)
         except CursorError as e:
             return self._internal_error(str(e))
@@ -1619,55 +1668,59 @@ There is no charge to vendors for the hosting or distribution of content.
             if qa_group and qa_group != item.qa_group:
                 continue
 
-            # add component
-            app = appstream.Component()
-            app.id = item.md_id
-            app.kind = 'firmware'
-            app.name = item.md_name
-            app.summary = item.md_summary
-            app.description = item.md_description
-            if item.md_url_homepage:
-                app.urls['homepage'] = item.md_url_homepage
-            app.metadata_license = item.md_metadata_license
-            app.project_license = item.md_project_license
-            app.developer_name = item.md_developer_name
+            # add each component
+            for md in item.mds:
+                app = appstream.Component()
+                app.id = md.cid
+                app.kind = 'firmware'
+                app.name = md.name
+                app.summary = md.summary
+                app.description = md.description
+                if md.url_homepage:
+                    app.urls['homepage'] = md.url_homepage
+                app.metadata_license = md.metadata_license
+                app.project_license = md.project_license
+                app.developer_name = md.developer_name
 
-            # add provide
-            if item.md_guid:
-                prov = appstream.Provide()
-                prov.kind = 'firmware-flashed'
-                prov.value = item.md_guid
-                app.add_provide(prov)
+                # add provide
+                if md.guid:
+                    prov = appstream.Provide()
+                    prov.kind = 'firmware-flashed'
+                    prov.value = md.guid
+                    app.add_provide(prov)
 
-            # add release
-            if item.md_version:
-                rel = appstream.Release()
-                rel.version = item.md_version
-                rel.description = item.md_release_description
-                if item.md_release_timestamp:
-                    rel.timestamp = item.md_release_timestamp
-                rel.checksums = []
-                rel.location = 'https://secure-lvfs.rhcloud.com/downloads/' + item.filename
-                app.add_release(rel)
 
-                # add container checksum
-                if item.md_checksum_container:
-                    csum = appstream.Checksum()
-                    csum.target = 'container'
-                    csum.value = item.md_checksum_container
-                    csum.filename = item.filename
-                    rel.add_checksum(csum)
+                # add release
+                if md.version:
+                    rel = appstream.Release()
+                    rel.version = md.version
+                    rel.description = md.release_description
+                    if md.release_timestamp:
+                        rel.timestamp = md.release_timestamp
+                    rel.checksums = []
+                    rel.location = 'https://secure-lvfs.rhcloud.com/downloads/' + item.filename
+                    rel.size_installed = md.release_installed_size
+                    rel.size_download = md.release_download_size
+                    app.add_release(rel)
 
-                # add content checksum
-                if item.md_checksum_contents:
-                    csum = appstream.Checksum()
-                    csum.target = 'content'
-                    csum.value = item.md_checksum_contents
-                    csum.filename = item.md_filename_contents
-                    rel.add_checksum(csum)
+                    # add container checksum
+                    if md.checksum_container:
+                        csum = appstream.Checksum()
+                        csum.target = 'container'
+                        csum.value = md.checksum_container
+                        csum.filename = item.filename
+                        rel.add_checksum(csum)
 
-            # add app
-            store.add(app)
+                    # add content checksum
+                    if md.checksum_contents:
+                        csum = appstream.Checksum()
+                        csum.target = 'content'
+                        csum.value = md.checksum_contents
+                        csum.filename = md.filename_contents
+                        rel.add_checksum(csum)
+
+                # add app
+                store.add(app)
 
         # dump to file
         if not os.path.exists(DOWNLOAD_DIR):
