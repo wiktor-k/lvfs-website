@@ -34,7 +34,7 @@ class LvfsClient(object):
 
     def action_fwdelete(self, fwid, auth='user'):
         """ Delete a firmware file """
-        uri = "%s/wsgi.py?action=fwdelete&id=%s" % (self.server, fwid)
+        uri = "%s/wsgi.py?action=fwdelete&id=%s&confirm=1" % (self.server, fwid)
         return requests.post(uri, data=self._get_payload(auth))
 
     def action_metadata_rebuild(self, auth='user'):

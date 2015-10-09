@@ -1144,6 +1144,58 @@ There is no charge to vendors for the hosting or distribution of content.
         if not self.qa_capability and item.target == 'stable':
             return self._action_permission_denied('Unable to delete stable firmware as not QA')
 
+        # ask the user to confirm
+        confirm = self.qs_get.get('confirm', [None])[0]
+        if not confirm or confirm != '1':
+            html = """
+<h1>Confirm Removal?</h1>
+<p>
+  Unless you are required to delete this file for legal or compliance reasons,
+  removing a firmware is not recommended for the following reasons:
+</p>
+<ul>
+  <li class="confirm">
+    Users will only see the update descriptions for the latest released update,
+    rather than all the details for unapplied updates.
+  </li>
+  <li class="confirm">
+    Users who have installed this firmware will be unable to verify the hardware
+    checksum as the information will be gone from the metadata.
+  </li>
+  <li class="confirm">
+    Client tools have to take into account <b>all</b> the update severities of
+    updates not yet installed.
+    If the user has version 1.2.3 installed, 1.2.4 is a security update,
+    and 1.2.5 is a low priority update we want to show the update from
+    1.2.3&#8594;1.2.5 as high importance in a GUI.
+  </li>
+  <li class="confirm">
+    Users cannot downgrade firmware versions if they encounter problems
+    with the latest update.
+    If downgrading to specific versions needs to be disabled for technical
+    reasons, this can be handled inside the UEFI UpdateCapsule.
+  </li>
+  <li class="confirm">
+    Any statistics for how many times the update was downloaded are also deleted.
+  </li>
+</ul>
+<center>
+<form method="get" action="wsgi.py">
+<input type="hidden" name="action" value="fwdelete"/>
+<input type="hidden" name="id" value="%s"/>
+<input type="hidden" name="confirm" value="1"/>
+<button class="fixedwidth">Irrevocably Remove Firmware</button>
+</form>
+</center>
+"""
+
+            # add fwid
+            html = html % fwid
+
+            # set correct response code
+            self._set_response_code('406 Not Acceptable')
+            return self._gen_header('Confirm Removal?') + html + self._gen_footer()
+
         # delete id from database
         try:
             self._db.firmware.remove(fwid)

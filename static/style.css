@@ -194,3 +194,7 @@ a:active.navigation {
   color: #3e78b4;
   boredr-bottom-color: #3e78b4;
 }
+
+li.confirm {
+  padding: 9px;
+}
