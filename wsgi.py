@@ -248,6 +248,43 @@ class LvfsWebsite(object):
         self._set_response_code('200 OK')
         return self._gen_header('New Account', show_navigation=False) + html + self._gen_footer()
 
+    def _action_devicelist(self):
+        html = """
+<h1>Devices using LVFS for firmware updates</h1>
+<p>
+ This list shows all the updates that have been pushed to the testing or
+ stable metadata.
+ This is a very incomplete list as a lot of the devices in the LVFS
+ have not yet been released publicly and the firmware updates are in a
+ secret embargoed state.
+</p>
+<p>
+ This list is automatically generated and will be updated when new firmware
+ is added or devices are released to the public.
+</p>
+"""
+
+        # add devices in stable or testing
+        html += '<ul>\n'
+        try:
+            items = self._db.firmware.get_items()
+        except CursorError as e:
+            return self._internal_error(str(e))
+        for item in items:
+            if item.target != 'stable' and item.target != 'testing':
+                continue
+            for md in item.mds:
+                txt = md.name
+                if item.version_display:
+                    txt += ' %s' % item.version_display
+                else:
+                    txt += ' %s' % md.version
+                html += '<li>%s</li>\n' % txt
+        html += '</ul>\n'
+
+        self._set_response_code('200 OK')
+        return self._gen_header('Device List', show_navigation=False) + html + self._gen_footer()
+
     def _action_login(self, error_msg=None):
         """ A login screen to allow access to the LVFS main page """
 
@@ -257,7 +294,7 @@ class LvfsWebsite(object):
 <p>%s</p>
 <p>
 The Linux Vendor Firmware Service is a secure portal which allows
-hardware vendors to upload firmware updates.
+hardware vendors to upload <a href="?action=devicelist">firmware updates</a>.
 Files can be uploaded privately and optionally embargoed until a specific date.
 </p>
 <p>
@@ -1627,6 +1664,8 @@ There is no charge to vendors for the hosting or distribution of content.
         action = self.qs_get.get('action', [None])[0]
         if action == 'newaccount':
             return self._action_newaccount()
+        if action == 'devicelist':
+            return self._action_devicelist()
 
         # auth check
         if not self.username:
