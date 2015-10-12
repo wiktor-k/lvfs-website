@@ -266,6 +266,7 @@ class LvfsWebsite(object):
 
         # add devices in stable or testing
         html += '<ul>\n'
+        seen_guid = {}
         try:
             items = self._db.firmware.get_items()
         except CursorError as e:
@@ -274,6 +275,13 @@ class LvfsWebsite(object):
             if item.target != 'stable' and item.target != 'testing':
                 continue
             for md in item.mds:
+
+                # only show the newest version
+                if md.guid in seen_guid:
+                    continue
+                seen_guid[md.guid] = 1
+
+                # show name and version
                 txt = md.name
                 if item.version_display:
                     txt += ' %s' % item.version_display
