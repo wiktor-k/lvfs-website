@@ -1132,6 +1132,9 @@ There is no charge to vendors for the hosting or distribution of content.
     def _upload_failed(self, msg=''):
         """ The file upload failed for some reason """
 
+        # also log failures so we know what vendors are doing
+        self._event_log("Upload failed: %s" % msg)
+
         html = """
 <h1>Result: Failed</h1>
 <p>%s</p>
