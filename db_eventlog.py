@@ -59,6 +59,8 @@ class LvfsDatabaseEventlog(object):
         except mdb.Error, e:
             sql_db = """
                 ALTER TABLE event_log ADD qa_group VARCHAR(40) DEFAULT NULL;
+                UPDATE event_log SET qa_group=username WHERE qa_group=NULL;
+                UPDATE event_log SET qa_group='dell' WHERE username='dellqa' AND qa_group=NULL;
             """
             cur.execute(sql_db)
 
