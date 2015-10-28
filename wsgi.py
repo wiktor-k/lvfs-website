@@ -1500,7 +1500,7 @@ There is no charge to vendors for the hosting or distribution of content.
         # check metainfo exists
         cfs = arc.find_files("*.metainfo.xml")
         if len(cfs) == 0:
-            return self._upload_failed('The firmware file had no valid metadata')
+            return self._upload_failed('The firmware file had no .metadata.xml files')
 
         # parse each MetaInfo file
         apps = []
