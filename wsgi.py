@@ -131,11 +131,16 @@ class LvfsWebsite(object):
         self.response_code = None
         self.content_type = 'text/html'
 
-    def _event_log(self, msg, username=None, is_important=False):
+    def _event_log(self, msg, is_important=False):
         """ Adds an item to the event log """
+        username = self.username
         if not username:
-            username = self.username
-        self._db.eventlog.add(msg, username, self.client_address, is_important)
+            username = 'anonymous'
+        qa_group = self.qa_group
+        if not qa_group:
+            qa_group = 'admin'
+        self._db.eventlog.add(msg, username, qa_group,
+                              self.client_address, is_important)
 
     def create_affidavit(self):
         """ Create an affidavit that can be used to sign files """
@@ -173,7 +178,9 @@ class LvfsWebsite(object):
             html += '  <li class="navigation"><a class="navigation" href="?action=metadata">Metadata</a></li>\n'
             if self.username == 'admin':
                 html += '  <li class="navigation"><a class="navigation" href="?action=userlist">Users</a></li>\n'
+            if self.qa_capability:
                 html += '  <li class="navigation"><a class="navigation" href="?action=eventlog">Event Log</a></li>\n'
+            if self.username == 'admin':
                 html += '  <li class="navigation"><a class="navigation" href="?action=analytics">Analytics</a></li>\n'
             html += '  <li class="navigation2"><a class="navigation" href="?action=logout">Log Out</a></li>\n'
             if not self.is_locked:
@@ -788,8 +795,8 @@ A good password consists of upper and lower case with numbers.
         """
         Show an event log of user actions.
         """
-        if self.username != 'admin':
-            return self._action_permission_denied('Unable to show event log for non-admin user')
+        if not self.qa_capability:
+            return self._action_permission_denied('Unable to show event log for non-QA user')
 
         # get parameters
         start = self.qs_get.get('start', [0])[0]
@@ -798,11 +805,21 @@ A good password consists of upper and lower case with numbers.
             length = 20
 
         # get the page selection correct
-        eventlog_len = self._db.eventlog.size()
+        if self.username == 'admin':
+            eventlog_len = self._db.eventlog.size()
+        else:
+            eventlog_len = self._db.eventlog.size_for_qa_group(self.qa_group)
         nr_pages = int(math.ceil(eventlog_len / float(length)))
 
-        html = """
-<h1>Event Log</h1>
+        # page start
+        html = "<h1>Event Log</h1>"
+        if self.username == 'admin':
+            html += "<p>This list shows all events for all users.</p>"
+        else:
+            html += "<p>This list shows all events for the <code>%s</code> QA group.</p>" % self.qa_group
+
+        # table header
+        html += """
 <table class="history">
 <tr>
 <th>Timestamp</th>
@@ -813,7 +830,10 @@ A good password consists of upper and lower case with numbers.
 </tr>
 """
         try:
-            items = self._db.eventlog.get_items(int(start), int(length))
+            if self.username == 'admin':
+                items = self._db.eventlog.get_items(int(start), int(length))
+            else:
+                items = self._db.eventlog.get_items_for_qa_group(self.qa_group, int(start), int(length))
         except CursorError as e:
             return self._internal_error(str(e))
         if len(items) == 0:

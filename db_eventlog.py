@@ -13,11 +13,22 @@ class LvfsEventLogItem(object):
         """ Constructor for object """
         self.timestamp = None
         self.username = None
+        self.qa_group = None
         self.address = None
         self.message = None
         self.is_important = False
     def __repr__(self):
         return "LvfsEventLogItem object %s" % self.message
+
+def _create_eventlog_item(e):
+    item = LvfsEventLogItem()
+    item.timestamp = e[0]
+    item.username = e[1]
+    item.qa_group = e[2]
+    item.address = e[3]
+    item.message = e[4]
+    item.is_important = e[5]
+    return item
 
 class LvfsDatabaseEventlog(object):
 
@@ -34,6 +45,7 @@ class LvfsDatabaseEventlog(object):
                 CREATE TABLE event_log (
                   timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                   username VARCHAR(40) NOT NULL DEFAULT '',
+                  qa_group VARCHAR(40) NOT NULL DEFAULT NULL,
                   addr VARCHAR(40) DEFAULT NULL,
                   message TEXT DEFAULT NULL,
                   is_important TINYINT DEFAULT 0
@@ -41,16 +53,26 @@ class LvfsDatabaseEventlog(object):
             """
             cur.execute(sql_db)
 
-    def add(self, msg, username, addr, is_important):
+         # FIXME, remove after a few days
+        try:
+            cur.execute("SELECT qa_group FROM event_log LIMIT 1;")
+        except mdb.Error, e:
+            sql_db = """
+                ALTER TABLE event_log ADD qa_group VARCHAR(40) DEFAULT NULL;
+            """
+            cur.execute(sql_db)
+
+    def add(self, msg, username, qa_group, addr, is_important):
         """ Adds an item to the event log """
         assert msg
         assert username
+        assert qa_group
         assert addr
         try:
             cur = self._db.cursor()
-            cur.execute("INSERT INTO event_log (username, addr, message, is_important) "
-                        "VALUES (%s, %s, %s, %s);",
-                        (username, addr, msg, is_important,))
+            cur.execute("INSERT INTO event_log (username, qa_group, addr, message, is_important) "
+                        "VALUES (%s, %s, %s, %s, %s);",
+                        (username, qa_group, addr, msg, is_important,))
         except mdb.Error, e:
             raise CursorError(cur, e)
 
@@ -66,11 +88,24 @@ class LvfsDatabaseEventlog(object):
             return 0
         return res
 
+    def size_for_qa_group(self, qa_group):
+        """ Gets the length of the event log """
+        try:
+            cur = self._db.cursor()
+            cur.execute("SELECT COUNT(timestamp) FROM event_log "
+                        "WHERE qa_group = %s", (qa_group,))
+        except mdb.Error, e:
+            raise CursorError(cur, e)
+        res = cur.fetchone()[0]
+        if not res:
+            return 0
+        return res
+
     def get_items(self, start, length):
         """ Gets the event log items """
         try:
             cur = self._db.cursor()
-            cur.execute("SELECT timestamp, username, addr, message, is_important "
+            cur.execute("SELECT timestamp, username, qa_group, addr, message, is_important "
                         "FROM event_log ORDER BY timestamp DESC LIMIT %s,%s;",
                         (start, length,))
         except mdb.Error, e:
@@ -80,11 +115,22 @@ class LvfsDatabaseEventlog(object):
             return []
         items = []
         for e in res:
-            item = LvfsEventLogItem()
-            item.timestamp = e[0]
-            item.username = e[1]
-            item.address = e[2]
-            item.message = e[3]
-            item.is_important = e[4]
-            items.append(item)
+            items.append(_create_eventlog_item(e))
+        return items
+
+    def get_items_for_qa_group(self, qa_group, start, length):
+        """ Gets the event log items """
+        try:
+            cur = self._db.cursor()
+            cur.execute("SELECT timestamp, username, qa_group, addr, message, is_important "
+                        "FROM event_log WHERE qa_group = %s ORDER BY timestamp DESC LIMIT %s,%s;",
+                        (qa_group, start, length,))
+        except mdb.Error, e:
+            raise CursorError(cur, e)
+        res = cur.fetchall()
+        if not res:
+            return []
+        items = []
+        for e in res:
+            items.append(_create_eventlog_item(e))
         return items
