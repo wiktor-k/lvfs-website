@@ -1960,20 +1960,20 @@ def application(environ, start_response):
     # handle files
     if fn.endswith(".xml.gz.asc"):
         try:
-            w._db.clients.increment(w.client_address, LvfsDownloadKind.SIGNING)
+            w._db.clients.increment(w.client_address, LvfsDownloadKind.SIGNING, fn)
         except CursorError as e:
             pass
         return static_app(fn, start_response, 'text/plain', download=True)
     if fn.endswith(".cab"):
         try:
-            w._db.clients.increment(w.client_address, LvfsDownloadKind.FIRMWARE)
+            w._db.clients.increment(w.client_address, LvfsDownloadKind.FIRMWARE, fn)
             w._db.firmware.increment_filename_cnt(fn)
         except CursorError as e:
             pass
         return static_app(fn, start_response, 'application/vnd.ms-cab-compressed', download=True)
     if fn.endswith(".xml.gz"):
         try:
-            w._db.clients.increment(w.client_address, LvfsDownloadKind.METADATA)
+            w._db.clients.increment(w.client_address, LvfsDownloadKind.METADATA, fn)
         except CursorError as e:
             pass
         return static_app(fn, start_response, 'application/gzip', download=True)
