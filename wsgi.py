@@ -1373,6 +1373,32 @@ There is no charge to vendors for the hosting or distribution of content.
             html += '<tr><th>Download Size</th><td>%s</td></tr>' % sizeof_fmt(md.release_download_size)
             html += '</table>'
 
+        # show graph
+        data_fw = self._db.clients.get_stats_for_fn(12, 30, item.filename)
+        html += '<script src="Chart.js"></script>'
+        html += '<h1>User Downloads</h1>'
+        html += '<p>This graph will only show downloads since 2015-11-05.</p>'
+        html += '<canvas id="metadataChartMonths" width="800" height="400"></canvas>'
+        html += '<script>'
+        html += 'var ctx = document.getElementById("metadataChartMonths").getContext("2d");'
+        html += 'var data = {'
+        html += '    labels: %s,' % _get_chart_labels_months()[::-1]
+        html += '    datasets: ['
+        html += '        {'
+        html += '            label: "Firmware",'
+        html += '            fillColor: "rgba(251,14,5,0.2)",'
+        html += '            strokeColor: "rgba(151,14,5,0.1)",'
+        html += '            pointColor: "rgba(151,14,5,0.3)",'
+        html += '            pointStrokeColor: "#fff",'
+        html += '            pointHighlightFill: "#fff",'
+        html += '            pointHighlightStroke: "rgba(151,187,205,1)",'
+        html += '            data: %s' % data_fw[::-1]
+        html += '        },'
+        html += '    ]'
+        html += '};'
+        html += 'var myLineChartMonths = new Chart(ctx).Line(data, null);'
+        html += '</script>'
+
         # set correct response code
         self._set_response_code('200 OK')
         return self._gen_header('Firmware Details') + html + self._gen_footer()
