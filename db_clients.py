@@ -82,12 +82,13 @@ class LvfsDatabaseClients(object):
         try:
             cur = self._db.cursor()
             cur.execute("SELECT user_agent, COUNT(*) AS count FROM clients "
-                        "WHERE user_agent IS NOT NULL GROUP BY user_agent;")
+                        "WHERE user_agent IS NOT NULL AND filename = 'firmware.xml.gz.asc' "
+                        "GROUP BY user_agent;")
         except mdb.Error, e:
             raise CursorError(cur, e)
         res = cur.fetchall()
         if not res:
-            return []
+            return (["No data"],[0])
         labels = []
         data = []
         for e in res:
