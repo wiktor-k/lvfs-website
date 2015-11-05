@@ -44,6 +44,7 @@ class LvfsDatabaseClients(object):
                   addr VARCHAR(40) DEFAULT NULL,
                   is_firmware TINYINT DEFAULT 0
                   filename VARCHAR(256) DEFAULT NULL,
+                  user_agent VARCHAR(256) DEFAULT NULL,
                 ) CHARSET=utf8;
             """
             cur.execute(sql_db)
@@ -54,6 +55,13 @@ class LvfsDatabaseClients(object):
         except mdb.Error, e:
             sql_db = """
                 ALTER TABLE clients ADD filename VARCHAR(256) DEFAULT NULL;
+            """
+            cur.execute(sql_db)
+        try:
+            cur.execute("SELECT user_agent FROM clients LIMIT 1;")
+        except mdb.Error, e:
+            sql_db = """
+                ALTER TABLE clients ADD user_agent VARCHAR(256) DEFAULT NULL;
             """
             cur.execute(sql_db)
 
@@ -69,13 +77,31 @@ class LvfsDatabaseClients(object):
             return 0
         return user_cnt
 
-    def increment(self, address, kind, fn=None):
+    def get_user_agent_stats(self):
+        """ Gets the number of user agents """
+        try:
+            cur = self._db.cursor()
+            cur.execute("SELECT user_agent, COUNT(*) AS count FROM clients "
+                        "WHERE user_agent IS NOT NULL GROUP BY user_agent;")
+        except mdb.Error, e:
+            raise CursorError(cur, e)
+        res = cur.fetchall()
+        if not res:
+            return []
+        labels = []
+        data = []
+        for e in res:
+            labels.append(e[0])
+            data.append(e[1])
+        return (labels, data)
+
+    def increment(self, address, kind, fn=None, user_agent=None):
         """ Adds a client address into the database """
         try:
             cur = self._db.cursor()
-            cur.execute("INSERT INTO clients (addr, is_firmware, filename) "
-                        "VALUES (%s, %s, %s);",
-                        (_addr_hash(address), kind, fn,))
+            cur.execute("INSERT INTO clients (addr, is_firmware, filename, user_agent) "
+                        "VALUES (%s, %s, %s, %s);",
+                        (_addr_hash(address), kind, fn, user_agent,))
         except mdb.Error, e:
             raise CursorError(cur, e)
 

@@ -112,6 +112,21 @@ def _get_chart_labels_hours():
         labels.append("%02i" % i)
     return labels
 
+def _to_javascript_array(arr):
+    tmp = '['
+    for a in arr:
+        if type(a) == unicode:
+            tmp += '"' + a + '",'
+        elif type(a) == long:
+            tmp += str(a) + ','
+        else:
+            tmp += '"' + str(a) + '",'
+            print type(a)
+    if len(tmp) > 1:
+        tmp = tmp[:-1]
+    tmp += ']'
+    return tmp
+
 class LvfsWebsite(object):
     """ A helper class """
 
@@ -356,6 +371,10 @@ To upload firmware please login, or <a href="?action=newaccount">request a new a
 
         # load external resource
         html = '<script src="Chart.js"></script>'
+        html += '<script>\n'
+        html += 'Chart.defaults.global.animation = false;\n'
+        html += '</script>\n'
+
         html += '<h1>Analytics</h1>'
 
         # add days
@@ -437,6 +456,30 @@ To upload firmware please login, or <a href="?action=newaccount">request a new a
         html += '    ]'
         html += '};'
         html += 'var myLineChartMonths = new Chart(ctx).Line(data, null);'
+        html += '</script>'
+
+        # add user agent
+        labels, data = self._db.clients.get_user_agent_stats()
+        html += '<h2>User Agents</h2>'
+        html += '<canvas id="metadataChartUserAgents" width="800" height="400"></canvas>'
+        html += '<script>'
+        html += 'var ctx = document.getElementById("metadataChartUserAgents").getContext("2d");'
+        html += 'var data = {'
+        html += '    labels: %s,' % _to_javascript_array(labels)
+        html += '    datasets: ['
+        html += '        {'
+        html += '            label: "User Agents",'
+        html += '            fillColor: "rgba(20,120,220,0.2)",'
+        html += '            strokeColor: "rgba(20,120,120,0.1)",'
+        html += '            pointColor: "rgba(20,120,120,0.3)",'
+        html += '            pointStrokeColor: "#fff",'
+        html += '            pointHighlightFill: "#fff",'
+        html += '            pointHighlightStroke: "rgba(220,220,220,1)",'
+        html += '            data: %s' % _to_javascript_array(data)
+        html += '        },'
+        html += '    ]'
+        html += '};'
+        html += 'var myLineChartUserAgent = new Chart(ctx).Bar(data, null);'
         html += '</script>'
 
         # add hours
@@ -1983,23 +2026,28 @@ def application(environ, start_response):
     w.qs_get = cgi.parse_qs(environ['QUERY_STRING'])
     w.init(environ)
 
+    # get user agent string if present
+    user_agent = environ.get('HTTP_USER_AGENT', None)
+    if user_agent:
+        user_agent = user_agent.split(" ", 2)[0];
+
     # handle files
     if fn.endswith(".xml.gz.asc"):
         try:
-            w._db.clients.increment(w.client_address, LvfsDownloadKind.SIGNING, fn)
+            w._db.clients.increment(w.client_address, LvfsDownloadKind.SIGNING, fn, user_agent)
         except CursorError as e:
             pass
         return static_app(fn, start_response, 'text/plain', download=True)
     if fn.endswith(".cab"):
         try:
-            w._db.clients.increment(w.client_address, LvfsDownloadKind.FIRMWARE, fn)
+            w._db.clients.increment(w.client_address, LvfsDownloadKind.FIRMWARE, fn, user_agent)
             w._db.firmware.increment_filename_cnt(fn)
         except CursorError as e:
             pass
         return static_app(fn, start_response, 'application/vnd.ms-cab-compressed', download=True)
     if fn.endswith(".xml.gz"):
         try:
-            w._db.clients.increment(w.client_address, LvfsDownloadKind.METADATA, fn)
+            w._db.clients.increment(w.client_address, LvfsDownloadKind.METADATA, fn, user_agent)
         except CursorError as e:
             pass
         return static_app(fn, start_response, 'application/gzip', download=True)
