@@ -1377,7 +1377,7 @@ There is no charge to vendors for the hosting or distribution of content.
         data_fw = self._db.clients.get_stats_for_fn(12, 30, item.filename)
         html += '<script src="Chart.js"></script>'
         html += '<h1>User Downloads</h1>'
-        html += '<p>This graph will only show downloads since 2015-11-05.</p>'
+        html += '<p>This graph will only show downloads since 2015-11-02.</p>'
         html += '<canvas id="metadataChartMonths" width="800" height="400"></canvas>'
         html += '<script>'
         html += 'var ctx = document.getElementById("metadataChartMonths").getContext("2d");'
