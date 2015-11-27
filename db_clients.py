@@ -157,3 +157,20 @@ class LvfsDatabaseClients(object):
                 raise CursorError(cur, e)
             data.append(int(cur.fetchone()[0]))
         return data
+
+    def get_metadata_by_month(self, kind):
+        data = []
+        now = datetime.date.today()
+        for i in range(0, 12):
+            month_num = now.month - i
+            if month_num < 1:
+                month_num = 12 - month_num
+            try:
+                cur = self._db.cursor()
+                cur.execute("SELECT COUNT(*) FROM clients "
+                            "WHERE is_firmware = %s AND MONTH(timestamp) = %s;",
+                            (kind, month_num,))
+            except mdb.Error, e:
+                raise CursorError(cur, e)
+            data.append(int(cur.fetchone()[0]))
+        return data

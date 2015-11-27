@@ -424,8 +424,9 @@ To upload firmware please login, or <a href="?action=newaccount">request a new a
         html += '</script>'
 
         # add months
-        data_md = self._db.clients.get_stats(12, 30, LvfsDownloadKind.METADATA)
-        data_fw = self._db.clients.get_stats(12, 30, LvfsDownloadKind.FIRMWARE)
+        data_md = self._db.clients.get_metadata_by_month(LvfsDownloadKind.METADATA)
+        data_fw = self._db.clients.get_metadata_by_month(LvfsDownloadKind.FIRMWARE)
+        data_asc = self._db.clients.get_metadata_by_month(LvfsDownloadKind.SIGNING)
         html += '<h2>Metadata and Firmware Downloads (month)</h2>'
         html += '<canvas id="metadataChartMonths" width="800" height="400"></canvas>'
         html += '<script>'
@@ -433,6 +434,16 @@ To upload firmware please login, or <a href="?action=newaccount">request a new a
         html += 'var data = {'
         html += '    labels: %s,' % _get_chart_labels_months()[::-1]
         html += '    datasets: ['
+        html += '        {'
+        html += '            label: "Signing",'
+        html += '            fillColor: "rgba(120,120,120,0.15)",'
+        html += '            strokeColor: "rgba(120,120,120,0.15)",'
+        html += '            pointColor: "rgba(120,120,120,0.20)",'
+        html += '            pointStrokeColor: "#fff",'
+        html += '            pointHighlightFill: "#fff",'
+        html += '            pointHighlightStroke: "rgba(220,220,220,1)",'
+        html += '            data: %s' % data_asc[::-1]
+        html += '        },'
         html += '        {'
         html += '            label: "Metadata",'
         html += '            fillColor: "rgba(20,120,220,0.2)",'
