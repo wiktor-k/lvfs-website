@@ -42,9 +42,9 @@ class LvfsDatabaseClients(object):
                 CREATE TABLE clients (
                   timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP UNIQUE,
                   addr VARCHAR(40) DEFAULT NULL,
-                  is_firmware TINYINT DEFAULT 0
+                  is_firmware TINYINT DEFAULT 0,
                   filename VARCHAR(256) DEFAULT NULL,
-                  user_agent VARCHAR(256) DEFAULT NULL,
+                  user_agent VARCHAR(256) DEFAULT NULL
                 ) CHARSET=utf8;
             """
             cur.execute(sql_db)

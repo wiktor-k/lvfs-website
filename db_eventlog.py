@@ -45,7 +45,7 @@ class LvfsDatabaseEventlog(object):
                 CREATE TABLE event_log (
                   timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                   username VARCHAR(40) NOT NULL DEFAULT '',
-                  qa_group VARCHAR(40) NOT NULL DEFAULT NULL,
+                  qa_group VARCHAR(40) DEFAULT NULL,
                   addr VARCHAR(40) DEFAULT NULL,
                   message TEXT DEFAULT NULL,
                   is_important TINYINT DEFAULT 0
