@@ -41,6 +41,14 @@ class Affidavit(object):
         with open(filename + '.asc', 'w') as f:
             f.write(self.create(data))
 
+    def verify(self, data):
+        """ Verify that the data was signed by something we trust """
+        gpg = gnupg.GPG(gnupghome=self._homedir, gpgbinary='gpg2')
+        ver = gpg.verify(data)
+        if not ver.valid:
+            raise NoKeyError('Firmware was signed with an unknown private key')
+        return True
+
 def main():
 
     # [mine]$ gpg2 --export-secret-key > secret.key

@@ -685,13 +685,22 @@ To upload firmware please login, or <a href="?action=newaccount">request a new a
         if email_check:
             return self._action_profile(email_check)
 
+        # check pubkey
+        pubkey = ''
+        if 'pubkey' in self.fields:
+            pubkey = self.fields['pubkey'].value
+            if pubkey:
+                if len(pubkey) > 0:
+                    if not pubkey.startswith("-----BEGIN PGP PUBLIC KEY BLOCK-----"):
+                        return self._action_profile('Invalid GPG public key')
+
         # verify name
         name = self.fields['name'].value
         if len(name) < 3:
             self._set_response_code('400 Bad Request')
             return self._action_profile('Name invalid')
         try:
-            db_users.update(self.username, password, name, email)
+            db_users.update(self.username, password, name, email, pubkey)
         except CursorError as e:
             return self._internal_error(str(e))
         self.session_cookie['password'] = _password_hash(password)
@@ -733,6 +742,10 @@ A good password consists of upper and lower case with numbers.
 <th class="upload">Contact Email:</th>
 <td><input type="text" name="email" value="%s" required></td>
 </tr>
+<tr>
+<th class="upload">GPG Public Key<br/>(optional):</th>
+<td><textarea name="pubkey" cols="64" rows="5">%s</textarea></td>
+</tr>
 </table>
 <input type="submit" class="submit" value="Modify">
 </form>
@@ -753,11 +766,20 @@ A good password consists of upper and lower case with numbers.
         if not item.email:
             item.email = "info@example.com"
 
-        html = html % (msg, item.display_name, item.email)
+        html = html % (msg, item.display_name, item.email, item.pubkey)
 
         # add suitable warning
         if self.username == 'admin':
             html += '<p>The email address set here will be used as the signing key for all firmware and metadata.</p>'
+
+        # add GPG warning
+        if item.pubkey and len(item.pubkey) > 0:
+            html += '<p>New firmware files <b>must</b> be signed by the vendor GPG private key prior to file upload.</p>'
+        else:
+            html += '<p>'
+            html += 'Setting a public key would mean you are responsible for signing the firmware payload prior to file upload. '
+            html += 'Vendors only need to do this if they do not want the LVFS to automatically sign their firmware.'
+            html += '</p>'
 
         self._set_response_code('200 OK')
         return self._gen_header('Modify User') + html + self._gen_footer()
@@ -1740,14 +1762,23 @@ There is no charge to vendors for the hosting or distribution of content.
             release.size_installed = len(fw_data.contents)
             release.size_download = len(data)
 
-            # add the detached signature
-            try:
-                affidavit = self.create_affidavit()
-            except NoKeyError as e:
-                return self._upload_failed('Failed to sign archive: ' + cgi.escape(str(e)))
-            cff = cabarchive.CabFile(fw_data.filename + '.asc',
-                                     affidavit.create(fw_data.contents))
-            arc.add_file(cff)
+            # add the detached signature if not already signed
+            sig_data = arc.find_file(csum.filename + ".asc")
+            if not sig_data:
+                try:
+                    affidavit = self.create_affidavit()
+                except NoKeyError as e:
+                    return self._upload_failed('Failed to sign archive: ' + cgi.escape(str(e)))
+                cff = cabarchive.CabFile(fw_data.filename + '.asc',
+                                         affidavit.create(fw_data.contents))
+                arc.add_file(cff)
+            else:
+                # check this file is signed by something we trust
+                try:
+                    affidavit = self.create_affidavit()
+                    affidavit.verify(fw_data.contents)
+                except NoKeyError as e:
+                    return self._upload_failed('Failed to verify archive: ' + cgi.escape(str(e)))
 
         # export the new archive and get the checksum
         cab_data = arc.save(compressed=True)

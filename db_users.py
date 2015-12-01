@@ -25,6 +25,7 @@ def _create_user_item(e):
     item.is_qa = bool(e[5])
     item.qa_group = e[6]
     item.is_locked = bool(e[7])
+    item.pubkey = e[8]
     return item
 
 class LvfsUser(object):
@@ -38,6 +39,7 @@ class LvfsUser(object):
         self.is_qa = False
         self.qa_group = None
         self.is_locked = False
+        self.pubkey = None
     def __repr__(self):
         return "LvfsUser object %s" % self.username
 
@@ -58,6 +60,7 @@ class LvfsDatabaseUsers(object):
                   password VARCHAR(40) NOT NULL DEFAULT '',
                   display_name VARCHAR(128) DEFAULT NULL,
                   email VARCHAR(255) DEFAULT NULL,
+                  pubkey VARCHAR(4096) DEFAULT NULL,
                   is_enabled TINYINT DEFAULT 0,
                   is_qa TINYINT DEFAULT 0,
                   qa_group VARCHAR(40) NOT NULL DEFAULT '',
@@ -75,6 +78,15 @@ class LvfsDatabaseUsers(object):
             cur.execute(sql_db)
         except mdb.Error, e:
             pass
+
+        # FIXME, remove after a few days
+        try:
+            cur.execute("SELECT pubkey FROM users LIMIT 1;")
+        except mdb.Error, e:
+            sql_db = """
+                ALTER TABLE users ADD pubkey VARCHAR(4096) DEFAULT NULL;
+            """
+            cur.execute(sql_db)
 
         # ensure an admin user always exists
         cur.execute("SELECT is_enabled FROM users WHERE username='admin';")
@@ -190,7 +202,7 @@ class LvfsDatabaseUsers(object):
             return False
         return True
 
-    def update(self, username, password, name, email):
+    def update(self, username, password, name, email, pubkey):
         """ Update user details """
         assert username
         assert password
@@ -198,9 +210,9 @@ class LvfsDatabaseUsers(object):
         assert email
         try:
             cur = self._db.cursor()
-            cur.execute("UPDATE users SET display_name=%s, email=%s, password=%s "
+            cur.execute("UPDATE users SET display_name=%s, email=%s, password=%s, pubkey=%s "
                         "WHERE username=%s;",
-                        (name, email, _password_hash(password), username,))
+                        (name, email, _password_hash(password), pubkey, username,))
         except mdb.Error, e:
             raise CursorError(cur, e)
 
@@ -209,7 +221,7 @@ class LvfsDatabaseUsers(object):
         try:
             cur = self._db.cursor()
             cur.execute("SELECT username, display_name, email, password, "
-                        "is_enabled, is_qa, qa_group, is_locked FROM users;")
+                        "is_enabled, is_qa, qa_group, is_locked, pubkey FROM users;")
         except mdb.Error, e:
             raise CursorError(cur, e)
         res = cur.fetchall()
@@ -227,12 +239,12 @@ class LvfsDatabaseUsers(object):
             cur = self._db.cursor()
             if password:
                 cur.execute("SELECT username, display_name, email, password, "
-                            "is_enabled, is_qa, qa_group, is_locked FROM users "
+                            "is_enabled, is_qa, qa_group, is_locked, pubkey FROM users "
                             "WHERE username = %s AND password = %s LIMIT 1;",
                             (username, password,))
             else:
                 cur.execute("SELECT username, display_name, email, password, "
-                            "is_enabled, is_qa, qa_group, is_locked FROM users "
+                            "is_enabled, is_qa, qa_group, is_locked, pubkey FROM users "
                             "WHERE username = %s LIMIT 1;",
                             (username,))
         except mdb.Error, e:
