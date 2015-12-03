@@ -123,7 +123,6 @@ class LvfsDatabaseFirmware(object):
         except mdb.Error, e:
             sql_db = """
                 CREATE TABLE firmware_md (
-                  id INT NOT NULL AUTO_INCREMENT,
                   fwid VARCHAR(40) DEFAULT NULL,
                   checksum_contents VARCHAR(40) DEFAULT NULL,
                   checksum_container VARCHAR(40) DEFAULT NULL,
@@ -142,7 +141,7 @@ class LvfsDatabaseFirmware(object):
                   version VARCHAR(255) DEFAULT NULL,
                   release_installed_size INTEGER DEFAULT 0,
                   release_download_size INTEGER DEFAULT 0,
-                  UNIQUE KEY id (id)
+                  UNIQUE KEY id (fwid,guid)
                 ) CHARSET=utf8;
             """
             cur.execute(sql_db)
@@ -150,7 +149,7 @@ class LvfsDatabaseFirmware(object):
         # FIXME: remove after a few days
         try:
             sql_db = """
-                ALTER TABLE firmware_md ADD id INT AUTO_INCREMENT UNIQUE;
+                ALTER TABLE firmware_md ADD CONSTRAINT id UNIQUE (fwid,guid);
             """
             cur.execute(sql_db)
         except mdb.Error, e:
