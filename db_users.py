@@ -66,15 +66,6 @@ class LvfsDatabaseUsers(object):
             """
             cur.execute(sql_db)
 
-         # FIXME, remove after a few days
-        try:
-            cur.execute("SELECT is_locked FROM users LIMIT 1;")
-        except mdb.Error, e:
-            sql_db = """
-                ALTER TABLE users ADD is_locked TINYINT DEFAULT 0;
-            """
-            cur.execute(sql_db)
-
         # ensure an admin user always exists
         cur.execute("SELECT is_enabled FROM users WHERE username='admin';")
         if not cur.fetchone():

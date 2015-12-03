@@ -13,12 +13,6 @@ class CursorError(Exception):
     def __str__(self):
         return repr(self.value)
 
-# this is split out, one file per table
-from db_users import LvfsDatabaseUsers
-from db_clients import LvfsDatabaseClients
-from db_firmware import LvfsDatabaseFirmware
-from db_eventlog import LvfsDatabaseEventlog
-
 class LvfsDatabase(object):
 
     def __init__(self, environ):
@@ -43,12 +37,6 @@ class LvfsDatabase(object):
             self._db.autocommit(True)
         except mdb.Error, e:
             print "Error %d: %s" % (e.args[0], e.args[1])
-
-        # create helper objects
-        self.users = LvfsDatabaseUsers(self._db)
-        self.clients = LvfsDatabaseClients(self._db)
-        self.firmware = LvfsDatabaseFirmware(self._db)
-        self.eventlog = LvfsDatabaseEventlog(self._db)
 
     def __del__(self):
         """ Clean up the database """

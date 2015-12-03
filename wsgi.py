@@ -47,9 +47,10 @@ import cabarchive
 import appstream
 from affidavit import Affidavit, NoKeyError
 from db import LvfsDatabase, CursorError
-from db_users import _password_hash
-from db_firmware import LvfsFirmware, LvfsFirmwareMd
-from db_clients import LvfsDownloadKind
+from db_clients import LvfsDatabaseClients, LvfsDownloadKind
+from db_eventlog import LvfsDatabaseEventlog
+from db_firmware import LvfsDatabaseFirmware, LvfsFirmware, LvfsFirmwareMd
+from db_users import LvfsDatabaseUsers, _password_hash
 from inf_parser import InfParser
 
 def _qa_hash(value):
@@ -127,6 +128,11 @@ def _to_javascript_array(arr):
     tmp += ']'
     return tmp
 
+def _get_client_address(environ):
+    if 'HTTP_X_FORWARDED_FOR' in environ:
+        return environ['HTTP_X_FORWARDED_FOR'].split(',')[-1].strip()
+    return environ['REMOTE_ADDR']
+
 class LvfsWebsite(object):
     """ A helper class """
 
@@ -154,12 +160,14 @@ class LvfsWebsite(object):
         qa_group = self.qa_group
         if not qa_group:
             qa_group = 'admin'
-        self._db.eventlog.add(msg, username, qa_group,
-                              self.client_address, is_important)
+        db_eventlog = LvfsDatabaseEventlog(self._db)
+        db_eventlog.add(msg, username, qa_group,
+                        self.client_address, is_important)
 
     def create_affidavit(self):
         """ Create an affidavit that can be used to sign files """
-        key_uid = self._db.users.get_signing_uid()
+        db_users = LvfsDatabaseUsers(self._db)
+        key_uid = db_users.get_signing_uid()
         return Affidavit(key_uid, KEYRING_DIR)
 
     def _set_response_code(self, rc):
@@ -290,7 +298,8 @@ class LvfsWebsite(object):
         html += '<ul>\n'
         seen_guid = {}
         try:
-            items = self._db.firmware.get_items()
+            db_firmware = LvfsDatabaseFirmware(self._db)
+            items = db_firmware.get_items()
         except CursorError as e:
             return self._internal_error(str(e))
         for item in items:
@@ -351,8 +360,10 @@ To upload firmware please login, or <a href="?action=newaccount">request a new a
 """
         # get the number of files we've provided
         locale.setlocale(locale.LC_ALL, 'en_US')
-        download_str = locale.format("%d", self._db.firmware.get_download_cnt(), grouping=True)
-        user_str = locale.format("%d", self._db.clients.get_firmware_count_unique(), grouping=True)
+        db_firmware = LvfsDatabaseFirmware(self._db)
+        db_clients = LvfsDatabaseClients(self._db)
+        download_str = locale.format("%d", db_firmware.get_download_cnt(), grouping=True)
+        user_str = locale.format("%d", db_clients.get_firmware_count_unique(), grouping=True)
         if error_msg:
             html = html % (error_msg, download_str, user_str)
         else:
@@ -378,9 +389,10 @@ To upload firmware please login, or <a href="?action=newaccount">request a new a
         html += '<h1>Analytics</h1>'
 
         # add days
-        data_md = self._db.clients.get_stats(30, 1, LvfsDownloadKind.METADATA)
-        data_fw = self._db.clients.get_stats(30, 1, LvfsDownloadKind.FIRMWARE)
-        data_asc = self._db.clients.get_stats(30, 1, LvfsDownloadKind.SIGNING)
+        db_clients = LvfsDatabaseClients(self._db)
+        data_md = db_clients.get_stats(30, 1, LvfsDownloadKind.METADATA)
+        data_fw = db_clients.get_stats(30, 1, LvfsDownloadKind.FIRMWARE)
+        data_asc = db_clients.get_stats(30, 1, LvfsDownloadKind.SIGNING)
         html += '<h2>Metadata and Firmware Downloads (day)</h2>'
         html += '<canvas id="metadataChartMonthsDays" width="800" height="400"></canvas>'
         html += '<script>'
@@ -424,9 +436,9 @@ To upload firmware please login, or <a href="?action=newaccount">request a new a
         html += '</script>'
 
         # add months
-        data_md = self._db.clients.get_metadata_by_month(LvfsDownloadKind.METADATA)
-        data_fw = self._db.clients.get_metadata_by_month(LvfsDownloadKind.FIRMWARE)
-        data_asc = self._db.clients.get_metadata_by_month(LvfsDownloadKind.SIGNING)
+        data_md = db_clients.get_metadata_by_month(LvfsDownloadKind.METADATA)
+        data_fw = db_clients.get_metadata_by_month(LvfsDownloadKind.FIRMWARE)
+        data_asc = db_clients.get_metadata_by_month(LvfsDownloadKind.SIGNING)
         html += '<h2>Metadata and Firmware Downloads (month)</h2>'
         html += '<canvas id="metadataChartMonths" width="800" height="400"></canvas>'
         html += '<script>'
@@ -470,7 +482,7 @@ To upload firmware please login, or <a href="?action=newaccount">request a new a
         html += '</script>'
 
         # add user agent
-        labels, data = self._db.clients.get_user_agent_stats()
+        labels, data = db_clients.get_user_agent_stats()
         html += '<h2>User Agents</h2>'
         html += '<canvas id="metadataChartUserAgents" width="800" height="400"></canvas>'
         html += '<script>'
@@ -494,7 +506,7 @@ To upload firmware please login, or <a href="?action=newaccount">request a new a
         html += '</script>'
 
         # add hours
-        data_md = self._db.clients.get_metadata_by_hour()
+        data_md = db_clients.get_metadata_by_hour()
         html += '<h2>Metadata and Firmware Downloads (hour)</h2>'
         html += '<canvas id="metadataChartHours" width="800" height="400"></canvas>'
         html += '<script>'
@@ -524,6 +536,7 @@ To upload firmware please login, or <a href="?action=newaccount">request a new a
     def _action_useradd(self):
         """ Add a user [ADMIN ONLY] """
 
+        db_users = LvfsDatabaseUsers(self._db)
         if self.username != 'admin':
             return self._action_permission_denied('Unable to add user as non-admin')
         if not 'password_new' in self.fields:
@@ -537,7 +550,7 @@ To upload firmware please login, or <a href="?action=newaccount">request a new a
         if not 'email' in self.fields:
             return self._action_permission_denied('Unable to add user an no data')
         try:
-            auth = self._db.users.is_enabled(self.fields['username_new'].value)
+            auth = db_users.is_enabled(self.fields['username_new'].value)
         except CursorError as e:
             return self._internal_error(str(e))
         if auth:
@@ -576,7 +589,7 @@ To upload firmware please login, or <a href="?action=newaccount">request a new a
             self._set_response_code('400 Bad Request')
             return self._action_userlist('Username invalid')
         try:
-            self._db.users.add(username_new, password, name, email, qa_group)
+            db_users.add(username_new, password, name, email, qa_group)
         except CursorError as e:
             #FIXME
             pass
@@ -602,7 +615,8 @@ To upload firmware please login, or <a href="?action=newaccount">request a new a
 
         # save new value
         try:
-            self._db.users.set_property(username_new, key, value)
+            db_users = LvfsDatabaseUsers(self._db)
+            db_users.set_property(username_new, key, value)
         except CursorError as e:
             return self._internal_error(str(e))
         except RuntimeError as e:
@@ -622,15 +636,16 @@ To upload firmware please login, or <a href="?action=newaccount">request a new a
         if not username_new:
             return self._action_permission_denied('Unable to change user as no data')
 
+        db_users = LvfsDatabaseUsers(self._db)
         try:
-            exists = self._db.users.is_enabled(username_new)
+            exists = db_users.is_enabled(username_new)
         except CursorError as e:
             return self._internal_error(str(e))
         if not exists:
             self._set_response_code('400 Bad Request')
             return self._action_userlist("No entry with username %s" % username_new)
         try:
-            self._db.users.remove(username_new)
+            db_users.remove(username_new)
         except CursorError as e:
             return self._internal_error(str(e))
         self._event_log("Deleted user %s" % username_new)
@@ -650,8 +665,9 @@ To upload firmware please login, or <a href="?action=newaccount">request a new a
             return self._action_permission_denied('Unable to change user as no data')
         if not 'email' in self.fields:
             return self._action_permission_denied('Unable to change user as no data')
+        db_users = LvfsDatabaseUsers(self._db)
         try:
-            auth = self._db.users.verify(self.username, self.fields['password_old'].value)
+            auth = db_users.verify(self.username, self.fields['password_old'].value)
         except CursorError as e:
             return self._internal_error(str(e))
         if not auth:
@@ -676,7 +692,7 @@ To upload firmware please login, or <a href="?action=newaccount">request a new a
             self._set_response_code('400 Bad Request')
             return self._action_profile('Name invalid')
         try:
-            self._db.users.update(self.username, password, name, email)
+            db_users.update(self.username, password, name, email)
         except CursorError as e:
             return self._internal_error(str(e))
         self.session_cookie['password'] = _password_hash(password)
@@ -725,7 +741,8 @@ A good password consists of upper and lower case with numbers.
 
         # auth check
         try:
-            item = self._db.users.get_item(self.username)
+            db_users = LvfsDatabaseUsers(self._db)
+            item = db_users.get_item(self.username)
         except CursorError as e:
             return self._internal_error(str(e))
         if not item:
@@ -766,7 +783,8 @@ A good password consists of upper and lower case with numbers.
         html += '<th>Actions</th>'
         html += '</tr>'
         try:
-            items = self._db.users.get_items()
+            db_users = LvfsDatabaseUsers(self._db)
+            items = db_users.get_items()
         except CursorError as e:
             return self._internal_error(str(e))
         for item in items:
@@ -859,10 +877,11 @@ A good password consists of upper and lower case with numbers.
             length = 20
 
         # get the page selection correct
+        db_eventlog = LvfsDatabaseEventlog(self._db)
         if self.username == 'admin':
-            eventlog_len = self._db.eventlog.size()
+            eventlog_len = db_eventlog.size()
         else:
-            eventlog_len = self._db.eventlog.size_for_qa_group(self.qa_group)
+            eventlog_len = db_eventlog.size_for_qa_group(self.qa_group)
         nr_pages = int(math.ceil(eventlog_len / float(length)))
 
         # page start
@@ -885,9 +904,9 @@ A good password consists of upper and lower case with numbers.
 """
         try:
             if self.username == 'admin':
-                items = self._db.eventlog.get_items(int(start), int(length))
+                items = db_eventlog.get_items(int(start), int(length))
             else:
-                items = self._db.eventlog.get_items_for_qa_group(self.qa_group, int(start), int(length))
+                items = db_eventlog.get_items_for_qa_group(self.qa_group, int(start), int(length))
         except CursorError as e:
             return self._internal_error(str(e))
         if len(items) == 0:
@@ -1005,7 +1024,8 @@ There is no charge to vendors for the hosting or distribution of content.
         """
         html = '<h1>Existing Firmware</h1>'
         try:
-            items = self._db.firmware.get_items()
+            db_firmware = LvfsDatabaseFirmware(self._db)
+            items = db_firmware.get_items()
         except CursorError as e:
             return self._internal_error(str(e))
         if len(items) > 0:
@@ -1102,7 +1122,8 @@ There is no charge to vendors for the hosting or distribution of content.
         fwobj.mds[0].description = app.description
         if driver_ver:
             fwobj.version_display = driver_ver[1]
-        self._db.firmware.update(fwobj)
+        db_firmware = LvfsDatabaseFirmware(self._db)
+        db_firmware.update(fwobj)
         return None
 
     def _action_metadata_rebuild(self):
@@ -1114,7 +1135,8 @@ There is no charge to vendors for the hosting or distribution of content.
 
         # go through existing files and fix descriptions
         try:
-            items = self._db.firmware.get_items()
+            db_firmware = LvfsDatabaseFirmware(self._db)
+            items = db_firmware.get_items()
         except CursorError as e:
             return self._internal_error(str(e))
         for fn in glob.glob(os.path.join(UPLOAD_DIR, "*.cab")):
@@ -1253,8 +1275,9 @@ There is no charge to vendors for the hosting or distribution of content.
             return self._upload_failed("No ID specified" % fwid)
 
         # check firmware exists in database
+        db_firmware = LvfsDatabaseFirmware(self._db)
         try:
-            item = self._db.firmware.get_item(fwid)
+            item = db_firmware.get_item(fwid)
         except CursorError as e:
             return self._internal_error(str(e))
         if not item:
@@ -1320,7 +1343,7 @@ There is no charge to vendors for the hosting or distribution of content.
 
         # delete id from database
         try:
-            self._db.firmware.remove(fwid)
+            db_firmware.remove(fwid)
         except CursorError as e:
             return self._internal_error(str(e))
 
@@ -1353,8 +1376,9 @@ There is no charge to vendors for the hosting or distribution of content.
             return self._internal_error('No ID specified')
 
         # get details about the firmware
+        db_firmware = LvfsDatabaseFirmware(self._db)
         try:
-            item = self._db.firmware.get_item(fwid)
+            item = db_firmware.get_item(fwid)
         except CursorError as e:
             return self._internal_error(str(e))
         if not item:
@@ -1428,7 +1452,8 @@ There is no charge to vendors for the hosting or distribution of content.
             html += '</table>'
 
         # show graph
-        data_fw = self._db.clients.get_stats_for_fn(12, 30, item.filename)
+        db_clients = LvfsDatabaseClients(self._db)
+        data_fw = db_clients.get_stats_for_fn(12, 30, item.filename)
         html += '<script src="Chart.js"></script>'
         html += '<h1>User Downloads</h1>'
         html += '<p>This graph will only show downloads since 2015-11-02.</p>'
@@ -1480,14 +1505,15 @@ There is no charge to vendors for the hosting or distribution of content.
             return self._internal_error("Target %s invalid" % target)
 
         # check firmware exists in database
+        db_firmware = LvfsDatabaseFirmware(self._db)
         try:
-            item = self._db.firmware.get_item(fwid)
+            item = db_firmware.get_item(fwid)
         except CursorError as e:
             return self._internal_error(str(e))
         if self.username != 'admin' and item.qa_group != self.qa_group:
             return self._action_permission_denied("No QA access to %s" % fwid)
         try:
-            self._db.firmware.set_target(fwid, target)
+            db_firmware.set_target(fwid, target)
         except CursorError as e:
             return self._internal_error(str(e))
         # set correct response code
@@ -1533,9 +1559,10 @@ There is no charge to vendors for the hosting or distribution of content.
             return self._upload_failed('File too small, mimimum is 1k')
 
         # check the file does not already exist
+        db_firmware = LvfsDatabaseFirmware(self._db)
         fwid = hashlib.sha1(data).hexdigest()
         try:
-            item = self._db.firmware.get_item(fwid)
+            item = db_firmware.get_item(fwid)
         except CursorError as e:
             return self._internal_error(str(e))
         if item:
@@ -1633,7 +1660,7 @@ There is no charge to vendors for the hosting or distribution of content.
 
             # check the guid and version does not already exist
             try:
-                items = self._db.firmware.get_items()
+                items = db_firmware.get_items()
             except CursorError as e:
                 return self._internal_error(str(e))
             for item in items:
@@ -1748,7 +1775,7 @@ There is no charge to vendors for the hosting or distribution of content.
 
         # add to database
         try:
-            self._db.firmware.add(fwobj)
+            db_firmware.add(fwobj)
         except CursorError as e:
             return self._internal_error(str(e))
         # set correct response code
@@ -1783,7 +1810,8 @@ There is no charge to vendors for the hosting or distribution of content.
             self._set_response_code('401 Unauthorized')
             return self._action_login()
         try:
-            item = self._db.users.get_item(self.username, self.password)
+            db_users = LvfsDatabaseUsers(self._db)
+            item = db_users.get_item(self.username, self.password)
         except CursorError as e:
             return self._internal_error(str(e))
         if not item:
@@ -1856,7 +1884,8 @@ There is no charge to vendors for the hosting or distribution of content.
     def _generate_metadata_kind(self, filename, targets=None, qa_group=None):
         """ Generates AppStream metadata of a specific kind """
         try:
-            items = self._db.firmware.get_items()
+            db_firmware = LvfsDatabaseFirmware(self._db)
+            items = db_firmware.get_items()
         except CursorError as e:
             return self._internal_error(str(e))
         store = appstream.Store('lvfs')
@@ -1951,7 +1980,8 @@ There is no charge to vendors for the hosting or distribution of content.
 
         # do for all
         try:
-            qa_groups = self._db.firmware.get_qa_groups()
+            db_firmware = LvfsDatabaseFirmware(self._db)
+            qa_groups = db_firmware.get_qa_groups()
         except CursorError as e:
             return self._internal_error(str(e))
         for qa_group in qa_groups:
@@ -1972,10 +2002,7 @@ There is no charge to vendors for the hosting or distribution of content.
         """ Set up the website helper with the calling environment """
 
         # get client address
-        if 'HTTP_X_FORWARDED_FOR' in environ:
-            self.client_address = environ['HTTP_X_FORWARDED_FOR'].split(',')[-1].strip()
-        else:
-            self.client_address = environ['REMOTE_ADDR']
+        self.client_address = _get_client_address(environ)
 
         # parse POST data
         if 'POST' == environ['REQUEST_METHOD']:
@@ -2019,49 +2046,43 @@ def static_app(fn, start_response, content_type, download=False):
 def application(environ, start_response):
     """ Main entry point for wsgi """
 
-    # static file
+    # handle static files
+    static_kinds = []
+    static_kinds.append(('.cab', 'application/vnd.ms-cab-compressed',
+                         LvfsDownloadKind.FIRMWARE))
+    static_kinds.append(('.xml.gz', 'application/gzip',
+                         LvfsDownloadKind.METADATA))
+    static_kinds.append(('.xml.gz.asc', 'text/plain',
+                         LvfsDownloadKind.SIGNING))
+    static_kinds.append(('.css', 'text/css', None))
+    static_kinds.append(('.svg', 'image/svg+xml', None))
+    static_kinds.append(('.png', 'image/png', None))
+    static_kinds.append(('.ico', 'image/x-icon', None))
+    static_kinds.append(('.js', 'application/javascript', None))
     fn = os.path.basename(environ['PATH_INFO'])
-    if fn.endswith(".css"):
-        return static_app(fn, start_response, 'text/css')
-    if fn.endswith(".svg"):
-        return static_app(fn, start_response, 'image/svg+xml')
-    if fn.endswith(".png"):
-        return static_app(fn, start_response, 'image/png')
-    if fn.endswith(".ico"):
-        return static_app(fn, start_response, 'image/x-icon')
-    if fn.endswith(".js"):
-        return static_app(fn, start_response, 'application/javascript')
+    for kind in static_kinds:
+        if not fn.endswith(kind[0]):
+            continue
+
+        # log to database
+        if kind[2]:
+            user_agent = environ.get('HTTP_USER_AGENT', None)
+            if user_agent:
+                user_agent = user_agent.split(" ", 2)[0]
+            try:
+                db = LvfsDatabase(environ)
+                clients = LvfsDatabaseClients(db)
+                client_address = _get_client_address(environ)
+                clients.increment(client_address, kind[2], fn, user_agent)
+            except CursorError as e:
+                pass
+            return static_app(fn, start_response, kind[1], download=True)
+        return static_app(fn, start_response, kind[1])
 
     # use a helper class
     w = LvfsWebsite()
     w.qs_get = cgi.parse_qs(environ['QUERY_STRING'])
     w.init(environ)
-
-    # get user agent string if present
-    user_agent = environ.get('HTTP_USER_AGENT', None)
-    if user_agent:
-        user_agent = user_agent.split(" ", 2)[0];
-
-    # handle files
-    if fn.endswith(".xml.gz.asc"):
-        try:
-            w._db.clients.increment(w.client_address, LvfsDownloadKind.SIGNING, fn, user_agent)
-        except CursorError as e:
-            pass
-        return static_app(fn, start_response, 'text/plain', download=True)
-    if fn.endswith(".cab"):
-        try:
-            w._db.clients.increment(w.client_address, LvfsDownloadKind.FIRMWARE, fn, user_agent)
-            w._db.firmware.increment_filename_cnt(fn)
-        except CursorError as e:
-            pass
-        return static_app(fn, start_response, 'application/vnd.ms-cab-compressed', download=True)
-    if fn.endswith(".xml.gz"):
-        try:
-            w._db.clients.increment(w.client_address, LvfsDownloadKind.METADATA, fn, user_agent)
-        except CursorError as e:
-            pass
-        return static_app(fn, start_response, 'application/gzip', download=True)
 
     # get response
     response_body = w.get_response()

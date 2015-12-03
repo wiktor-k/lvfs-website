@@ -106,20 +106,6 @@ class LvfsDatabaseFirmware(object):
             """
             cur.execute(sql_db)
 
-        # hash was a terrible name
-        try:
-            cur = self._db.cursor()
-            cur.execute("ALTER TABLE firmware CHANGE hash fwid VARCHAR(40) DEFAULT NULL;")
-        except mdb.Error, e:
-            pass
-
-        # this isn't metadata at all
-        try:
-            cur = self._db.cursor()
-            cur.execute("ALTER TABLE firmware CHANGE md_version_display version_display VARCHAR(255) DEFAULT NULL;")
-        except mdb.Error, e:
-            pass
-
         # test firmware metadata table exists
         try:
             cur = self._db.cursor()
@@ -148,51 +134,6 @@ class LvfsDatabaseFirmware(object):
                 ) CHARSET=utf8;
             """
             cur.execute(sql_db)
-
-        # copy data from old table
-        try:
-            cur = self._db.cursor()
-            cur.execute("SELECT fwid, md_checksum_contents, md_checksum_container, "
-                        "md_id, md_name, md_summary, md_guid, md_description, "
-                        "md_release_description, md_url_homepage, md_metadata_license, "
-                        "md_project_license, md_developer_name, md_filename_contents, "
-                        "md_release_timestamp, md_version, "
-                        "md_release_installed_size, md_release_download_size "
-                        "FROM firmware;")
-            res = cur.fetchall()
-            for r in res:
-                cur.execute("INSERT INTO firmware_md (fwid, checksum_contents, checksum_container, "
-                            "id, name, summary, guid, description, "
-                            "release_description, url_homepage, metadata_license, "
-                            "project_license, developer_name, filename_contents, "
-                            "release_timestamp, version, "
-                            "release_installed_size, release_download_size) "
-                            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, "
-                            "%s, %s, %s, %s, %s, %s, %s, %s);",
-                            (r[0], r[1], r[2], r[3], r[4], r[5], r[6], r[7],
-                             r[8], r[9], r[10], r[11], r[12], r[13], r[14],
-                             r[15], r[16], r[17],))
-
-            # remove old columns
-            cur.execute("ALTER TABLE firmware DROP COLUMN md_checksum_contents;")
-            cur.execute("ALTER TABLE firmware DROP COLUMN md_checksum_container;")
-            cur.execute("ALTER TABLE firmware DROP COLUMN md_id;")
-            cur.execute("ALTER TABLE firmware DROP COLUMN md_name;")
-            cur.execute("ALTER TABLE firmware DROP COLUMN md_summary;")
-            cur.execute("ALTER TABLE firmware DROP COLUMN md_guid;")
-            cur.execute("ALTER TABLE firmware DROP COLUMN md_description;")
-            cur.execute("ALTER TABLE firmware DROP COLUMN md_release_description;")
-            cur.execute("ALTER TABLE firmware DROP COLUMN md_url_homepage;")
-            cur.execute("ALTER TABLE firmware DROP COLUMN md_metadata_license;")
-            cur.execute("ALTER TABLE firmware DROP COLUMN md_project_license;")
-            cur.execute("ALTER TABLE firmware DROP COLUMN md_developer_name;")
-            cur.execute("ALTER TABLE firmware DROP COLUMN md_filename_contents;")
-            cur.execute("ALTER TABLE firmware DROP COLUMN md_release_timestamp;")
-            cur.execute("ALTER TABLE firmware DROP COLUMN md_version;")
-            cur.execute("ALTER TABLE firmware DROP COLUMN md_release_installed_size;")
-            cur.execute("ALTER TABLE firmware DROP COLUMN md_release_download_size;")
-        except mdb.Error, e:
-            pass
 
     def increment_filename_cnt(self, filename):
         """ Increment the downloaded count """

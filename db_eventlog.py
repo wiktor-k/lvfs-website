@@ -53,17 +53,6 @@ class LvfsDatabaseEventlog(object):
             """
             cur.execute(sql_db)
 
-         # FIXME, remove after a few days
-        try:
-            cur.execute("SELECT qa_group FROM event_log LIMIT 1;")
-        except mdb.Error, e:
-            sql_db = """
-                ALTER TABLE event_log ADD qa_group VARCHAR(40) DEFAULT NULL;
-                UPDATE event_log SET qa_group=username WHERE qa_group=NULL;
-                UPDATE event_log SET qa_group='dell' WHERE username='dellqa' AND qa_group=NULL;
-            """
-            cur.execute(sql_db)
-
     def add(self, msg, username, qa_group, addr, is_important):
         """ Adds an item to the event log """
         assert msg
