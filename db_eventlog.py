@@ -43,15 +43,26 @@ class LvfsDatabaseEventlog(object):
         except mdb.Error, e:
             sql_db = """
                 CREATE TABLE event_log (
+                  id INT NOT NULL AUTO_INCREMENT,
                   timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                   username VARCHAR(40) NOT NULL DEFAULT '',
                   qa_group VARCHAR(40) DEFAULT NULL,
                   addr VARCHAR(40) DEFAULT NULL,
                   message TEXT DEFAULT NULL,
-                  is_important TINYINT DEFAULT 0
+                  is_important TINYINT DEFAULT 0,
+                  UNIQUE KEY id (id)
                 ) CHARSET=utf8;
             """
             cur.execute(sql_db)
+
+        # FIXME: remove after a few days
+        try:
+            sql_db = """
+                ALTER TABLE event_log ADD id INT AUTO_INCREMENT UNIQUE;
+            """
+            cur.execute(sql_db)
+        except mdb.Error, e:
+            pass
 
     def add(self, msg, username, qa_group, addr, is_important):
         """ Adds an item to the event log """
@@ -97,7 +108,7 @@ class LvfsDatabaseEventlog(object):
         try:
             cur = self._db.cursor()
             cur.execute("SELECT timestamp, username, qa_group, addr, message, is_important "
-                        "FROM event_log ORDER BY timestamp DESC LIMIT %s,%s;",
+                        "FROM event_log ORDER BY id DESC LIMIT %s,%s;",
                         (start, length,))
         except mdb.Error, e:
             raise CursorError(cur, e)
@@ -114,7 +125,7 @@ class LvfsDatabaseEventlog(object):
         try:
             cur = self._db.cursor()
             cur.execute("SELECT timestamp, username, qa_group, addr, message, is_important "
-                        "FROM event_log WHERE qa_group = %s ORDER BY timestamp DESC LIMIT %s,%s;",
+                        "FROM event_log WHERE qa_group = %s ORDER BY id DESC LIMIT %s,%s;",
                         (qa_group, start, length,))
         except mdb.Error, e:
             raise CursorError(cur, e)

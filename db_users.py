@@ -61,10 +61,20 @@ class LvfsDatabaseUsers(object):
                   is_enabled TINYINT DEFAULT 0,
                   is_qa TINYINT DEFAULT 0,
                   qa_group VARCHAR(40) NOT NULL DEFAULT '',
-                  is_locked TINYINT DEFAULT 0
+                  is_locked TINYINT DEFAULT 0,
+                  UNIQUE KEY id (username)
                 ) CHARSET=utf8;
             """
             cur.execute(sql_db)
+
+        # FIXME: remove after a few days
+        try:
+            sql_db = """
+                ALTER TABLE users ADD CONSTRAINT id UNIQUE (username);
+            """
+            cur.execute(sql_db)
+        except mdb.Error, e:
+            pass
 
         # ensure an admin user always exists
         cur.execute("SELECT is_enabled FROM users WHERE username='admin';")

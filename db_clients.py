@@ -33,12 +33,12 @@ class LvfsDatabaseClients(object):
         except mdb.Error, e:
             sql_db = """
                 CREATE TABLE clients (
+                  id INT NOT NULL AUTO_INCREMENT,
                   timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                   addr VARCHAR(40) DEFAULT NULL,
                   is_firmware TINYINT DEFAULT 0,
                   filename VARCHAR(256) DEFAULT NULL,
                   user_agent VARCHAR(256) DEFAULT NULL,
-                  id INT NOT NULL AUTO_INCREMENT,
                   UNIQUE KEY id (id)
                 ) CHARSET=utf8;
             """
