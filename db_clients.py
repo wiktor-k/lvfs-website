@@ -40,11 +40,13 @@ class LvfsDatabaseClients(object):
         except mdb.Error, e:
             sql_db = """
                 CREATE TABLE clients (
-                  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP UNIQUE,
+                  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                   addr VARCHAR(40) DEFAULT NULL,
                   is_firmware TINYINT DEFAULT 0,
                   filename VARCHAR(256) DEFAULT NULL,
-                  user_agent VARCHAR(256) DEFAULT NULL
+                  user_agent VARCHAR(256) DEFAULT NULL,
+                  id INT NOT NULL AUTO_INCREMENT,
+                  UNIQUE KEY id (id)
                 ) CHARSET=utf8;
             """
             cur.execute(sql_db)
@@ -64,6 +66,14 @@ class LvfsDatabaseClients(object):
                 ALTER TABLE clients ADD user_agent VARCHAR(256) DEFAULT NULL;
             """
             cur.execute(sql_db)
+        try:
+            sql_db = """
+                ALTER TABLE clients ADD id INT AUTO_INCREMENT UNIQUE;
+                ALTER TABLE clients DROP INDEX timestamp;
+            """
+            cur.execute(sql_db)
+        except mdb.Error, e:
+            pass
 
     def get_firmware_count_unique(self):
         """ get the number of metadata files we've provided """
