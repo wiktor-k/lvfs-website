@@ -186,8 +186,8 @@ class LvfsWebsite(object):
 <head>
 <title>LVFS: %s</title>
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
-<link rel="stylesheet" href="style.css" type="text/css" media="screen"/>
-<link rel="shortcut icon" href="favicon.ico"/>
+<link rel="stylesheet" href="static/style.css" type="text/css" media="screen"/>
+<link rel="shortcut icon" href="static/favicon.ico"/>
 </head>
 <body>
 """
@@ -381,7 +381,7 @@ To upload firmware please login, or <a href="?action=newaccount">request a new a
             return self._action_permission_denied('Unable to view analytics')
 
         # load external resource
-        html = '<script src="Chart.js"></script>'
+        html = '<script src="static/Chart.js"></script>'
         html += '<script>\n'
         html += 'Chart.defaults.global.animation = false;\n'
         html += '</script>\n'
@@ -1454,7 +1454,7 @@ There is no charge to vendors for the hosting or distribution of content.
         # show graph
         db_clients = LvfsDatabaseClients(self._db)
         data_fw = db_clients.get_stats_for_fn(12, 30, item.filename)
-        html += '<script src="Chart.js"></script>'
+        html += '<script src="static/Chart.js"></script>'
         html += '<h1>User Downloads</h1>'
         html += '<p>This graph will only show downloads since 2015-11-02.</p>'
         html += '<canvas id="metadataChartMonths" width="800" height="400"></canvas>'
@@ -2054,11 +2054,12 @@ def application(environ, start_response):
                          LvfsDownloadKind.METADATA))
     static_kinds.append(('.xml.gz.asc', 'text/plain',
                          LvfsDownloadKind.SIGNING))
-    static_kinds.append(('.css', 'text/css', None))
-    static_kinds.append(('.svg', 'image/svg+xml', None))
-    static_kinds.append(('.png', 'image/png', None))
-    static_kinds.append(('.ico', 'image/x-icon', None))
-    static_kinds.append(('.js', 'application/javascript', None))
+    if not 'OPENSHIFT_PYTHON_DIR' in os.environ:
+        static_kinds.append(('.css', 'text/css', None))
+        static_kinds.append(('.svg', 'image/svg+xml', None))
+        static_kinds.append(('.png', 'image/png', None))
+        static_kinds.append(('.ico', 'image/x-icon', None))
+        static_kinds.append(('.js', 'application/javascript', None))
     fn = os.path.basename(environ['PATH_INFO'])
     for kind in static_kinds:
         if not fn.endswith(kind[0]):
