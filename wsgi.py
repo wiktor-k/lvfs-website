@@ -2065,7 +2065,7 @@ def application(environ, start_response):
             continue
 
         # log to database
-        if kind[2]:
+        if kind[2] is not None:
             user_agent = environ.get('HTTP_USER_AGENT', None)
             if user_agent:
                 user_agent = user_agent.split(" ", 2)[0]
