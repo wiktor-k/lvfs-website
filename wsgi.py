@@ -1028,23 +1028,56 @@ There is no charge to vendors for the hosting or distribution of content.
             items = db_firmware.get_items()
         except CursorError as e:
             return self._internal_error(str(e))
-        if len(items) > 0:
-            html += "<p>These firmware files have been uploaded to the " \
-                    "&lsquo;%s&rsquo; QA group:</p>" % self.qa_group
+
+        # nothing!
+        if len(items) == 0:
+            html += "<p>No firmware has been uploaded to the " \
+                    "&lsquo;%s&rsquo; QA group yet.</p>" % self.qa_group
+            return self._gen_header('Existing') + html + self._gen_footer()
+
+        # group by the firmware name
+        names = {}
+        for item in items:
+            # admin can see everything
+            if self.username != 'admin':
+                if item.qa_group != self.qa_group:
+                    continue
+            name = item.mds[0].name
+            if not name in names:
+                names[name] = []
+            names[name].append(item)
+
+        show_all = self.qs_get.get('all', [None])[0]
+
+        html += "<p>"
+        html += "The following firmware files have been uploaded to the " \
+                "&lsquo;%s&rsquo; QA group. " % self.qa_group
+        if not show_all:
+            html += "By default only one firmware per device is shown in each state. "
+            html += "To show all files for all devices, <a href=?action=existing&all=1>click here</a>."
+        html += "</p>"
+
+        # group each thing in it's own header
+        for name in sorted(names):
+            html += "<h2>%s</h2>\n" % name
             html += "<table class=\"history\">"
             html += "<tr>"
             html += "<th>Submitted</td>"
-            html += "<th>Name</td>"
             html += "<th>Version</td>"
             html += "<th>Target</td>"
             html += "<th></td>"
             html += "</tr>\n"
-            for item in items:
 
-                # admin can see everything
-                if self.username != 'admin':
-                    if item.qa_group != self.qa_group:
-                        continue
+            # by default we only show the first version of each target
+            targets_seen = {}
+
+            for item in names[name]:
+
+                # only show one
+                if item.target in targets_seen:
+                    continue
+                if not show_all:
+                    targets_seen[item.target] = item
 
                 buttons = "<form method=\"get\" action=\"wsgi.py\">" \
                           "<input type=\"hidden\" name=\"action\" value=\"fwshow\"/>" \
@@ -1053,7 +1086,6 @@ There is no charge to vendors for the hosting or distribution of content.
                           "</form>" % item.fwid
                 html += '<tr>'
                 html += "<td>%s</td>" % item.timestamp
-                html += "<td>%s</td>" % item.mds[0].name
                 if not item.version_display or item.mds[0].version == item.version_display:
                     html += "<td>%s</td>" % item.mds[0].version
                 else:
@@ -1062,9 +1094,6 @@ There is no charge to vendors for the hosting or distribution of content.
                 html += "<td>%s</td>" % buttons
                 html += '</tr>\n'
             html += "</table>"
-        else:
-            html += "<p>No firmware has been uploaded to the " \
-                    "&lsquo;%s&rsquo; QA group yet.</p>" % self.qa_group
         return self._gen_header('Existing') + html + self._gen_footer()
 
     def _update_metadata_from_fn(self, fwobj, fn):
