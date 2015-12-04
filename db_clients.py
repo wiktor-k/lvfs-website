@@ -62,7 +62,7 @@ class LvfsDatabaseClients(object):
             cur = self._db.cursor()
             cur.execute("SELECT user_agent, COUNT(*) AS count FROM clients "
                         "WHERE user_agent IS NOT NULL AND filename = 'firmware.xml.gz.asc' "
-                        "GROUP BY user_agent;")
+                        "GROUP BY user_agent ORDER BY COUNT(*) DESC LIMIT 6;")
         except mdb.Error, e:
             raise CursorError(cur, e)
         res = cur.fetchall()
