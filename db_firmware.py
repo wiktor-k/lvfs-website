@@ -41,7 +41,6 @@ class LvfsFirmware(object):
         self.filename = None
         self.fwid = None
         self.target = None
-        self.download_cnt = 0
         self.version_display = None
         self.mds = []
     def __repr__(self):
@@ -77,8 +76,7 @@ def _create_firmware_item(e):
     item.filename = e[3]
     item.fwid = e[4]
     item.target = e[5]
-    item.download_cnt = e[6]
-    item.version_display = e[7]
+    item.version_display = e[6]
     return item
 
 class LvfsDatabaseFirmware(object):
@@ -101,7 +99,6 @@ class LvfsDatabaseFirmware(object):
                   target VARCHAR(255) DEFAULT NULL,
                   fwid VARCHAR(40) DEFAULT NULL,
                   version_display VARCHAR(255) DEFAULT NULL,
-                  download_cnt INTEGER DEFAULT 0,
                   UNIQUE KEY id (fwid)
                 ) CHARSET=utf8;
             """
@@ -154,28 +151,6 @@ class LvfsDatabaseFirmware(object):
             cur.execute(sql_db)
         except mdb.Error, e:
             pass
-
-    def increment_filename_cnt(self, filename):
-        """ Increment the downloaded count """
-        assert filename
-        try:
-            cur = self._db.cursor()
-            cur.execute("UPDATE firmware SET download_cnt = download_cnt + 1 "
-                        "WHERE filename=%s", (filename,))
-        except mdb.Error, e:
-            raise CursorError(cur, e)
-
-    def get_download_cnt(self):
-        """ get the number of firmware files we've provided """
-        try:
-            cur = self._db.cursor()
-            cur.execute("SELECT SUM(download_cnt) FROM firmware")
-        except mdb.Error, e:
-            raise CursorError(cur, e)
-        download_cnt = cur.fetchone()[0]
-        if not download_cnt:
-            return 0
-        return download_cnt
 
     def set_target(self, fwid, target):
         """ get the number of firmware files we've provided """
@@ -304,7 +279,7 @@ class LvfsDatabaseFirmware(object):
         try:
             cur = self._db.cursor()
             cur.execute("SELECT qa_group, addr, timestamp, "
-                        "filename, fwid, target, download_cnt, version_display "
+                        "filename, fwid, target, version_display "
                         "FROM firmware ORDER BY timestamp DESC;")
         except mdb.Error, e:
             raise CursorError(cur, e)

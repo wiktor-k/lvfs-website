@@ -44,11 +44,25 @@ class LvfsDatabaseClients(object):
             """
             cur.execute(sql_db)
 
-    def get_firmware_count_unique(self):
-        """ get the number of metadata files we've provided """
+    def get_firmware_count_unique(self, kind):
+        """ get the number of files we've provided """
         try:
             cur = self._db.cursor()
-            cur.execute("SELECT DISTINCT(COUNT(addr)) FROM clients")
+            cur.execute("SELECT DISTINCT(COUNT(addr)) FROM clients "
+                        "WHERE is_firmware = %s", (kind,))
+        except mdb.Error, e:
+            raise CursorError(cur, e)
+        user_cnt = cur.fetchone()[0]
+        if not user_cnt:
+            return 0
+        return user_cnt
+
+    def get_firmware_count_filename(self, filename):
+        """ get the number of files we've provided """
+        try:
+            cur = self._db.cursor()
+            cur.execute("SELECT DISTINCT(COUNT(addr)) FROM clients "
+                        "WHERE filename = %s", (filename,))
         except mdb.Error, e:
             raise CursorError(cur, e)
         user_cnt = cur.fetchone()[0]

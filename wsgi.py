@@ -360,10 +360,9 @@ To upload firmware please login, or <a href="?action=newaccount">request a new a
 """
         # get the number of files we've provided
         locale.setlocale(locale.LC_ALL, 'en_US')
-        db_firmware = LvfsDatabaseFirmware(self._db)
         db_clients = LvfsDatabaseClients(self._db)
-        download_str = locale.format("%d", db_firmware.get_download_cnt(), grouping=True)
-        user_str = locale.format("%d", db_clients.get_firmware_count_unique(), grouping=True)
+        download_str = locale.format("%d", db_clients.get_firmware_count_unique(LvfsDownloadKind.FIRMWARE), grouping=True)
+        user_str = locale.format("%d", db_clients.get_firmware_count_unique(LvfsDownloadKind.METADATA), grouping=True)
         if error_msg:
             html = html % (error_msg, download_str, user_str)
         else:
@@ -1464,7 +1463,9 @@ There is no charge to vendors for the hosting or distribution of content.
         html += '<tr><th>Uploaded from</th><td>%s</td></tr>' % item.addr
         if item.version_display:
             html += '<tr><th>Version (display only)</th><td>%s</td></tr>' % item.version_display
-        html += '<tr><th>Downloads</th><td>%i</td></tr>' % item.download_cnt
+        db_clients = LvfsDatabaseClients(self._db)
+        cnt_fn = db_clients.get_firmware_count_filename(item.filename)
+        html += '<tr><th>Downloads</th><td>%i</td></tr>' % cnt_fn
         html += '<tr><th>Actions</th><td>%s</td></tr>' % buttons
         html += '</table>'
 
