@@ -2090,6 +2090,14 @@ There is no charge to vendors for the hosting or distribution of content.
 
 def static_app(fn, start_response, content_type, download=False):
     """ Return a static image or resource """
+
+    # use apache for the static file so we can scale
+    if 'OPENSHIFT_APP_DNS' in os.environ:
+        if download:
+            uri = "https://%s/static/downloads/%s" % (os.environ['OPENSHIFT_APP_DNS'], fn)
+            start_response('301 Moved Permanently', [('Location',uri)])
+            return ['']
+
     if not download:
         path = os.path.join(STATIC_DIR, fn)
     else:
