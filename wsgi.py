@@ -122,7 +122,6 @@ def _to_javascript_array(arr):
             tmp += str(a) + ','
         else:
             tmp += '"' + str(a) + '",'
-            print type(a)
     if len(tmp) > 1:
         tmp = tmp[:-1]
     tmp += ']'
@@ -1737,7 +1736,6 @@ There is no charge to vendors for the hosting or distribution of content.
         if not os.path.exists(UPLOAD_DIR):
             os.mkdir(UPLOAD_DIR)
         open(os.path.join(UPLOAD_DIR, new_filename), 'wb').write(data)
-        print "wrote %i bytes to %s" % (len(data), new_filename)
 
         # fix up the checksums and add the detached signature
         for app in apps:
@@ -2078,7 +2076,6 @@ There is no charge to vendors for the hosting or distribution of content.
                     self.password = _password_hash(self.fields['password'].value)
                     self._is_login_from_post = True
         if environ.has_key('HTTP_COOKIE'):
-            print environ['HTTP_COOKIE']
             self.session_cookie.load(environ['HTTP_COOKIE'])
             if not self.username and 'username' in self.session_cookie:
                 self.username = self.session_cookie['username'].value
@@ -2159,7 +2156,6 @@ def application(environ, start_response):
 
     # fallback
     if not w.response_code:
-        print "WARNING, USING FALLBACK CODE"
         w._set_response_code('200 OK')
 
     response_headers = [('Content-Type', w.content_type),
@@ -2167,7 +2163,6 @@ def application(environ, start_response):
     response_headers.extend(("set-cookie", morsel.OutputString())
                             for morsel
                             in w.session_cookie.values())
-    print w.response_code, response_headers
     start_response(w.response_code, response_headers)
 
     return [response_body.encode('utf-8')]
