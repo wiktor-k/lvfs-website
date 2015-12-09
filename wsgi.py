@@ -281,8 +281,7 @@ class LvfsWebsite(object):
         html = """
 <h1>Devices using LVFS for firmware updates</h1>
 <p>
- This list shows all the updates that have been pushed to the testing or
- stable metadata.
+ This list shows all the updates that have been pushed to the stable metadata.
  This is a very incomplete list as a lot of the devices in the LVFS
  have not yet been released publicly and the firmware updates are in a
  secret embargoed state.
@@ -295,30 +294,49 @@ class LvfsWebsite(object):
 
         # add devices in stable or testing
         html += '<ul>\n'
-        seen_guid = {}
         try:
             db_firmware = LvfsDatabaseFirmware(self._db)
             items = db_firmware.get_items()
         except CursorError as e:
             return self._internal_error(str(e))
+
+        # get a sorted list of vendors
+        vendors = []
         for item in items:
-            if item.target != 'stable' and item.target != 'testing':
+            if item.target != 'stable':
                 continue
-            for md in item.mds:
+            vendor = item.mds[0].developer_name
+            if vendor in vendors:
+                continue
+            vendors.append(vendor)
 
-                # only show the newest version
-                if md.guid in seen_guid:
+        seen_guid = {}
+        for vendor in sorted(vendors):
+
+            html += '<h2>%s</h2>\n' % vendor
+            html += '<ul>\n'
+            for item in items:
+                if item.target != 'stable':
                     continue
-                seen_guid[md.guid] = 1
 
-                # show name and version
-                txt = md.name
-                if item.version_display:
-                    txt += ' %s' % item.version_display
-                else:
-                    txt += ' %s' % md.version
-                html += '<li>%s</li>\n' % txt
-        html += '</ul>\n'
+                for md in item.mds:
+
+                    # only show correct vendor
+                    if vendor != md.developer_name:
+                        continue
+
+                    # only show the newest version
+                    if md.guid in seen_guid:
+                        continue
+                    seen_guid[md.guid] = 1
+
+                    # show name and version
+                    version = item.version_display
+                    if not version:
+                        version = md.version
+                    url = 'downloads/' + item.filename
+                    html += '<li><a href="%s">%s %s</a></li>\n' % (url, md.name, version)
+            html += '</ul>\n'
 
         self._set_response_code('200 OK')
         return self._gen_header('Device List', show_navigation=False) + html + self._gen_footer()
