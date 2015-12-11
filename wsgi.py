@@ -4,11 +4,13 @@
 # Copyright (C) 2015 Richard Hughes <richard@hughsie.com>
 # Licensed under the GNU General Public License Version 2
 import os
+import gzip
 
 STATIC_DIR = 'static'
 UPLOAD_DIR = 'uploads'
 DOWNLOAD_DIR = 'downloads'
 KEYRING_DIR = 'gnupg'
+BACKUP_DIR = 'backup'
 CABEXTRACT_CMD = '/usr/bin/cabextract'
 if 'OPENSHIFT_PYTHON_DIR' in os.environ:
     virtenv = os.environ['OPENSHIFT_PYTHON_DIR'] + '/virtenv/'
@@ -21,6 +23,7 @@ if 'OPENSHIFT_PYTHON_DIR' in os.environ:
     UPLOAD_DIR = os.path.join(os.environ['OPENSHIFT_DATA_DIR'], 'uploads')
     DOWNLOAD_DIR = os.path.join(os.environ['OPENSHIFT_DATA_DIR'], 'downloads')
     KEYRING_DIR = os.path.join(os.environ['OPENSHIFT_DATA_DIR'], 'gnupg')
+    BACKUP_DIR = os.path.join(os.environ['OPENSHIFT_DATA_DIR'], 'backup')
 
     # this needs to be setup using:
     # cd app-root/data/
@@ -168,6 +171,42 @@ class LvfsWebsite(object):
         db_users = LvfsDatabaseUsers(self._db)
         key_uid = db_users.get_signing_uid()
         return Affidavit(key_uid, KEYRING_DIR)
+
+    def _create_backup(self, filename, include_clients=False):
+        """ Create a checkpoint """
+
+        # ensure directory exists
+        if not os.path.exists(BACKUP_DIR):
+            os.mkdir(BACKUP_DIR)
+
+        # does the file already exists right now?
+        if os.path.exists(filename):
+            return False
+
+        # save
+        content = self._db.generate_backup(include_clients)
+        with gzip.open(filename, 'wb') as f:
+            f.write(content)
+        return True
+
+    def ensure_checkpoint(self):
+        """ Create a checkpoint """
+
+        # checkpointing happens up to once per minute
+        now = datetime.datetime.now()
+        filename = BACKUP_DIR + "/restore_" + now.strftime("%Y%m%d%H%M") + ".sql.gz"
+        if self._create_backup(filename):
+            db_eventlog = LvfsDatabaseEventlog(self._db)
+            db_eventlog.add('Created restore checkpoint', self.username, 'admin',
+                            self.client_address, False)
+
+        # full backups happens up to once per week
+        now = datetime.datetime.now()
+        filename = BACKUP_DIR + "/backup_week" + now.strftime("%W") + ".sql.gz"
+        if self._create_backup(filename, True):
+            db_eventlog = LvfsDatabaseEventlog(self._db)
+            db_eventlog.add('Created weekly backup', self.username, 'admin',
+                            self.client_address, False)
 
     def _set_response_code(self, rc):
         """ Set the response code if not already set """
@@ -612,6 +651,10 @@ To upload firmware please login, or <a href="?action=newaccount">request a new a
 
         self._event_log("Created user %s" % username_new)
         self._set_response_code('201 Created')
+
+        # ensure we save the latest data
+        self.ensure_checkpoint()
+
         return self._action_userlist('Added user')
 
     def _action_userinc(self, value):
@@ -641,6 +684,10 @@ To upload firmware please login, or <a href="?action=newaccount">request a new a
         # set correct response code
         self._event_log("Set %s=%s for user %s" % (key, value, username_new))
         self._set_response_code('200 OK')
+
+        # ensure we save the latest data
+        self.ensure_checkpoint()
+
         return self._action_userlist()
 
     def _action_userdel(self):
@@ -666,6 +713,10 @@ To upload firmware please login, or <a href="?action=newaccount">request a new a
             return self._internal_error(str(e))
         self._event_log("Deleted user %s" % username_new)
         self._set_response_code('200 OK')
+
+        # ensure we save the latest data
+        self.ensure_checkpoint()
+
         return self._action_userlist('Deleted user')
 
     def _action_usermod(self):
@@ -1430,8 +1481,12 @@ There is no charge to vendors for the hosting or distribution of content.
         except NoKeyError as e:
             return self._upload_failed('Failed to sign metadata: ' + cgi.escape(str(e)))
 
+
         self._event_log("Deleted firmware %s" % fwid)
         self._set_response_code('200 OK')
+
+        # ensure we save the latest data
+        self.ensure_checkpoint()
         return self._action_firmware()
 
     def _action_fwshow(self):
@@ -1597,6 +1652,9 @@ There is no charge to vendors for the hosting or distribution of content.
                 self.update_metadata_by_targets(['testing'])
         except NoKeyError as e:
             return self._upload_failed('Failed to sign metadata: ' + cgi.escape(str(e)))
+
+        # ensure we save the latest data
+        self.ensure_checkpoint()
 
         return self._action_fwshow()
 
@@ -1869,6 +1927,9 @@ There is no charge to vendors for the hosting or distribution of content.
                 self.update_metadata_by_targets(['testing'])
         except NoKeyError as e:
             return self._upload_failed('Failed to sign metadata: ' + cgi.escape(str(e)))
+
+        # ensure we save the latest data
+        self.ensure_checkpoint()
 
         return self._upload_success()
 
@@ -2162,6 +2223,7 @@ def application(environ, start_response):
             except CursorError as e:
                 pass
             return static_app(fn, start_response, kind[1], download=True)
+
         return static_app(fn, start_response, kind[1])
 
     # use a helper class

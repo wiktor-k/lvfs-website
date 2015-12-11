@@ -43,5 +43,35 @@ class LvfsDatabase(object):
         if self._db:
             self._db.close()
 
+    def generate_backup(self, include_clients=False):
+        cur = self.cursor()
+        cur.execute("SHOW TABLES")
+        data = ""
+        tables = []
+        for table in cur.fetchall():
+            tables.append(table[0])
+
+        for table in tables:
+
+            if table == 'clients' and not include_clients:
+                continue
+
+            data += "DROP TABLE IF EXISTS `" + str(table) + "`;"
+            cur.execute("SHOW CREATE TABLE `" + str(table) + "`;")
+            data += "\n" + str(cur.fetchone()[1]) + ";\n\n"
+
+            cur.execute("SELECT * FROM `" + str(table) + "`;")
+            for row in cur.fetchall():
+                data += "INSERT INTO `" + str(table) + "` VALUES("
+                first = True
+                for field in row:
+                    if not first:
+                        data += ', '
+                    data += '"' + str(field) + '"'
+                    first = False
+                data += ");\n"
+            data += "\n\n"
+        return data
+
     def cursor(self):
         return self._db.cursor()
