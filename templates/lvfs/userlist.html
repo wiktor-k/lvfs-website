@@ -1,13 +1,11 @@
 {% extends "default.html" %}
 {% block title %}User List{% endblock %}
 
-{% block content %}
-
-{% if error_msg %}
-<p>{{error_msg}}</p>
-{% endif %}
-
+{% block page_header %}
 <h1>User List</h1>
+{% endblock %}
+
+{% block content %}
 <table class="history">
 <tr>
 <th>Username</th>

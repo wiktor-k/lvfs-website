@@ -1,8 +1,11 @@
 {% extends "default.html" %}
 {% block title %}Event Log{% endblock %}
 
-{% block content %}
+{% block page_header %}
 <h1>Event Log</h1>
+{% endblock %}
+
+{% block content %}
 {% if session['username'] == 'admin' %}
 <p>This list shows all events for all users.</p>
 {% else %}

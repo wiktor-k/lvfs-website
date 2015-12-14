@@ -1,13 +1,11 @@
 {% extends "default.html" %}
 {% block title %}Home{% endblock %}
 
-{% block content %}
-
-{% if error_msg %}
-<p>{{error_msg}}</p>
-{% endif %}
-
+{% block page_header %}
 <h1>Modify User</h1>
+{% endblock %}
+
+{% block content %}
 <p>
 A good password consists of upper and lower case with numbers.
 </p>

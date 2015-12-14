@@ -1,8 +1,11 @@
 {% extends "default.html" %}
 {% block title %}Analytics{% endblock %}
 
-{% block content %}
+{% block page_header %}
 <h1>Firmware Details</h1>
+{% endblock %}
+
+{% block content %}
 <script src="/static/Chart.js"></script>
 <script>
 Chart.defaults.global.animation = false;

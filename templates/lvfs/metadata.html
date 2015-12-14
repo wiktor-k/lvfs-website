@@ -1,7 +1,11 @@
 {% extends "default.html" %}
 {% block title %}Firmware{% endblock %}
-{% block content %}
+
+{% block page_header %}
 <h1>Metadata</h1>
+{% endblock %}
+
+{% block content %}
 <p>
 The metadata URLs can be used in <code>/etc/fwupd.conf</code>
 to perform end-to-end tests. It is important to not share the

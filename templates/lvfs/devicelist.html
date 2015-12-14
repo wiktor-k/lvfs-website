@@ -4,8 +4,11 @@
 <!-- no navigation -->
 {% block navigation %}{% endblock %}
 
-{% block content %}
+{% block page_header %}
 <h1>Devices using LVFS for firmware updates</h1>
+{% endblock %}
+
+{% block content %}
 <p>
  This list shows all the updates that have been pushed to the stable metadata.
  This is a very incomplete list as a lot of the devices in the LVFS

@@ -68,21 +68,27 @@ def sizeof_fmt(num, suffix='B'):
 
 def _password_check(value):
     """ Check the password for suitability """
+    success = True
     if len(value) < 8:
-        return 'The password is too short, the minimum is 8 characters'
+        success = False
+        flash('The password is too short, the minimum is 8 characters')
     if len(value) > 40:
-        return 'The password is too long, the maximum is 40 characters'
+        success = False
+        flash('The password is too long, the maximum is 40 characters')
     if value.lower() == value:
-        return 'The password requires at least one uppercase character'
+        success = False
+        flash('The password requires at least one uppercase character')
     if value.isalnum():
-        return 'The password requires at least one non-alphanumeric character'
-    return None
+        success = False
+        flash('The password requires at least one non-alphanumeric character')
+    return success
 
 def _email_check(value):
     """ Do a quick and dirty check on the email address """
     if len(value) < 5 or value.find('@') == -1 or value.find('.') == -1:
-        return 'Invalid email address'
-    return None
+        flash('Invalid email address')
+        return False
+    return True
 
 def _get_chart_labels_months():
     """ Gets the chart labels """
@@ -331,19 +337,22 @@ app.config.from_pyfile('flaskapp.cfg')
 @app.errorhandler(404)
 def error_page_not_found(msg=None):
     """ Error handler: File not found """
-    return render_template('error.html', error_msg=msg), 404
+    flash(msg)
+    return render_template('error.html'), 404
 
 @app.errorhandler(401)
 def error_permission_denied(msg=None):
     """ Error handler: Permission Denied """
     _event_log("Permission denied: %s" % msg, is_important=True)
-    return render_template('error.html', error_msg=msg), 401
+    flash("Permission denied: %s" % msg)
+    return render_template('error.html'), 401
 
 @app.errorhandler(402)
-def error_internal(msg=None):
+def error_internal(msg=None, errcode=402):
     """ Error handler: Internal """
     _event_log("Internal error: %s" % msg, is_important=True)
-    return render_template('error.html', error_msg=msg), 402
+    flash("Internal error: %s" % msg)
+    return render_template('error.html'), errcode
 
 ################################################################################
 
@@ -370,7 +379,7 @@ def fwupd_vendors():
 ################################################################################
 
 @app.route('/lvfs')
-def lvfs_index(error_msg=None):
+def lvfs_index():
     """
     The main page that shows existing firmware and also allows the
     user to add new firmware.
@@ -378,7 +387,7 @@ def lvfs_index(error_msg=None):
     if not 'username' in session:
         return redirect(url_for('lvfs_login'))
 
-    return render_template('lvfs/index.html', error_msg=error_msg)
+    return render_template('lvfs/index.html')
 
 @app.route('/lvfs/newaccount')
 def lvfs_new_account():
@@ -480,8 +489,7 @@ def lvfs_upload():
         return error_internal('No file object')
     data = fileitem.read()
     if len(data) > 50000000:
-        # set response code = '413 Payload Too Large')
-        return error_internal('File too large, limit is 50Mb')
+        return error_internal('File too large, limit is 50Mb', 413)
     if len(data) == 0:
         return error_internal('File has no content')
     if len(data) < 1024:
@@ -496,8 +504,7 @@ def lvfs_upload():
     except CursorError as e:
         return error_internal(str(e))
     if item:
-        # set response code = '422 Entity Already Exists')
-        return error_internal("A firmware file with hash %s already exists" % fwid)
+        return error_internal("A firmware file with hash %s already exists" % fwid, 422)
 
     # parse the file
     arc = cabarchive.CabArchive()
@@ -505,11 +512,9 @@ def lvfs_upload():
     try:
         arc.parse(data)
     except cabarchive.CorruptionError as e:
-        # set response code = '415 Unsupported Media Type')
-        return error_internal('Invalid file type: %s' % str(e))
+        return error_internal('Invalid file type: %s' % str(e), 415)
     except cabarchive.NotSupportedError as e:
-        # set response code = '415 Unsupported Media Type')
-        return error_internal('The file is unsupported: %s' % str(e))
+        return error_internal('The file is unsupported: %s' % str(e), 415)
 
     # check .inf exists
     fw_version_inf = None
@@ -718,7 +723,6 @@ def lvfs_upload():
         return error_internal(str(e))
     # set correct response code
     _event_log("Uploaded file %s to %s" % (new_filename, target))
-    # set response code = '201 Created')
 
     # ensure up to date
     try:
@@ -734,7 +738,7 @@ def lvfs_upload():
     # ensure we save the latest data
     ensure_checkpoint()
 
-    return redirect(url_for('lvfs_firmware_id', fwid=fwid))
+    return redirect(url_for('lvfs_firmware_id', fwid=fwid)), 201
 
 @app.route('/lvfs/firmware')
 def lvfs_firmware(show_all=False):
@@ -1181,10 +1185,10 @@ def lvfs_analytics():
     return render_template('lvfs/analytics.html', dyncontent=html)
 
 @app.route('/lvfs/login', methods=['GET', 'POST'])
-def lvfs_login(error_msg=None):
+def lvfs_login():
     """ A login screen to allow access to the LVFS main page """
     if request.method != 'POST':
-        return render_template('lvfs/login.html', error_msg=error_msg)
+        return render_template('lvfs/login.html')
 
     # auth check
     item = None
@@ -1199,11 +1203,13 @@ def lvfs_login(error_msg=None):
     if not item:
         # log failure
         _event_log('Failed login attempt')
-        return render_template('lvfs/login.html', error_msg='Incorrect username or password')
+        flash('Incorrect username or password')
+        return render_template('lvfs/login.html')
     if not item.is_enabled:
         # log failure
         _event_log('Failed login attempt (user disabled)')
-        return render_template('lvfs/login.html', error_msg='User account is disabled')
+        flash('User account is disabled')
+        return render_template('lvfs/login.html')
 
     # this is signed, not encrypted
     session['username'] = item.username
@@ -1372,16 +1378,13 @@ def lvfs_user_modify(username):
 
     # check password
     password = request.form['password_new']
-    pw_check = _password_check(password)
-    if pw_check:
-        # set response code = '400 Bad Request')
-        return lvfs_profile(pw_check)
+    if not _password_check(password):
+        return redirect(url_for('lvfs_profile')), 400
 
     # check email
     email = request.form['email']
-    email_check = _email_check(email)
-    if email_check:
-        return lvfs_profile(email_check)
+    if not _email_check(email):
+        return redirect(url_for('lvfs_profile'))
 
     # check pubkey
     pubkey = ''
@@ -1390,21 +1393,22 @@ def lvfs_user_modify(username):
         if pubkey:
             if len(pubkey) > 0:
                 if not pubkey.startswith("-----BEGIN PGP PUBLIC KEY BLOCK-----"):
-                    return lvfs_profile('Invalid GPG public key')
+                    flash('Invalid GPG public key')
+                    return redirect(url_for('lvfs_profile')), 400
 
     # verify name
     name = request.form['name']
     if len(name) < 3:
-        # set response code = '400 Bad Request')
-        return lvfs_profile('Name invalid')
+        flash('Name invalid')
+        return redirect(url_for('lvfs_profile')), 400
     try:
         db_users.update(session['username'], password, name, email, pubkey)
     except CursorError as e:
         return error_internal(str(e))
     #session['password'] = _password_hash(password)
     _event_log('Changed password')
-    # set response code = '200 OK')
-    return lvfs_profile('Updated profile')
+    flash('Updated profile')
+    return redirect(url_for('lvfs_profile'))
 
 @app.route('/lvfs/user/add', methods=['GET', 'POST'])
 def lvfs_useradd():
@@ -1436,53 +1440,47 @@ def lvfs_useradd():
     except CursorError as e:
         return error_internal(str(e))
     if auth:
-        # set response code = '422 Entity Already Exists')
-        return error_permission_denied('Already a entry with that username')
+        return error_internal('Already a entry with that username', 422)
 
     # verify password
     password = request.form['password_new']
-    pw_check = _password_check(password)
-    if pw_check:
-        # set response code = '400 Bad Request')
-        return lvfs_userlist(pw_check)
+    if not _password_check(password):
+        return redirect(url_for('lvfs_userlist')), 400
 
     # verify email
     email = request.form['email']
-    email_check = _email_check(email)
-    if email_check:
-        # set response code = '400 Bad Request')
-        return lvfs_userlist(email_check)
+    if not _email_check(email):
+        return redirect(url_for('lvfs_userlist')), 400
 
     # verify qa_group
     qa_group = request.form['qa_group']
     if len(qa_group) < 3:
-        # set response code = '400 Bad Request')
-        return lvfs_userlist('QA group invalid')
+        flash('QA group invalid')
+        return redirect(url_for('lvfs_userlist')), 400
 
     # verify name
     name = request.form['name']
     if len(name) < 3:
-        # set response code = '400 Bad Request')
-        return lvfs_userlist('Name invalid')
+        flash('Name invalid')
+        return redirect(url_for('lvfs_userlist')), 400
 
     # verify username
     username_new = request.form['username_new']
     if len(username_new) < 3:
-        # set response code = '400 Bad Request')
-        return lvfs_userlist('Username invalid')
+        flash('Username invalid')
+        return redirect(url_for('lvfs_userlist')), 400
     try:
         db_users.add(username_new, password, name, email, qa_group)
     except CursorError as e:
         #FIXME
         pass
 
-    _event_log("Created user %s" % username_new)
-    # set response code = '201 Created')
-
     # ensure we save the latest data
     ensure_checkpoint()
 
-    return lvfs_userlist('Added user')
+    _event_log("Created user %s" % username_new)
+    flash('Added user')
+    return redirect(url_for('lvfs_userlist')), 201
 
 @app.route('/lvfs/user/<username>/delete')
 def lvfs_user_delete(username):
@@ -1501,8 +1499,8 @@ def lvfs_user_delete(username):
     except CursorError as e:
         return error_internal(str(e))
     if not exists:
-        # set response code = '400 Bad Request'
-        return lvfs_userlist("No entry with username %s" % username)
+        flash("No entry with username %s" % username)
+        return redirect(url_for('lvfs_userlist')), 400
     try:
         db_users.remove(username)
     except CursorError as e:
@@ -1512,7 +1510,8 @@ def lvfs_user_delete(username):
     # ensure we save the latest data
     ensure_checkpoint()
 
-    return lvfs_userlist('Deleted user')
+    flash('Deleted user')
+    return redirect(url_for('lvfs_userlist')), 201
 
 def lvfs_usermod(username, key, value):
     """ Adds or remove a capability to a user """
@@ -1538,7 +1537,7 @@ def lvfs_usermod(username, key, value):
     # ensure we save the latest data
     ensure_checkpoint()
 
-    return lvfs_userlist()
+    return redirect(url_for('lvfs_userlist'))
 
 @app.route('/lvfs/user/<username>/enable')
 def lvfs_user_enable(username):
@@ -1565,7 +1564,7 @@ def lvfs_user_demote(username):
     return lvfs_usermod(username, 'qa', False)
 
 @app.route('/lvfs/userlist')
-def lvfs_userlist(error_msg=None):
+def lvfs_userlist():
     """
     Show a list of all users
     """
@@ -1631,10 +1630,10 @@ def lvfs_userlist(error_msg=None):
     html += "</form>"
     html += "</tr>\n"
     html += '</table>'
-    return render_template('lvfs/userlist.html', error_msg=error_msg, dyncontent=html)
+    return render_template('lvfs/userlist.html', dyncontent=html)
 
 @app.route('/lvfs/profile')
-def lvfs_profile(error_msg=None):
+def lvfs_profile():
     """
     Allows the normal user to change details about the account,
     """
@@ -1660,7 +1659,6 @@ def lvfs_profile(error_msg=None):
     if not item.email:
         item.email = "info@example.com"
     return render_template('lvfs/profile.html',
-                           error_msg=error_msg,
                            vendor_name=item.display_name,
                            contact_email=item.email,
                            pubkey=item.pubkey)
