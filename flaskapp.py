@@ -378,12 +378,12 @@ def lvfs_index(error_msg=None):
     if not 'username' in session:
         return redirect(url_for('lvfs_login'))
 
-    return render_template('lvfs-index.html', error_msg=error_msg)
+    return render_template('lvfs/index.html', error_msg=error_msg)
 
 @app.route('/lvfs/newaccount')
 def lvfs_new_account():
     """ New account page for prospective vendors """
-    return render_template('lvfs-new-account.html')
+    return render_template('lvfs/new-account.html')
 
 @app.route('/lvfs/metadata')
 def lvfs_metadata():
@@ -397,7 +397,7 @@ def lvfs_metadata():
     # show static lists based on QA group
     qa_url = '/downloads/firmware-%s.xml.gz' % _qa_hash(session['qa_group'])
     qa_disp = 'firmware-%s&hellip;.xml.gz' % _qa_hash(session['qa_group'])[0:8]
-    return render_template('lvfs-metadata.html',
+    return render_template('lvfs/metadata.html',
                            qa_group=session['qa_group'],
                            qa_url=qa_url,
                            qa_desc=qa_disp)
@@ -450,7 +450,7 @@ def lvfs_device_list():
                 url = '/downloads/' + item.filename
                 html += '<li><a href="%s">%s %s</a></li>\n' % (url, md.name, version)
         html += '</ul>\n'
-    return render_template('lvfs-devicelist.html', dyncontent=html)
+    return render_template('lvfs/devicelist.html', dyncontent=html)
 
 @app.route('/lvfs/upload', methods=['GET', 'POST'])
 def lvfs_upload():
@@ -757,7 +757,7 @@ def lvfs_firmware(show_all=False):
     if len(items) == 0:
         html = "<p>No firmware has been uploaded to the " \
                "&lsquo;%s&rsquo; QA group yet.</p>" % session['qa_group']
-        return render_template('lvfs-firmware.html', dyncontent=html)
+        return render_template('lvfs/firmware.html', dyncontent=html)
 
     # group by the firmware name
     names = {}
@@ -814,7 +814,7 @@ def lvfs_firmware(show_all=False):
             html += "<td>%s</td>" % buttons
             html += '</tr>\n'
         html += "</table>"
-    return render_template('lvfs-firmware.html', dyncontent=html)
+    return render_template('lvfs/firmware.html', dyncontent=html)
 
 @app.route('/lvfs/firmware_all')
 def lvfs_firmware_all():
@@ -823,7 +823,7 @@ def lvfs_firmware_all():
 @app.route('/lvfs/firmware/<fwid>/delete')
 def lvfs_firmware_delete(fwid):
     """ Confirms deletion of firmware """
-    return render_template('lvfs-firmware-delete.html', fwid=fwid), 406
+    return render_template('lvfs/firmware-delete.html', fwid=fwid), 406
 
 @app.route('/lvfs/firmware/<fwid>/delete_force')
 def lvfs_firmware_delete_force(fwid):
@@ -1026,7 +1026,7 @@ def lvfs_firmware_id(fwid):
     html += 'var myLineChartMonths = new Chart(ctx).Line(data, null);'
     html += '</script>'
 
-    return render_template('lvfs-firmware-details.html', dyncontent=html)
+    return render_template('lvfs/firmware-details.html', dyncontent=html)
 
 @app.route('/lvfs/analytics')
 def lvfs_analytics():
@@ -1178,13 +1178,13 @@ def lvfs_analytics():
     html += '};'
     html += 'var myLineChartHours = new Chart(ctx).Line(data, null);'
     html += '</script>'
-    return render_template('lvfs-analytics.html', dyncontent=html)
+    return render_template('lvfs/analytics.html', dyncontent=html)
 
 @app.route('/lvfs/login', methods=['GET', 'POST'])
 def lvfs_login(error_msg=None):
     """ A login screen to allow access to the LVFS main page """
     if request.method != 'POST':
-        return render_template('lvfs-login.html', error_msg=error_msg)
+        return render_template('lvfs/login.html', error_msg=error_msg)
 
     # auth check
     item = None
@@ -1199,11 +1199,11 @@ def lvfs_login(error_msg=None):
     if not item:
         # log failure
         _event_log('Failed login attempt')
-        return render_template('lvfs-login.html', error_msg='Incorrect username or password')
+        return render_template('lvfs/login.html', error_msg='Incorrect username or password')
     if not item.is_enabled:
         # log failure
         _event_log('Failed login attempt (user disabled)')
-        return render_template('lvfs-login.html', error_msg='User account is disabled')
+        return render_template('lvfs/login.html', error_msg='User account is disabled')
 
     # this is signed, not encrypted
     session['username'] = item.username
@@ -1275,7 +1275,7 @@ def lvfs_eventlog(start=0, length=20):
             html += '%i ' % (i + 1)
         else:
             html += '<a href="/lvfs/eventlog/%i/%s">%i</a> ' % (i * int(length), int(length), i + 1)
-    return render_template('lvfs-eventlog.html', dyncontent=html)
+    return render_template('lvfs/eventlog.html', dyncontent=html)
 
 def _update_metadata_from_fn(fwobj, fn):
     """
@@ -1631,7 +1631,7 @@ def lvfs_userlist(error_msg=None):
     html += "</form>"
     html += "</tr>\n"
     html += '</table>'
-    return render_template('lvfs-userlist.html', error_msg=error_msg, dyncontent=html)
+    return render_template('lvfs/userlist.html', error_msg=error_msg, dyncontent=html)
 
 @app.route('/lvfs/profile')
 def lvfs_profile(error_msg=None):
@@ -1659,7 +1659,7 @@ def lvfs_profile(error_msg=None):
         item.display_name = "Example Name"
     if not item.email:
         item.email = "info@example.com"
-    return render_template('lvfs-profile.html',
+    return render_template('lvfs/profile.html',
                            error_msg=error_msg,
                            vendor_name=item.display_name,
                            contact_email=item.email,
