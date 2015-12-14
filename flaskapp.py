@@ -250,7 +250,6 @@ def _generate_metadata_kind(filename, targets=None, qa_group=None):
                 prov.value = md.guid
                 component.add_provide(prov)
 
-
             # add release
             if md.version:
                 rel = appstream.Release()
@@ -567,10 +566,10 @@ def lvfs_upload():
     # parse each MetaInfo file
     apps = []
     for cf in cfs:
-        app = appstream.Component()
+        component = appstream.Component()
         try:
-            app.parse(str(cf.contents))
-            app.validate()
+            component.parse(str(cf.contents))
+            component.validate()
         except appstream.ParseError as e:
             return error_internal('The metadata could not be parsed: ' + str(e))
         except appstream.ValidationError as e:
@@ -582,16 +581,16 @@ def lvfs_upload():
                                   "Any FIXME text must be replaced with the correct values.")
 
         # check the firmware provides something
-        if len(app.provides) == 0:
+        if len(component.provides) == 0:
             return error_internal("The metadata file did not provide any GUID.")
-        if len(app.releases) == 0:
+        if len(component.releases) == 0:
             return error_internal("The metadata file did not provide any releases.")
 
         # check the inf file matches up with the .xml file
-        if fw_version_inf and fw_version_inf != app.releases[0].version:
+        if fw_version_inf and fw_version_inf != component.releases[0].version:
             return error_internal("The inf Firmware_AddReg[HKR->FirmwareVersion] "
                                   "'%s' did not match the metainfo.xml value '%s'."
-                                  % (fw_version_inf, app.releases[0].version))
+                                  % (fw_version_inf, component.releases[0].version))
 
         # check the guid and version does not already exist
         try:
@@ -600,19 +599,17 @@ def lvfs_upload():
             return error_internal(str(e))
         for item in items:
             for md in item.mds:
-                if md.guid == app.provides[0].value and md.version == app.releases[0].version:
-                    # set response code = '422 Entity Already Exists')
-                    return error_internal("A firmware file for this version already exists")
+                if md.guid == component.provides[0].value and md.version == component.releases[0].version:
+                    return error_internal("A firmware file for this version already exists", 422)
 
         # check the ID hasn't been reused by a different GUID
         for item in items:
             for md in item.mds:
-                if md.cid == app.id and not md.guid == app.provides[0].value:
-                    # set response code = '422 Entity Already Exists')
-                    return error_internal("The %s ID has already been used by GUID %s" % (md.cid, md.guid))
+                if md.cid == component.id and not md.guid == component.provides[0].value:
+                    return error_internal("The %s ID has already been used by GUID %s" % (md.cid, md.guid), 422)
 
         # add to array
-        apps.append(app)
+        apps.append(component)
 
     # only save if we passed all tests
     basename = os.path.basename(fileitem.filename)
@@ -622,16 +619,16 @@ def lvfs_upload():
     open(os.path.join(UPLOAD_DIR, new_filename), 'wb').write(data)
 
     # fix up the checksums and add the detached signature
-    for app in apps:
+    for component in apps:
 
         # ensure there's always a container checksum
-        release = app.releases[0]
+        release = component.releases[0]
         csum = release.get_checksum_by_target('content')
         if not csum:
             csum = appstream.Checksum()
             csum.target = 'content'
             csum.filename = 'firmware.bin'
-            app.releases[0].add_checksum(csum)
+            component.releases[0].add_checksum(csum)
 
         # get the contents checksum
         fw_data = arc.find_file(csum.filename)
@@ -684,25 +681,25 @@ def lvfs_upload():
         fwobj.version_display = fw_version_display_inf[1]
 
     # create child metadata object for the component
-    for app in apps:
+    for component in apps:
         md = LvfsFirmwareMd()
         md.fwid = fwid
-        md.cid = app.id
-        md.name = app.name
-        md.summary = app.summary
-        md.developer_name = app.developer_name
-        md.metadata_license = app.metadata_license
-        md.project_license = app.project_license
-        md.url_homepage = app.urls['homepage']
-        md.description = app.description
+        md.cid = component.id
+        md.name = component.name
+        md.summary = component.summary
+        md.developer_name = component.developer_name
+        md.metadata_license = component.metadata_license
+        md.project_license = component.project_license
+        md.url_homepage = component.urls['homepage']
+        md.description = component.description
         md.checksum_container = checksum_container
 
         # from the provide
-        prov = app.provides[0]
+        prov = component.provides[0]
         md.guid = prov.value
 
         # from the release
-        rel = app.releases[0]
+        rel = component.releases[0]
         md.version = rel.version
         md.release_description = rel.description
         md.release_timestamp = rel.timestamp
@@ -710,7 +707,7 @@ def lvfs_upload():
         md.release_download_size = rel.size_download
 
         # from the content checksum
-        csum = app.releases[0].get_checksum_by_target('content')
+        csum = component.releases[0].get_checksum_by_target('content')
         md.checksum_contents = csum.value
         md.filename_contents = csum.filename
 
@@ -1300,9 +1297,9 @@ def _update_metadata_from_fn(fwobj, fn):
     cf = arc.find_file("*.metainfo.xml")
     if not cf:
         return error_internal('The firmware file had no valid metadata')
-    app = appstream.Component()
+    component = appstream.Component()
     try:
-        app.parse(str(cf.contents))
+        component.parse(str(cf.contents))
     except appstream.ParseError as e:
         return error_internal('The metadata could not be parsed: ' + str(e))
 
@@ -1334,8 +1331,8 @@ def _update_metadata_from_fn(fwobj, fn):
     fwobj.mds[0].release_download_size = os.path.getsize(fn)
 
     # update the descriptions
-    fwobj.mds[0].release_description = app.releases[0].description
-    fwobj.mds[0].description = app.description
+    fwobj.mds[0].release_description = component.releases[0].description
+    fwobj.mds[0].description = component.description
     if driver_ver:
         fwobj.version_display = driver_ver[1]
     db = LvfsDatabase(os.environ)
