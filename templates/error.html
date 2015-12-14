@@ -1,0 +1,10 @@
+{% extends "default.html" %}
+
+<!-- no navigation -->
+{% block navigation %}{% endblock %}
+
+{% block title %}Error{% endblock %}
+{% block content %}
+<h1>Error!</h1>
+<p>{{error_msg}}</p>
+{% endblock %}

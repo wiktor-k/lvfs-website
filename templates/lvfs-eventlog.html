@@ -1,0 +1,23 @@
+{% extends "default.html" %}
+{% block title %}Event Log{% endblock %}
+
+{% block content %}
+<h1>Event Log</h1>
+{% if session['username'] == 'admin' %}
+<p>This list shows all events for all users.</p>
+{% else %}
+<p>This list shows all events for the {{session['qa_group']}} QA group.</p>
+{% endif %}
+
+<table class="history">
+<tr>
+<th>Timestamp</th>
+<th>Address</th>
+<th>User</th>
+<th></th>
+<th>Message</th>
+</tr>
+{% endblock %}
+
+<!-- dynamic content -->
+{% block dyncontent %}{{dyncontent|safe}}{% endblock %}

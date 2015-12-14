@@ -1,0 +1,23 @@
+{% extends "default.html" %}
+{% block title %}User List{% endblock %}
+
+{% block content %}
+
+{% if error_msg %}
+<p>{{error_msg}}</p>
+{% endif %}
+
+<h1>User List</h1>
+<table class="history">
+<tr>
+<th>Username</th>
+<th>Password</th>
+<th>Name</th>
+<th>Email</th>
+<th>Group</th>
+<th>Actions</th>
+</tr>
+{% endblock %}
+
+<!-- dynamic content -->
+{% block dyncontent %}{{dyncontent|safe}}{% endblock %}

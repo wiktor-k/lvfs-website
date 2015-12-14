@@ -1,0 +1,59 @@
+{% extends "default.html" %}
+{% block title %}Firmware{% endblock %}
+{% block content %}
+<h1>Metadata</h1>
+<p>
+The metadata URLs can be used in <code>/etc/fwupd.conf</code>
+to perform end-to-end tests. It is important to not share the
+QA Group URL with external users if you want the embargoed
+firmware to remain hidden from the public.
+</p>
+<p>
+You also may need to do <code>fwupdmgr refresh</code> on each 
+client to show new updates.
+</p>
+
+<table class="history">
+<tr>
+<th>Description</th>
+<th>Private</th>
+<th>Embargo</th>
+<th>Testing</th>
+<th>Stable</th>
+<th>URL</th>
+</tr>
+<tr>
+<td>QA Group &lsquo;{{qa_group}}&rsquo;</td>
+<td>No</td>
+<td><b>Yes</b></td>
+<td><b>Yes</b></td>
+<td><b>Yes</b></td>
+<td><a href="downloads/{{qa_url}}">{{qa_desc|safe}}</td>
+</tr>
+<tr>
+<td>Testing</td>
+<td>No</td>
+<td>No</td>
+<td><b>Yes</b></td>
+<td><b>Yes</b></td>
+<td><a href="downloads/firmware-testing.xml.gz">firmware-testing.xml.gz</td>
+</tr>
+<tr>
+<td>Stable</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td><b>Yes</b></td>
+<td><a href="downloads/firmware.xml.gz">firmware.xml.gz</td>
+</tr>
+</table>
+
+{% if qa_group=='admin' %}
+<!-- admin only actions -->
+<h2>Actions</h2>
+<form method=\"get\" action="/lvfs/metadata_rebuild">
+<button>Force Rebuild Metadata</button>
+</form>
+{% endif %}
+
+{% endblock %}

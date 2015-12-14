@@ -1,0 +1,13 @@
+{% extends "default.html" %}
+{% block title %}Analytics{% endblock %}
+
+{% block content %}
+<h1>Analytics</h1>
+<script src="/static/Chart.js"></script>
+<script>
+Chart.defaults.global.animation = false;
+</script>
+{% endblock %}
+
+<!-- dynamic content -->
+{% block dyncontent %}{{dyncontent|safe}}{% endblock %}

@@ -1,0 +1,22 @@
+{% extends "default.html" %}
+{% block title %}Device List{% endblock %}
+
+<!-- no navigation -->
+{% block navigation %}{% endblock %}
+
+{% block content %}
+<h1>Devices using LVFS for firmware updates</h1>
+<p>
+ This list shows all the updates that have been pushed to the stable metadata.
+ This is a very incomplete list as a lot of the devices in the LVFS
+ have not yet been released publicly and the firmware updates are in a
+ secret embargoed state.
+</p>
+<p>
+ This list is automatically generated and will be updated when new firmware
+ is added or devices are released to the public.
+</p>
+{% endblock %}
+
+<!-- dynamic content -->
+{% block dyncontent %}{{dyncontent|safe}}{% endblock %}

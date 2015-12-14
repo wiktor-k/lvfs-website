@@ -20,6 +20,18 @@
 
 import gzip
 
+import xml.etree.ElementTree as ET
+
+try:
+    # Py2.7 and newer
+    from xml.etree.ElementTree import ParseError as StdlibParseError
+except ImportError:
+    # Py2.6 and older
+    from xml.parsers.expat import ExpatError as StdlibParseError
+
+from appstream.errors import ParseError
+from appstream.component import Component
+
 class Store(object):
     """ A quick'n'dirty store """
     def __init__(self, origin=None):
@@ -42,14 +54,29 @@ class Store(object):
 
         # save compressed file
         xml = self.to_xml()
-        with gzip.open(filename, 'wb') as f:
-            f.write(unicode(xml).encode('utf-8'))
+        f = gzip.open(filename, 'wb')
+        try:
+            f.write(xml.encode('utf-8'))
+        finally:
+            f.close()
+
+    def from_file(self, filename):
+        """ Open the store from disk """
+        with gzip.open(filename, 'rb') as f:
+            self.parse(f.read())
 
     def get_component(self, app_id):
         """ Finds an application from the store """
         if not app_id in self.components:
             return None
         return self.components[app_id]
+
+    def get_components(self):
+        """ Returns all the applications from the store """
+        components = []
+        for app_id in self.components:
+            components.append(self.components[app_id])
+        return components
 
     def add(self, component):
         """ Add component to the store """
@@ -60,3 +87,19 @@ class Store(object):
             old.releases.extend(component.releases)
             return
         self.components[component.id] = component
+
+    def parse(self, xml_data):
+        """ Parse XML data """
+
+        # parse tree
+        try:
+            root = ET.fromstring(xml_data)
+        except StdlibParseError as e:
+            raise ParseError(str(e))
+
+        self.origin = root.attrib['origin']
+
+        for child in root:
+            component = Component()
+            component.parse(child)
+            self.components[component.id] = component

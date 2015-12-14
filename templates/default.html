@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+
+<!-- Copyright (C) 2015 Richard Hughes <richard@hughsie.com>
+     Licensed under the GNU General Public License Version 2 -->
+<html lang="en">
+<head>
+<title>LVFS: {% block title %}{% endblock %}</title>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
+<link rel="stylesheet" href="/style.css" type="text/css" media="screen"/>
+<link rel="shortcut icon" href="/favicon.ico"/>
+</head>
+<body>
+{% block navigation %}
+<ul class="navigation">
+  <li class="navigation"><a class="navigation" href="/lvfs">Home</a></li>
+  <li class="navigation"><a class="navigation" href="/lvfs/firmware">Firmware</a></li>
+  <li class="navigation"><a class="navigation" href="/lvfs/metadata">Metadata</a></li>
+{% if session['username'] == 'admin' %}
+    <li class="navigation"><a class="navigation" href="/lvfs/userlist">Users</a></li>
+{% endif %}
+{% if session['qa_capability'] %}
+    <li class="navigation"><a class="navigation" href="/lvfs/eventlog">Event Log</a></li>
+{% endif %}
+{% if session['username'] == 'admin' %}
+    <li class="navigation"><a class="navigation" href="/lvfs/analytics">Analytics</a></li>
+{% endif %}
+  <li class="navigation2"><a class="navigation" href="/lvfs/logout">Log Out</a></li>
+{% if not session['is_locked'] %}
+    <li class="navigation2"><a class="navigation" href="/lvfs/profile">Profile</a></li>
+{% endif %}
+</ul>
+{% endblock %}
+
+{% block page_header %}{% endblock %}
+
+{% block content %}{% endblock %}
+{% block dyncontent %}{% endblock %}
+<p class="footer">
+ Copyright <a href="mailto:richard@hughsie.com">Richard Hughes 2015</a>
+</p>
+</body>
+</html>

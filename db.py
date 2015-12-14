@@ -18,6 +18,7 @@ class LvfsDatabase(object):
     def __init__(self, environ):
         """ Constructor for object """
         assert environ
+        self._db = None
         try:
             if 'OPENSHIFT_MYSQL_DB_HOST' in environ:
                 self._db = mdb.connect(environ['OPENSHIFT_MYSQL_DB_HOST'],
@@ -35,8 +36,9 @@ class LvfsDatabase(object):
                 self._db = mdb.connect('localhost', 'test', 'test', 'secure',
                                        use_unicode=True, charset='utf8')
             self._db.autocommit(True)
-        except mdb.Error, e:
-            print "Error %d: %s" % (e.args[0], e.args[1])
+        except mdb.Error as e:
+            print("Error %d: %s" % (e.args[0], e.args[1]))
+        assert self._db
 
     def __del__(self):
         """ Clean up the database """

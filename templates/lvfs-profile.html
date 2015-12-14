@@ -1,0 +1,49 @@
+{% extends "default.html" %}
+{% block title %}Home{% endblock %}
+
+{% block content %}
+
+{% if error_msg %}
+<p>{{error_msg}}</p>
+{% endif %}
+
+<h1>Modify User</h1>
+<p>
+A good password consists of upper and lower case with numbers.
+</p>
+<form method="post" action="/lvfs/user/{{session['username']}}/modify">
+<table class="upload">
+<tr>
+<th class="upload">Current Password:</th>
+<td><input type="password" name="password_old" required></td>
+</tr>
+<tr>
+<th class="upload">New Password:</th>
+<td><input type="password" name="password_new" required></td>
+</tr>
+<tr>
+<th class="upload">Vendor Name:</th>
+<td><input type="text" name="name" value="{{vendor_name}}" required></td>
+</tr>
+<tr>
+<th class="upload">Contact Email:</th>
+<td><input type="text" name="email" value="{{contact_email}}" required></td>
+</tr>
+<tr>
+<th class="upload">GPG Public Key<br/>(optional):</th>
+<td><textarea name="pubkey" cols="64" rows="5">{{pubkey}}</textarea></td>
+</tr>
+</table>
+<input type="submit" class="submit" value="Modify">
+</form>
+
+{% if session['username'] == 'admin' %}
+<p>The email address set here will be used as the signing key for all firmware and metadata.</p>
+{% endif %}
+
+<p>
+Setting a public key would mean you are responsible for signing the firmware payload prior to file upload.
+Vendors only need to do this if they do not want the LVFS to automatically sign their firmware.
+</p>
+
+{% endblock %}

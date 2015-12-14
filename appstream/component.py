@@ -18,12 +18,29 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 # MA 02110-1301, USA
 
+import sys
 import xml.etree.ElementTree as ET
 
-from errors import ParseError, ValidationError
+try:
+    # Py2.7 and newer
+    from xml.etree.ElementTree import ParseError as StdlibParseError
+except ImportError:
+    # Py2.6 and older
+    from xml.parsers.expat import ExpatError as StdlibParseError
+
+from appstream.errors import ParseError, ValidationError
+
+if sys.version_info[0] == 2:
+    # Python2 has a nice basestring base class
+    string_types = (basestring,)
+else:
+    # But python3 has distinct types
+    string_types = (str, bytes)
+
 
 def _join_lines(txt):
     """ Remove whitespace from XML input """
+    txt = txt or ''  # Handle NoneType input values
     val = ''
     lines = txt.split('\n')
     for line in lines:
@@ -153,21 +170,27 @@ class Component(object):
     def __init__(self):
         """ Set defaults """
         self.id = None
+        self.update_contact = None
         self.kind = None
         self.provides = []
         self.name = None
+        self.pkgname = None
         self.summary = None
         self.description = None
         self.urls = {}
+        self.icons = {}
         self.metadata_license = None
         self.project_license = None
         self.developer_name = None
         self.releases = []
+        self.kudos = []
 
     def to_xml(self):
         xml = '  <component type="firmware">\n'
         if self.id:
             xml += '    <id>%s</id>\n' % self.id
+        if self.pkgname:
+            xml += '    <pkgname>%s</pkgname>\n' % self.pkgname
         if self.name:
             xml += '    <name>%s</name>\n' % self.name
         if self.summary:
@@ -178,11 +201,18 @@ class Component(object):
             xml += '    <description>%s</description>\n' % self.description
         for key in self.urls:
             xml += '    <url type="%s">%s</url>\n' % (key, self.urls[key])
+        for key in self.icons:
+            xml += '    <icon type="%s">%s</icon>\n' % (key, self.icons[key]['value'])
         if len(self.releases) > 0:
             xml += '    <releases>\n'
             for rel in self.releases:
                 xml += rel.to_xml()
             xml += '    </releases>\n'
+        if len(self.kudos) > 0:
+            xml += '    <kudos>\n'
+            for kudo in self.kudos:
+                xml += '      <kudo>%s</kudo>\n' % kudo
+            xml += '    </kudos>\n'
         if len(self.provides) > 0:
             xml += '    <provides>\n'
             for p in self.provides:
@@ -248,10 +278,15 @@ class Component(object):
         """ Parse XML data """
 
         # parse tree
-        try:
-            root = ET.fromstring(xml_data)
-        except ET.ParseError as e:
-            raise ParseError(str(e))
+        if isinstance(xml_data, string_types):
+            # Presumably, this is textual xml data.
+            try:
+                root = ET.fromstring(xml_data)
+            except StdlibParseError as e:
+                raise ParseError(str(e))
+        else:
+            # Otherwise, assume it has already been parsed into a tree
+            root = xml_data
 
         # get type
         if 'type' in root.attrib:
@@ -266,7 +301,7 @@ class Component(object):
 
             # <updatecontact>
             elif c1.tag == 'updatecontact' or c1.tag == 'update_contact':
-                continue
+                self.update_contact = c1.text
 
             # <metadata_license>
             elif c1.tag == 'metadata_license':
@@ -287,6 +322,13 @@ class Component(object):
                     prov._parse_tree(c2)
                     self.add_provide(prov)
 
+            # <kudos>
+            elif c1.tag == 'kudos':
+                for c2 in c1:
+                    if not c2.tag == 'kudo':
+                        continue
+                    self.kudos.append(c2.text)
+
             # <project_license>
             elif c1.tag == 'project_license' or c1.tag == 'licence':
                 self.project_license = c1.text
@@ -298,6 +340,10 @@ class Component(object):
             # <name>
             elif c1.tag == 'name' and not self.name:
                 self.name = _join_lines(c1.text)
+
+            # <pkgname>
+            elif c1.tag == 'pkgname' and not self.pkgname:
+                self.pkgname = _join_lines(c1.text)
 
             # <summary>
             elif c1.tag == 'summary' and not self.summary:
@@ -313,3 +359,8 @@ class Component(object):
                 if 'type' in c1.attrib:
                     key = c1.attrib['type']
                 self.urls[key] = c1.text
+
+            elif c1.tag == 'icon':
+                key = c1.attrib.pop('type', 'unknown')
+                c1.attrib['value'] = c1.text
+                self.icons[key] = self.icons.get(key, []) + [c1.attrib]
