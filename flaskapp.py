@@ -350,22 +350,22 @@ def error_internal(msg=None):
 @app.route('/')
 def fwupd_index():
     """ Main fwupd.org site """
-    return render_template('fwupd-index.html')
+    return render_template('fwupd/index.html')
 
 @app.route('/users')
 def fwupd_users():
     """ User-centric fwupd help """
-    return render_template('fwupd-users.html')
+    return render_template('fwupd/users.html')
 
 @app.route('/developers')
 def fwupd_developers():
     """ Developer-centric fwupd help """
-    return render_template('fwupd-developers.html')
+    return render_template('fwupd/developers.html')
 
 @app.route('/vendors')
 def fwupd_vendors():
     """ Vendor-centric fwupd help """
-    return render_template('fwupd-vendors.html')
+    return render_template('fwupd/vendors.html')
 
 ################################################################################
 
@@ -1733,5 +1733,4 @@ def serveStaticResource(resource):
 if __name__ == '__main__':
     if not 'OPENSHIFT_APP_DNS' in os.environ:
         app.debug = True
-    app.secret_key = SECRET_KEY
     app.run()

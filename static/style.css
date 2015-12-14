@@ -198,3 +198,29 @@ a:active.navigation {
 li.confirm {
   padding: 9px;
 }
+
+nav.buttons {
+  width: 100%;
+  display: block;
+}
+
+nav.buttons a {
+  outline: none;
+  display: inline-block;
+  padding: 140px 4px 10px 4px;
+  width: 30%;
+  background-repeat: no-repeat;
+  background-position: center 30%;
+  background-size: 96px; 
+  margin: 0;
+  text-align: center;
+  transition: background-size 200ms ease;
+}
+
+nav.buttons a:hover {
+  background-size: 115px;
+}
+
+#users { background-image: url('nav-users.svg'); }
+#devs { background-image: url('nav-devs.svg'); }
+#hw { background-image: url('nav-hw.svg'); }
