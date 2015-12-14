@@ -13,6 +13,7 @@
 </head>
 <body>
 {% block navigation %}
+{% if session['username'] %}
 <ul class="navigation">
   <li class="navigation"><a class="navigation" href="/lvfs">Home</a></li>
   <li class="navigation"><a class="navigation" href="/lvfs/firmware">Firmware</a></li>
@@ -31,6 +32,7 @@
     <li class="navigation2"><a class="navigation" href="/lvfs/profile">Profile</a></li>
 {% endif %}
 </ul>
+{% endif %}
 {% endblock %}
 
 {% block page_header %}{% endblock %}
