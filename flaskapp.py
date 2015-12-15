@@ -59,12 +59,6 @@ def fwupd_vendors():
 def serveStaticResource(resource):
     """ Return a static image or resource """
 
-    # use apache for the static file so we can scale
-    if 'OPENSHIFT_APP_DNS' in os.environ:
-        if resource.startswith('download/'):
-            uri = "https://%s/static/%s" % (os.environ['OPENSHIFT_APP_DNS'], resource)
-            return redirect(uri, 301)
-
     # log certain kinds of files
     kind = None
     if resource.endswith('.cab'):
@@ -73,16 +67,23 @@ def serveStaticResource(resource):
         kind = LvfsDownloadKind.SIGNING
     elif resource.endswith('.xml.gz'):
         kind = LvfsDownloadKind.METADATA
-    if kind:
+    if kind is not None:
         try:
+            filename = os.path.basename(resource)
             db = LvfsDatabase(os.environ)
             clients = LvfsDatabaseClients(db)
             clients.increment(_get_client_address(),
                               kind,
-                              resource,
+                              filename,
                               request.headers.get('User-Agent'))
         except CursorError as e:
-            pass
+            print str(e)
+
+    # use apache for the static file so we can scale
+    if 'OPENSHIFT_APP_DNS' in os.environ:
+        if resource.startswith('download/'):
+            uri = "https://%s/static/%s" % (os.environ['OPENSHIFT_APP_DNS'], resource)
+            return redirect(uri, 301)
 
     return send_from_directory('static/', resource)
 

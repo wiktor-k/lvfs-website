@@ -191,7 +191,7 @@ def metadata():
         return redirect(url_for('.login'))
 
     # show static lists based on QA group
-    qa_url = '/downloads/firmware-%s.xml.gz' % _qa_hash(session['qa_group'])
+    qa_url = 'firmware-%s.xml.gz' % _qa_hash(session['qa_group'])
     qa_disp = 'firmware-%s&hellip;.xml.gz' % _qa_hash(session['qa_group'])[0:8]
     return render_template('metadata.html',
                            qa_group=session['qa_group'],
