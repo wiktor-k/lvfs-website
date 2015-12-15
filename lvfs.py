@@ -130,13 +130,14 @@ def _event_log(msg, is_important=False):
 
 def _check_session():
     if not 'username' in session:
-        abort(401)
+        return False
     if not 'qa_group' in session:
-        abort(401)
+        return False
     if not 'qa_capability' in session:
-        abort(401)
+        return False
     if not 'is_locked' in session:
-        abort(401)
+        return False
+    return True
 
 def create_affidavit():
     """ Create an affidavit that can be used to sign files """
@@ -186,7 +187,8 @@ def metadata():
     """
 
     # security check
-    _check_session()
+    if not _check_session():
+        return redirect(url_for('.login'))
 
     # show static lists based on QA group
     qa_url = '/downloads/firmware-%s.xml.gz' % _qa_hash(session['qa_group'])
@@ -255,7 +257,8 @@ def upload():
         return redirect(url_for('.index'))
 
     # security check
-    _check_session()
+    if not _check_session():
+        return redirect(url_for('.login'))
 
     # not correct parameters
     if not 'target' in request.form:
@@ -541,7 +544,8 @@ def firmware(show_all=False):
     """
 
     # security check
-    _check_session()
+    if not _check_session():
+        return redirect(url_for('.login'))
 
     # get all firmware
     try:
@@ -628,7 +632,8 @@ def firmware_delete_force(fwid):
     """ Delete a firmware entry and also delete the file from disk """
 
     # security check
-    _check_session()
+    if not _check_session():
+        return redirect(url_for('.login'))
 
     # check firmware exists in database
     db = LvfsDatabase(os.environ)
@@ -691,7 +696,8 @@ def firmware_promote(fwid, target):
      """
 
     # security check
-    _check_session()
+    if not _check_session():
+        return redirect(url_for('.login'))
 
     # check is QA
     if not session['qa_capability']:
@@ -746,7 +752,8 @@ def firmware_id(fwid):
     """ Show firmware information """
 
     # security check
-    _check_session()
+    if not _check_session():
+        return redirect(url_for('.login'))
 
     # get details about the firmware
     db = LvfsDatabase(os.environ)
@@ -849,7 +856,8 @@ def analytics():
     """ A analytics screen to show information about users """
 
     # security check
-    _check_session()
+    if not _check_session():
+        return redirect(url_for('.login'))
     if session['username'] != 'admin':
         return error_permission_denied('Unable to view analytics')
 
@@ -1047,7 +1055,8 @@ def eventlog(start=0, length=20):
     Show an event log of user actions.
     """
     # security check
-    _check_session()
+    if not _check_session():
+        return redirect(url_for('.login'))
     if not session['qa_capability']:
         return error_permission_denied('Unable to show event log for non-QA user')
 
@@ -1164,7 +1173,8 @@ def user_modify(username):
         return redirect(url_for('.profile'))
 
     # security check
-    _check_session()
+    if not _check_session():
+        return redirect(url_for('.login'))
     if session['username'] != username:
         return error_permission_denied('Unable to modify a different user')
     if session['is_locked']:
@@ -1231,7 +1241,8 @@ def useradd():
         return redirect(url_for('.profile'))
 
     # security check
-    _check_session()
+    if not _check_session():
+        return redirect(url_for('.login'))
     if session['username'] != 'admin':
         return error_permission_denied('Unable to add user as non-admin')
 
@@ -1299,7 +1310,8 @@ def user_delete(username):
     """ Delete a user """
 
     # security check
-    _check_session()
+    if not _check_session():
+        return redirect(url_for('.login'))
     if session['username'] != 'admin':
         return error_permission_denied('Unable to remove user as not admin')
 
@@ -1329,7 +1341,8 @@ def usermod(username, key, value):
     """ Adds or remove a capability to a user """
 
     # security check
-    _check_session()
+    if not _check_session():
+        return redirect(url_for('.login'))
     if session['username'] != 'admin':
         return error_permission_denied('Unable to inc user as not admin')
 
@@ -1457,7 +1470,8 @@ def profile():
     """
 
     # security check
-    _check_session()
+    if not _check_session():
+        return redirect(url_for('.login'))
     if session['is_locked']:
         return error_permission_denied('Unable to view profile as account locked')
 
@@ -1488,7 +1502,8 @@ def metadata_rebuild():
     """
 
     # security check
-    _check_session()
+    if not _check_session():
+        return redirect(url_for('.login'))
     if session['username'] != 'admin':
         return error_permission_denied('Only admin is allowed to force-rebuild firmware')
 
