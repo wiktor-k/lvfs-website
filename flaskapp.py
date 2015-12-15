@@ -5,34 +5,9 @@
 # Licensed under the GNU General Public License Version 2
 
 import os
-import gzip
 from datetime import datetime
 from flask import Flask, session, request, flash, url_for, redirect, \
      render_template, abort, send_from_directory
-
-if not 'OPENSHIFT_PYTHON_DIR' in os.environ:
-    STATIC_DIR = 'static'
-    UPLOAD_DIR = 'uploads'
-    DOWNLOAD_DIR = 'downloads'
-    KEYRING_DIR = 'gnupg'
-    BACKUP_DIR = 'backup'
-    CABEXTRACT_CMD = '/usr/bin/cabextract'
-else:
-    STATIC_DIR = os.path.join(os.environ['OPENSHIFT_REPO_DIR'], 'static')
-    UPLOAD_DIR = os.path.join(os.environ['OPENSHIFT_DATA_DIR'], 'uploads')
-    DOWNLOAD_DIR = os.path.join(os.environ['OPENSHIFT_DATA_DIR'], 'downloads')
-    KEYRING_DIR = os.path.join(os.environ['OPENSHIFT_DATA_DIR'], 'gnupg')
-    BACKUP_DIR = os.path.join(os.environ['OPENSHIFT_DATA_DIR'], 'backup')
-
-    # this needs to be setup using:
-    # cd app-root/data/
-    # wget http://www.cabextract.org.uk/cabextract-1.6.tar.gz
-    # tar xvfz cabextract-1.6.tar.gz
-    # cd cabextract-1.6 && ./configure --prefix=/tmp && make
-    # rm cabextract-1.6.tar.gz
-    CABEXTRACT_CMD = os.path.join(os.environ['OPENSHIFT_DATA_DIR'],
-                                  'cabextract-1.6',
-                                  'cabextract')
 
 import hashlib
 import math
@@ -50,6 +25,8 @@ from db_eventlog import LvfsDatabaseEventlog
 from db_firmware import LvfsDatabaseFirmware, LvfsFirmware, LvfsFirmwareMd
 from db_users import LvfsDatabaseUsers, _password_hash
 from inf_parser import InfParser
+from backup import ensure_checkpoint
+from config import DOWNLOAD_DIR, UPLOAD_DIR, CABEXTRACT_CMD, KEYRING_DIR
 
 def _qa_hash(value):
     """ Generate a salted hash of the QA group """
@@ -170,45 +147,6 @@ def create_affidavit():
     db_users = LvfsDatabaseUsers(db)
     key_uid = db_users.get_signing_uid()
     return Affidavit(key_uid, KEYRING_DIR)
-
-def _create_backup(filename, include_clients=False):
-    """ Create a checkpoint """
-
-    # ensure directory exists
-    if not os.path.exists(BACKUP_DIR):
-        os.mkdir(BACKUP_DIR)
-
-    # does the file already exists right now?
-    if os.path.exists(filename):
-        return False
-
-    # save
-    db = LvfsDatabase(os.environ)
-    content = db.generate_backup(include_clients)
-    with gzip.open(filename, 'wb') as f:
-        f.write(content)
-    return True
-
-def ensure_checkpoint():
-    """ Create a checkpoint """
-
-    # checkpointing happens up to once per minute
-    now = datetime.datetime.now()
-    filename = BACKUP_DIR + "/restore_" + now.strftime("%Y%m%d%H%M") + ".sql.gz"
-    if _create_backup(filename):
-        db = LvfsDatabase(os.environ)
-        db_eventlog = LvfsDatabaseEventlog(db)
-        db_eventlog.add('Created restore checkpoint', session['username'], 'admin',
-                        _get_client_address(), False)
-
-    # full backups happens up to once per week
-    now = datetime.datetime.now()
-    filename = BACKUP_DIR + "/backup_week" + now.strftime("%W") + ".sql.gz"
-    if _create_backup(filename, True):
-        db = LvfsDatabase(os.environ)
-        db_eventlog = LvfsDatabaseEventlog(db)
-        db_eventlog.add('Created weekly backup', session['username'], 'admin',
-                        _get_client_address(), False)
 
 def _generate_metadata_kind(filename, targets=None, qa_group=None):
     """ Generates AppStream metadata of a specific kind """
@@ -1532,7 +1470,13 @@ def lvfs_usermod(username, key, value):
     _event_log("Set %s=%s for user %s" % (key, value, username))
 
     # ensure we save the latest data
-    ensure_checkpoint()
+    msg = ensure_checkpoint()
+    if msg:
+        db = LvfsDatabase(os.environ)
+        db_eventlog = LvfsDatabaseEventlog(db)
+        db_eventlog.add(msg, session['username'], 'admin',
+                        _get_client_address(), False)
+
 
     return redirect(url_for('lvfs_userlist'))
 
