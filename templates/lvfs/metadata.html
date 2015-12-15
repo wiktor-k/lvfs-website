@@ -55,8 +55,18 @@ client to show new updates.
 {% if qa_group=='admin' %}
 <!-- admin only actions -->
 <h2>Actions</h2>
+<p>
+This rebuilds metadata for all targets and QA groups.
+</p>
 <form method=\"get\" action="/lvfs/metadata_rebuild">
-<button>Force Rebuild Metadata</button>
+<button>Build Metadata</button>
+</form>
+<p>
+This reloads the file cache allowing the application to scale onto
+multiple OpenShift gears.
+</p>
+<form method=\"get\" action="/lvfs/cache_rebuild">
+<button>Build Cache</button>
 </form>
 {% endif %}
 

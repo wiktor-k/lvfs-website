@@ -9,6 +9,7 @@ from flask import Flask, flash, render_template, redirect, request, send_from_di
 
 from db import LvfsDatabase, CursorError
 from db_clients import LvfsDatabaseClients, LvfsDownloadKind
+from db_cache import LvfsDatabaseCache
 
 def _get_client_address():
     """ Gets user IP address """
@@ -82,6 +83,14 @@ def serveStaticResource(resource):
     # use apache for the static file so we can scale
     if 'OPENSHIFT_APP_DNS' in os.environ:
         if resource.startswith('download/'):
+
+            # if the file does not exist get it from the database
+            # (which means we can scale on OpenShift)
+            if not os.path.exists(resource):
+                db = LvfsDatabase(os.environ)
+                db_cache = LvfsDatabaseCache(db)
+                db_cache.to_file(resource)
+
             uri = "https://%s/static/%s" % (os.environ['OPENSHIFT_APP_DNS'], resource)
             return redirect(uri, 301)
 

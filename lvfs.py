@@ -23,6 +23,7 @@ from db_clients import LvfsDatabaseClients, LvfsDownloadKind
 from db_eventlog import LvfsDatabaseEventlog
 from db_firmware import LvfsDatabaseFirmware, LvfsFirmware, LvfsFirmwareMd
 from db_users import LvfsDatabaseUsers, _password_hash
+from db_cache import LvfsDatabaseCache
 from inf_parser import InfParser
 from backup import ensure_checkpoint
 from config import DOWNLOAD_DIR, UPLOAD_DIR, CABEXTRACT_CMD, KEYRING_DIR
@@ -458,6 +459,10 @@ def upload():
     fn = os.path.join(DOWNLOAD_DIR, new_filename)
     open(fn, 'wb').write(cab_data)
 
+    # update database copy
+    db_cache = LvfsDatabaseCache(db)
+    db_cache.from_file(fn)
+
     # create parent firmware object
     target = request.form['target']
     fwobj = LvfsFirmware()
@@ -527,10 +532,19 @@ def upload():
         affidavit = create_affidavit()
         for filename in filenames:
             affidavit.create_detached(filename)
+
+        # update database copy
+        db = LvfsDatabase(os.environ)
+        db_cache = LvfsDatabaseCache(db)
+        for fn in filenames:
+            db_cache.from_file(fn)
+            db_cache.from_file(fn + '.asc')
+
     except NoKeyError as e:
         return error_internal('Failed to sign metadata: ' + str(e))
     except CursorError as e:
         return error_internal('Failed to generate metadata: ' + str(e))
+
 
     # ensure we save the latest data
     ensure_checkpoint()
@@ -654,6 +668,13 @@ def firmware_delete_force(fwid):
     # delete id from database
     try:
         db_firmware.remove(fwid)
+    except CursorError as e:
+        return error_internal(str(e))
+
+    # remove database copy
+    try:
+        db_cache = LvfsDatabaseCache(db)
+        db_cache.delete(item.filename)
     except CursorError as e:
         return error_internal(str(e))
 
@@ -1495,6 +1516,29 @@ def profile():
                            contact_email=item.email,
                            pubkey=item.pubkey)
 
+@lvfs.route('/cache_rebuild')
+def cache_rebuild():
+    """
+    Forces a rebuild of the database cache.
+    """
+
+    # security check
+    if not _check_session():
+        return redirect(url_for('.login'))
+    if session['username'] != 'admin':
+        return error_permission_denied('Only admin is allowed to force-rebuild cache')
+
+    # go through existing files and push into the database
+    try:
+        db = LvfsDatabase(os.environ)
+        db_cache = LvfsDatabaseCache(db)
+    except CursorError as e:
+        return error_internal(str(e))
+    for fn in glob.glob(os.path.join(DOWNLOAD_DIR, "*")):
+        db_cache.from_file(fn)
+
+    return redirect(url_for('.metadata'))
+
 @lvfs.route('/metadata_rebuild')
 def metadata_rebuild():
     """
@@ -1505,7 +1549,7 @@ def metadata_rebuild():
     if not _check_session():
         return redirect(url_for('.login'))
     if session['username'] != 'admin':
-        return error_permission_denied('Only admin is allowed to force-rebuild firmware')
+        return error_permission_denied('Only admin is allowed to force-rebuild metadata')
 
     # go through existing files and fix descriptions
     try:
@@ -1531,6 +1575,14 @@ def metadata_rebuild():
         affidavit = create_affidavit()
         for filename in filenames:
             affidavit.create_detached(filename)
+
+        # update database copy
+        db = LvfsDatabase(os.environ)
+        db_cache = LvfsDatabaseCache(db)
+        for fn in filenames:
+            db_cache.from_file(fn)
+            db_cache.from_file(fn + '.asc')
+
     except NoKeyError as e:
         return error_internal('Failed to sign metadata: ' + str(e))
     except CursorError as e:
