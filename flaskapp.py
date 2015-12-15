@@ -27,11 +27,8 @@ from db_users import LvfsDatabaseUsers, _password_hash
 from inf_parser import InfParser
 from backup import ensure_checkpoint
 from config import DOWNLOAD_DIR, UPLOAD_DIR, CABEXTRACT_CMD, KEYRING_DIR
-
-def _qa_hash(value):
-    """ Generate a salted hash of the QA group """
-    salt = 'vendor%%%'
-    return hashlib.sha1(salt + value).hexdigest()
+from util import _qa_hash
+from metadata import metadata_update_qa_group, metadata_update_targets
 
 def sizeof_fmt(num, suffix='B'):
     """ Generate user-visible size """
@@ -147,124 +144,6 @@ def create_affidavit():
     db_users = LvfsDatabaseUsers(db)
     key_uid = db_users.get_signing_uid()
     return Affidavit(key_uid, KEYRING_DIR)
-
-def _generate_metadata_kind(filename, targets=None, qa_group=None):
-    """ Generates AppStream metadata of a specific kind """
-    try:
-        db = LvfsDatabase(os.environ)
-        db_firmware = LvfsDatabaseFirmware(db)
-        items = db_firmware.get_items()
-    except CursorError as e:
-        return error_internal(str(e))
-    store = appstream.Store('lvfs')
-    for item in items:
-
-        # filter
-        if item.target == 'private':
-            continue
-        if targets and item.target not in targets:
-            continue
-        if qa_group and qa_group != item.qa_group:
-            continue
-
-        # add each component
-        for md in item.mds:
-            component = appstream.Component()
-            component.id = md.cid
-            component.kind = 'firmware'
-            component.name = md.name
-            component.summary = md.summary
-            component.description = md.description
-            if md.url_homepage:
-                component.urls['homepage'] = md.url_homepage
-            component.metadata_license = md.metadata_license
-            component.project_license = md.project_license
-            component.developer_name = md.developer_name
-
-            # add provide
-            if md.guid:
-                prov = appstream.Provide()
-                prov.kind = 'firmware-flashed'
-                prov.value = md.guid
-                component.add_provide(prov)
-
-            # add release
-            if md.version:
-                rel = appstream.Release()
-                rel.version = md.version
-                rel.description = md.release_description
-                if md.release_timestamp:
-                    rel.timestamp = md.release_timestamp
-                rel.checksums = []
-                rel.location = 'https://secure-lvfs.rhcloud.com/downloads/' + item.filename
-                rel.size_installed = md.release_installed_size
-                rel.size_download = md.release_download_size
-                component.add_release(rel)
-
-                # add container checksum
-                if md.checksum_container:
-                    csum = appstream.Checksum()
-                    csum.target = 'container'
-                    csum.value = md.checksum_container
-                    csum.filename = item.filename
-                    rel.add_checksum(csum)
-
-                # add content checksum
-                if md.checksum_contents:
-                    csum = appstream.Checksum()
-                    csum.target = 'content'
-                    csum.value = md.checksum_contents
-                    csum.filename = md.filename_contents
-                    rel.add_checksum(csum)
-
-            # add component
-            store.add(component)
-
-    # dump to file
-    if not os.path.exists(DOWNLOAD_DIR):
-        os.mkdir(DOWNLOAD_DIR)
-    filename = os.path.join(DOWNLOAD_DIR, filename)
-    store.to_file(filename)
-
-    # create .asc file
-    affidavit = create_affidavit()
-    affidavit.create_detached(filename)
-
-    # log
-    if targets:
-        _event_log("Generated metadata for %s target" % ', '.join(targets))
-    if qa_group:
-        _event_log("Generated metadata for %s QA group" % qa_group)
-
-def update_metadata_by_qa_group(qa_group):
-    """ updates metadata for a specific qa_group """
-
-    # explicit
-    if qa_group:
-        filename = 'firmware-%s.xml.gz' % _qa_hash(qa_group)
-        _generate_metadata_kind(filename, qa_group=qa_group)
-        return
-
-    # do for all
-    try:
-        db = LvfsDatabase(os.environ)
-        db_firmware = LvfsDatabaseFirmware(db)
-        qa_groups = db_firmware.get_qa_groups()
-    except CursorError as e:
-        return error_internal(str(e))
-    for qa_group in qa_groups:
-        filename = 'firmware-%s.xml.gz' % _qa_hash(qa_group)
-        _generate_metadata_kind(filename, qa_group=qa_group)
-
-def update_metadata_by_targets(targets):
-    """ updates metadata for a specific target """
-    for target in targets:
-        if target == 'stable':
-            filename = 'firmware.xml.gz'
-            _generate_metadata_kind(filename, targets=['stable'])
-        elif target == 'testing':
-            filename = 'firmware-testing.xml.gz'
-            _generate_metadata_kind(filename, targets=['stable', 'testing'])
 
 ################################################################################
 
@@ -661,14 +540,25 @@ def lvfs_upload():
 
     # ensure up to date
     try:
+        filenames = []
         if target != 'private':
-            update_metadata_by_qa_group(fwobj.qa_group)
+            tmp = metadata_update_qa_group(fwobj.qa_group)
+            filenames.extend(tmp)
         if target == 'stable':
-            update_metadata_by_targets(['stable', 'testing'])
+            tmp = metadata_update_targets(['stable', 'testing'])
+            filenames.extend(tmp)
         elif target == 'testing':
-            update_metadata_by_targets(['testing'])
+            tmp = metadata_update_targets(['testing'])
+            filenames.extend(tmp)
+
+        # create detached signatures
+        affidavit = create_affidavit()
+        for filename in filenames:
+            affidavit.create_detached(filename)
     except NoKeyError as e:
         return error_internal('Failed to sign metadata: ' + str(e))
+    except CursorError as e:
+        return error_internal('Failed to generate metadata: ' + str(e))
 
     # ensure we save the latest data
     ensure_checkpoint()
@@ -801,13 +691,22 @@ def lvfs_firmware_delete_force(fwid):
 
     # update everything
     try:
-        update_metadata_by_qa_group(item.qa_group)
+        filenames = metadata_update_qa_group(item.qa_group)
         if item.target == 'stable':
-            update_metadata_by_targets(targets=['stable', 'testing'])
+            tmp = metadata_update_targets(targets=['stable', 'testing'])
+            filenames.extend(tmp)
         elif item.target == 'testing':
-            update_metadata_by_targets(targets=['testing'])
+            tmp = metadata_update_targets(targets=['testing'])
+            filenames.extend(tmp)
+
+        # create detached signatures
+        affidavit = create_affidavit()
+        for filename in filenames:
+            affidavit.create_detached(filename)
     except NoKeyError as e:
         return error_internal('Failed to sign metadata: ' + str(e))
+    except CursorError as e:
+        return error_internal('Failed to generate metadata: ' + str(e))
 
     _event_log("Deleted firmware %s" % fwid)
 
@@ -851,13 +750,22 @@ def lvfs_firmware_promote(fwid, target):
 
     # update everything
     try:
-        update_metadata_by_qa_group(item.qa_group)
+        filenames = metadata_update_qa_group(item.qa_group)
         if target == 'stable':
-            update_metadata_by_targets(['stable', 'testing'])
+            tmp = metadata_update_targets(['stable', 'testing'])
+            filenames.extend(tmp)
         elif target == 'testing':
-            update_metadata_by_targets(['testing'])
+            tmp = metadata_update_targets(['testing'])
+            filenames.extend(tmp)
+
+        # create detached signatures
+        affidavit = create_affidavit()
+        for filename in filenames:
+            affidavit.create_detached(filename)
     except NoKeyError as e:
         return error_internal('Failed to sign metadata: ' + str(e))
+    except CursorError as e:
+        return error_internal('Failed to generate metadata: ' + str(e))
 
     # ensure we save the latest data
     ensure_checkpoint()
@@ -1632,10 +1540,17 @@ def lvfs_metadata_rebuild():
 
     # update metadata
     try:
-        update_metadata_by_qa_group(None)
-        update_metadata_by_targets(['stable', 'testing'])
+        filenames = metadata_update_qa_group(None)
+        filenames.extend(metadata_update_targets(['stable', 'testing']))
+
+        # create detached signatures
+        affidavit = create_affidavit()
+        for filename in filenames:
+            affidavit.create_detached(filename)
     except NoKeyError as e:
         return error_internal('Failed to sign metadata: ' + str(e))
+    except CursorError as e:
+        return error_internal('Failed to generate metadata: ' + str(e))
     return redirect(url_for('lvfs_metadata'))
 
 @app.route('/<path:resource>')
