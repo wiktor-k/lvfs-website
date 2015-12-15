@@ -89,6 +89,8 @@ class CabArchive(object):
 
     def set_decompressor(self, cmd, tmpdir=None):
         """ Sets an external binary to be used for decompression """
+        if not os.path.exists(cmd):
+            raise NotSupportedError('decompressor %s not found' % cmd)
         self._decompressor = cmd
         self._tmpdir = tmpdir
 

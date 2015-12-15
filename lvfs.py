@@ -297,8 +297,9 @@ def upload():
 
     # parse the file
     arc = cabarchive.CabArchive()
-    arc.set_decompressor(CABEXTRACT_CMD)
     try:
+        if os.path.exists(CABEXTRACT_CMD):
+            arc.set_decompressor(CABEXTRACT_CMD)
         arc.parse(data)
     except cabarchive.CorruptionError as e:
         return error_internal('Invalid file type: %s' % str(e), 415)
@@ -1132,8 +1133,9 @@ def _update_metadata_from_fn(fwobj, fn):
 
     # load cab file
     arc = cabarchive.CabArchive()
-    arc.set_decompressor(CABEXTRACT_CMD)
     try:
+        if os.path.exists(CABEXTRACT_CMD):
+            arc.set_decompressor(CABEXTRACT_CMD)
         arc.parse_file(fn)
     except cabarchive.CorruptionError as e:
         return error_internal('Invalid file type: %s' % str(e))
