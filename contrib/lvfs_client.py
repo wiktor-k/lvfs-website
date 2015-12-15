@@ -34,34 +34,34 @@ class LvfsClient(object):
 
     def action_fwdelete(self, fwid, auth='user'):
         """ Delete a firmware file """
-        uri = "%s/wsgi.py?action=fwdelete&id=%s&confirm=1" % (self.server, fwid)
+        uri = "%s/lvfs/fwdelete&id=%s&confirm=1" % (self.server, fwid)
         return requests.post(uri, data=self._get_payload(auth))
 
     def action_metadata_rebuild(self, auth='user'):
         """ Rebuild metadata """
-        uri = "%s/wsgi.py?action=metadata_rebuild" % self.server
+        uri = "%s/lvfs/metadata_rebuild" % self.server
         return requests.post(uri, data=self._get_payload(auth))
 
     def action_useradd(self, username, password, qa_group, name, email, auth='user'):
         """ Add a user """
-        uri = "%s/wsgi.py?action=useradd&username_new=%s&password_new=%s&" \
+        uri = "%s/lvfs/user/add&username_new=%s&password_new=%s&" \
               "qa_group=%s&name=%s&email=%s" % \
               (self.server, username, password, qa_group, name, email)
         return requests.post(uri, data=self._get_payload(auth))
 
     def action_userdel(self, username, auth='user'):
         """ Delete a user """
-        uri = "%s/wsgi.py?action=userdel&username_new=%s" % (self.server, username)
+        uri = "%s/lvfs/%s/delete" % (self.server, username)
         return requests.post(uri, data=self._get_payload(auth))
 
     def action_userinc(self, username, key, auth='user'):
         """ Increment a user """
-        uri = "%s/wsgi.py?action=userinc&username_new=%s&key=%s" % (self.server, username, key)
+        uri = "%s/lvfs/userinc&username_new=%s&key=%s" % (self.server, username, key)
         return requests.post(uri, data=self._get_payload(auth))
 
     def action_dump(self, target, auth='user'):
         """ Dump a specific target """
-        uri = "%s/wsgi.py?action=dump&target=%s" % (self.server, target)
+        uri = "%s/lvfs/dump&target=%s" % (self.server, target)
         return requests.post(uri, data=self._get_payload(auth))
 
     def action_upload(self, fn, target, auth='user'):
@@ -70,5 +70,5 @@ class LvfsClient(object):
             f = open(fn, 'rb')
         except IOError as e:
             return None
-        uri = "%s/wsgi.py?action=upload&target=%s" % (self.server, target)
+        uri = "%s/lvfs/upload/%s" % (self.server, target)
         return requests.post(uri, data=self._get_payload(auth), files={'file': f})

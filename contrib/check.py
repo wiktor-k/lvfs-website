@@ -7,7 +7,7 @@ import sys
 from lvfs_client import LvfsClient
 
 #SERVER = 'https://testing-lvfs.rhcloud.com'
-SERVER = 'http://localhost:8051'
+SERVER = 'http://localhost:5000'
 
 FILE = './contrib/hughski-colorhug2-2.0.3.cab'
 
@@ -22,7 +22,7 @@ def main():
 
     # no auth
     r = w.action_useradd('test', 'test', 'test', 'Test User', 'test@user.com', auth='none')
-    assert r.status_code == 401, "expected error when adding user"
+    assert r.status_code == 401, "expected error when adding user : %s" % r.text
 
     # only admin auth
     r = w.action_useradd('test', 'test', 'test', 'Test User', 'test@user.com', auth='user')
