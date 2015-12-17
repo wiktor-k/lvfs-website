@@ -57,6 +57,8 @@ class LvfsDatabase(object):
 
             if table == 'clients' and not include_clients:
                 continue
+            if table == 'cache':
+                continue
 
             data += "DROP TABLE IF EXISTS `" + str(table) + "`;"
             cur.execute("SHOW CREATE TABLE `" + str(table) + "`;")
