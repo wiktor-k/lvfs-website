@@ -500,6 +500,7 @@ def upload():
         md.release_timestamp = rel.timestamp
         md.release_installed_size = rel.size_installed
         md.release_download_size = rel.size_download
+        md.release_urgency = rel.urgency
 
         # from the content checksum
         csum = component.releases[0].get_checksum_by_target('content')

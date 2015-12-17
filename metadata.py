@@ -61,6 +61,7 @@ def _generate_metadata_kind(filename, targets=None, qa_group=None):
                 rel.location = 'https://secure-lvfs.rhcloud.com/downloads/' + item.filename
                 rel.size_installed = md.release_installed_size
                 rel.size_download = md.release_download_size
+                rel.urgency = md.release_urgency
                 component.add_release(rel)
 
                 # add container checksum

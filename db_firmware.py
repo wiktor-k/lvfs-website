@@ -29,6 +29,7 @@ class LvfsFirmwareMd(object):
         self.filename_contents = None
         self.release_installed_size = 0
         self.release_download_size = 0
+        self.release_urgency = None
     def __repr__(self):
         return "LvfsFirmwareMd object %s" % self.fwid
 
@@ -66,6 +67,7 @@ def _create_firmware_md(e):
     md.filename_contents = e[15]
     md.release_installed_size = e[16]
     md.release_download_size = e[17]
+    md.release_urgency = e[18]
     return md
 
 def _create_firmware_item(e):
@@ -138,6 +140,7 @@ class LvfsDatabaseFirmware(object):
                   version VARCHAR(255) DEFAULT NULL,
                   release_installed_size INTEGER DEFAULT 0,
                   release_download_size INTEGER DEFAULT 0,
+                  release_urgency VARCHAR(16) DEFAULT NULL,
                   UNIQUE KEY id (fwid,guid)
                 ) CHARSET=utf8;
             """
@@ -151,6 +154,15 @@ class LvfsDatabaseFirmware(object):
             cur.execute(sql_db)
         except mdb.Error, e:
             pass
+
+        # FIXME, remove after a few days
+        try:
+            cur.execute("SELECT release_urgency FROM firmware_md LIMIT 1;")
+        except mdb.Error, e:
+            sql_db = """
+                ALTER TABLE firmware_md ADD release_urgency VARCHAR(16) DEFAULT NULL;
+            """
+            cur.execute(sql_db)
 
     def set_target(self, fwid, target):
         """ get the number of firmware files we've provided """
@@ -220,9 +232,9 @@ class LvfsDatabaseFirmware(object):
                             "project_license, url_homepage, description, "
                             "checksum_container, filename_contents, "
                             "release_installed_size, "
-                            "release_download_size) "
+                            "release_download_size, release_urgency) "
                             "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, "
-                            "%s, %s, %s, %s, %s, %s, %s);",
+                            "%s, %s, %s, %s, %s, %s, %s, %s);",
                             (fwobj.fwid,
                              md.cid,
                              md.guid,
@@ -240,7 +252,8 @@ class LvfsDatabaseFirmware(object):
                              md.checksum_container,
                              md.filename_contents,
                              md.release_installed_size,
-                             md.release_download_size,))
+                             md.release_download_size,
+                             md.release_urgency,))
         except mdb.Error, e:
             raise CursorError(cur, e)
 
@@ -261,7 +274,8 @@ class LvfsDatabaseFirmware(object):
                         "release_timestamp, developer_name, metadata_license, "
                         "project_license, url_homepage, description, "
                         "checksum_container, filename_contents, "
-                        "release_installed_size, release_download_size "
+                        "release_installed_size, release_download_size, "
+                        "release_urgency "
                         "FROM firmware_md WHERE fwid = %s ORDER BY guid DESC;",
                         (item.fwid,))
         except mdb.Error, e:
