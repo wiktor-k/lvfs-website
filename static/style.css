@@ -53,15 +53,41 @@ table.history {
 .history td {
   padding: .5em .5em .5em 0;
   font-size: 70%;
-  white-space: nowrap;
-}
-
-.history th {
-  width: 40%;
 }
 
 td.history:last-child {
   width: 100%;
+}
+
+
+table.aligned {
+  width: 100%;
+}
+
+.aligned th {
+  font-weight: 300;
+  font-size: 120%;
+  white-space: nowrap;
+  padding-right: 1em;
+  text-align: left;
+}
+
+.aligned td {
+  padding: .5em .5em .5em 0;
+  font-size: 70%;
+}
+
+.aligned th {
+  width: 25%;
+}
+
+hr {
+  display: block;
+  height: 1px;
+  border: 0;
+  border-top: 1px solid #9c9c9c;;
+  margin: 1em 0;
+  padding: 0;
 }
 
 p.title {
@@ -192,7 +218,7 @@ a:hover.navigation {
 
 a:active.navigation {
   color: #3e78b4;
-  boredr-bottom-color: #3e78b4;
+  border-bottom-color: #3e78b4;
 }
 
 li.confirm {
