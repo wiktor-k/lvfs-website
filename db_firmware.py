@@ -201,11 +201,13 @@ class LvfsDatabaseFirmware(object):
             for md in fwobj.mds:
                 cur.execute("UPDATE firmware_md SET description=%s, "
                             "release_description=%s, "
+                            "release_urgency=%s, "
                             "release_installed_size=%s, "
                             "release_download_size=%s "
                             "WHERE fwid=%s;",
                             (md.description,
                              md.release_description,
+                             md.release_urgency,
                              md.release_installed_size,
                              md.release_download_size,
                              fwobj.fwid,))

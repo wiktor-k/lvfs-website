@@ -13,7 +13,7 @@ import datetime
 import ConfigParser
 
 from flask import Blueprint, session, request, flash, url_for, redirect, \
-     render_template, abort
+     render_template, abort, escape
 
 import cabarchive
 import appstream
@@ -696,6 +696,50 @@ def firmware_delete(fwid):
     """ Confirms deletion of firmware """
     return render_template('firmware-delete.html', fwid=fwid), 406
 
+@lvfs.route('/firmware/<fwid>/modify', methods=['GET', 'POST'])
+def firmware_modify(fwid):
+    """ Modifies the update urgency and release notes for the update """
+
+    if request.method != 'POST':
+        return redirect(url_for('.firmware'))
+
+    # security check
+    if not _check_session():
+        return redirect(url_for('.login'))
+
+    # find firmware
+    try:
+        db = LvfsDatabase(os.environ)
+        db_firmware = LvfsDatabaseFirmware(db)
+        fwobj = db_firmware.get_item(fwid)
+    except CursorError as e:
+        return error_internal(str(e))
+    if not fwobj:
+        return error_internal("No firmware %s" % fwid)
+
+    # set new metadata values
+    for md in fwobj.mds:
+        if 'urgency' in request.form:
+            md.release_urgency = request.form['urgency']
+        if 'description' in request.form:
+            txt = request.form['description']
+            try:
+                appstream.utils.validate_description(txt)
+            except appstream.ParseError as e:
+                return error_internal("Failed to parse %s: %s" % (txt, str(e)))
+            md.release_description = txt
+
+    # modify
+    try:
+        db_firmware.update(fwobj)
+    except CursorError as e:
+        return error_internal(str(e))
+
+    # log
+    _event_log('Changed update description on %s' % fwid)
+
+    return redirect(url_for('.firmware_id', fwid=fwid))
+
 @lvfs.route('/firmware/<fwid>/delete_force')
 def firmware_delete_force(fwid):
     """ Delete a firmware entry and also delete the file from disk """
@@ -898,6 +942,44 @@ def firmware_id(fwid):
         html += '<tr><th>Installed Size</th><td>%s</td></tr>' % sizeof_fmt(md.release_installed_size)
         html += '<tr><th>Download Size</th><td>%s</td></tr>' % sizeof_fmt(md.release_download_size)
         html += '</table>'
+
+        # show editable update details
+        html += '<h2>Update Details</h2>\n'
+
+        # show urgency and update description
+        if item.target == 'stable' or not session['qa_capability']:
+            html += '<table class="history">\n'
+            urgency = md.release_urgency
+            if not urgency:
+                urgency = 'unknown'
+            html += '<tr><th>Release Urgency</th><td>%s</td></tr>\n' % urgency
+            html += '<tr><th>Update Description</th><td>%s</td></tr>\n' % md.release_description
+            html += '</table>\n'
+        else:
+            html += '<table class="history">\n'
+            html += '<form method="post" action="/lvfs/firmware/%s/modify">\n' % fwid
+            urgency_states = []
+            urgency_states.append('unknown')
+            urgency_states.append('low')
+            urgency_states.append('medium')
+            urgency_states.append('high')
+            urgency_states.append('critical')
+            html += '<tr><th>Release Urgency</th><td>\n'
+            html += '<select name="urgency" class="fixedwidth" required>\n'
+            for state in urgency_states:
+                selected = ''
+                if state == md.release_urgency:
+                    selected = "selected"
+                html += '<option value="%s" %s>%s</option>\n' % (state, selected, state)
+            html += '</select>\n'
+            html += '</td></tr>\n'
+
+            url = 'http://www.freedesktop.org/software/appstream/docs/chap-Metadata.html#tag-description'
+            desc = '<textarea name="description" cols="64" rows="5">%s</textarea>\n' % md.release_description
+            html += '<tr><th>Update Description<br/>(<a href="%s">AppStream XML<br/>description format</a>)</th><td>%s</td></tr>\n' % (url, desc)
+            html += '<tr><th>&nbsp;</th><td><input type="submit" value="Save update details"/></td></tr>\n'
+            html += '</form>\n'
+            html += '</table>\n'
 
     # show graph
     db_clients = LvfsDatabaseClients(db)
@@ -1165,7 +1247,7 @@ def eventlog(start=0, length=20):
             html += '<td class="history">&#x272a;</td>'
         else:
             html += '<td class="history"></td>'
-        html += '<td class="history">%s</td>' % item.message
+        html += '<td class="history">%s</td>' % escape(item.message)
         html += '</tr>\n'
     html += '</table>'
 
