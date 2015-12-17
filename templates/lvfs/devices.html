@@ -1,0 +1,16 @@
+{% extends "default.html" %}
+{% block title %}Devices{% endblock %}
+
+{% block page_header %}
+<h1>Devices</h1>
+{% endblock %}
+
+{% block content %}
+
+{% for device in devices %}
+<li><a href="/lvfs/device/{{device}}">{{device}}</a></li>
+{% else %}
+<p>No devices to show!</p>
+{% endfor %}
+
+{% endblock %}

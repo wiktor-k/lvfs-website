@@ -240,12 +240,8 @@ def device_list():
                     continue
                 seen_guid[md.guid] = 1
 
-                # show name and version
-                version = item.version_display
-                if not version:
-                    version = md.version
-                url = '/downloads/' + item.filename
-                html += '<li><a href="%s">%s %s</a></li>\n' % (url, md.name, version)
+                # show name
+                html += '<li><a href="/lvfs/device/%s">%s</a></li>\n' % (md.guid, md.name)
         html += '</ul>\n'
     return render_template('devicelist.html', dyncontent=html)
 
@@ -553,6 +549,63 @@ def upload():
 
     return redirect(url_for('.firmware_id', fwid=fwid))
 
+@lvfs.route('/device')
+def device():
+    """
+    Show all devices -- probably only useful for the admin user.
+    """
+
+    # security check
+    if not _check_session():
+        return redirect(url_for('.login'))
+    if session['username'] != 'admin':
+        return error_permission_denied('Unable to view devices')
+
+    # get all firmware
+    try:
+        db = LvfsDatabase(os.environ)
+        db_firmware = LvfsDatabaseFirmware(db)
+        items = db_firmware.get_items()
+    except CursorError as e:
+        return error_internal(str(e))
+
+    # get all the guids we can target
+    devices = []
+    seen_guid = {}
+    for item in items:
+        for md in item.mds:
+            if md.guid in seen_guid:
+                continue
+            seen_guid[md.guid] = 1
+            devices.append(md.guid)
+
+    return render_template('devices.html', devices=devices)
+
+@lvfs.route('/device/<guid>')
+def device_guid(guid):
+    """
+    Show information for one device, which can be seen without a valid login
+    """
+
+    # get all firmware
+    try:
+        db = LvfsDatabase(os.environ)
+        db_firmware = LvfsDatabaseFirmware(db)
+        items = db_firmware.get_items()
+    except CursorError as e:
+        return error_internal(str(e))
+
+    # get all the guids we can target
+    firmware_items = []
+    for item in items:
+        for md in item.mds:
+            if md.guid != guid:
+                continue
+            firmware_items.append(item)
+            break
+
+    return render_template('device.html', items=firmware_items)
+
 @lvfs.route('/firmware')
 def firmware(show_all=False):
     """
@@ -818,7 +871,7 @@ def firmware_id(fwid):
                        "<button class=\"fixedwidth\">&#8594; Stable</button>" \
                        "</form>" % fwid
 
-    html = '<table class="history">'
+    html = '<table class="aligned">'
     orig_filename = '-'.join(item.filename.split('-')[1:])
     html += '<tr><th>Filename</th><td><a href=\"%s\">%s</a></td></tr>' % (file_uri, orig_filename)
     html += '<tr><th>Current Target</th><td>%s</td></tr>' % item.target
@@ -838,7 +891,7 @@ def firmware_id(fwid):
     for md in item.mds:
         html += '<h2>%s</h2>' % md.name
         html += '<p>%s</p>' % md.summary
-        html += '<table class="history">'
+        html += '<table class="aligned">'
         html += '<tr><th>ID</th><td>%s</td></tr>' % md.cid
         html += '<tr><th>Device GUID</th><td><code>%s</code></td></tr>' % md.guid
         html += '<tr><th>Version</th><td>%s</td></tr>' % md.version
