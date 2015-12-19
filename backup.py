@@ -26,7 +26,7 @@ def _create_backup(filename, include_clients=False):
     db = LvfsDatabase(os.environ)
     content = db.generate_backup(include_clients)
     with gzip.open(filename, 'wb') as f:
-        f.write(content)
+        f.write(content.encode('utf8'))
     return True
 
 def ensure_checkpoint():

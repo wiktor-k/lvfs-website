@@ -48,7 +48,7 @@ class LvfsDatabase(object):
     def generate_backup(self, include_clients=False):
         cur = self.cursor()
         cur.execute("SHOW TABLES")
-        data = ""
+        data = u''
         tables = []
         for table in cur.fetchall():
             tables.append(table[0])
@@ -71,7 +71,10 @@ class LvfsDatabase(object):
                 for field in row:
                     if not first:
                         data += ', '
-                    data += '"' + str(field) + '"'
+                    try:
+                        data += '"' + unicode(field) + '"'
+                    except UnicodeEncodeError as e:
+                        print("Failed to save value '%s' in table %s: %s" % (field, table, str(e)))
                     first = False
                 data += ");\n"
             data += "\n\n"
