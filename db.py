@@ -46,6 +46,10 @@ class LvfsDatabase(object):
             self._db.close()
 
     def generate_backup(self, include_clients=False):
+
+        # FIXME: this isn't working very well
+        return
+
         cur = self.cursor()
         cur.execute("SHOW TABLES")
         data = u''
