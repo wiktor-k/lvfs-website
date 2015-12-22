@@ -35,6 +35,9 @@ def ensure_checkpoint():
     # an empty message indicates that nothing needed to be done
     msg = None
 
+    # use mysqldump instead
+    return msg
+
     # checkpointing happens up to once per minute
     now = datetime.datetime.now()
     filename = BACKUP_DIR + "/restore_" + now.strftime("%Y%m%d%H%M") + ".sql.gz"
