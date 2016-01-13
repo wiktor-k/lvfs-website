@@ -76,17 +76,16 @@ on Linux.
 </p>
 <p>
 It is recommended you name the <code>cab</code> file with the vendor, device and version
-number, e.g. <code>hughski-colorhug-als-1.2.3.cab</code>. It's mandatory that the files inside the
-<code>cab</code> file have the same basename, for example this is would be valid:
+number, e.g. <code>hughski-colorhug-als-1.2.3.cab</code>.
+It is suggested that the files inside the <code>cab</code> file have the
+same basename, for example this is would be ideal:
 </p>
-<p>
 <pre>
     hughski-colorhug-als-1.2.3.cab
      |- firmware.inf
      |- firmware.bin
      \- firmware.metainfo.xml
 </pre>
-</p>
 <p>
 An example <code>inf</code> file looks like this:
 </p>
@@ -151,6 +150,18 @@ An example <code>metainfo.xml</code> file looks like this:
 If the firmware is not free software you have to indicate it in the
 <code>metainfo.xml</code> file with <code>&lt;project_license&gt;proprietary&lt;/project_license&gt;</code>.
 </p>
+<p>
+Sometimes the firmware capsule file has to have a different filename for
+other workflow or legacy reasons.
+To achieve this just change the value of <code>Firmware_CopyFiles</code>
+and <code>FirmwareFilename</code> in the inf file, and also add this
+to the <code>metainfo.xml</code> file:
+</p>
+<pre>
+  &lt;release version="0xtheversion" timestamp="1424116753"&gt;
+    &lt;checksum filename="my-custom-name.bin" target="content"&gt;
+    ...
+</pre>
 
 <h2>Metainfo Style Guide</h2>
 <h3>&lt;id&gt;</h3>
