@@ -723,6 +723,8 @@ def firmware_modify(fwid):
             md.release_urgency = request.form['urgency']
         if 'description' in request.form:
             txt = request.form['description']
+            if txt.find('<p>') == -1:
+                txt = appstream.utils.import_description(txt)
             try:
                 appstream.utils.validate_description(txt)
             except appstream.ParseError as e:
