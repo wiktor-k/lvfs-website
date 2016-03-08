@@ -24,8 +24,8 @@ import fnmatch
 import zlib
 import datetime
 
-from .file import CabFile
-from .errors import *
+from file import CabFile
+from errors import *
 
 FMT_CFHEADER = '<4sxxxxIxxxxIxxxxBBHHHHH'
 FMT_CFFOLDER = '<IHH'
@@ -89,8 +89,6 @@ class CabArchive(object):
 
     def set_decompressor(self, cmd, tmpdir=None):
         """ Sets an external binary to be used for decompression """
-        if not os.path.exists(cmd):
-            raise NotSupportedError('decompressor %s not found' % cmd)
         self._decompressor = cmd
         self._tmpdir = tmpdir
 
@@ -121,7 +119,7 @@ class CabArchive(object):
 
         # debugging
         if os.getenv('PYTHON_CABARCHIVE_DEBUG'):
-            print("CFFILE", vals)
+            print "CFFILE", vals
 
         # parse filename
         offset += struct.calcsize(fmt)
@@ -158,7 +156,7 @@ class CabArchive(object):
 
         # debugging
         if os.getenv('PYTHON_CABARCHIVE_DEBUG'):
-            print("CFFOLDER", vals)
+            print "CFFOLDER", vals
 
         # no data blocks?
         if vals[1] == 0:
@@ -194,7 +192,7 @@ class CabArchive(object):
             raise CorruptionError(str(e))
         # debugging
         if os.getenv('PYTHON_CABARCHIVE_DEBUG'):
-            print("CFDATA", vals)
+            print "CFDATA", vals
         if not is_zlib and vals[1] != vals[2]:
             raise CorruptionError('Mismatched data %i != %i' % (vals[1], vals[2]))
         hdr_sz = struct.calcsize(fmt)
@@ -290,7 +288,7 @@ class CabArchive(object):
 
         # debugging
         if os.getenv('PYTHON_CABARCHIVE_DEBUG'):
-            print("CFHEADER", vals)
+            print "CFHEADER", vals
 
         # check magic bytes
         if vals[0] != b'MSCF':
