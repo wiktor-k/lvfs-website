@@ -978,7 +978,9 @@ def firmware_id(fwid):
 
             url = 'http://www.freedesktop.org/software/appstream/docs/chap-Metadata.html#tag-description'
             desc = '<textarea name="description" cols="64" rows="5">%s</textarea>\n' % md.release_description
-            html += '<tr><th>Update Description<br/>(<a href="%s">AppStream XML<br/>description format</a>)</th><td>%s</td></tr>\n' % (url, desc)
+            desc += '<p>Unformatted text will be automatically converted to '
+            desc += '<a href="%s">AppStream XML description markup</a>.</p>' % url
+            html += '<tr><th>Update Description</th><td>%s</td></tr>\n' % desc
             html += '<tr><th>&nbsp;</th><td><input type="submit" value="Save update details"/></td></tr>\n'
             html += '</form>\n'
             html += '</table>\n'
