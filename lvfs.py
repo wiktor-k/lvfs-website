@@ -1431,30 +1431,30 @@ def useradd():
     # verify password
     password = request.form['password_new']
     if not _password_check(password):
-        return redirect(url_for('.userlist')), 400
+        return redirect(url_for('.userlist')), 302
 
     # verify email
     email = request.form['email']
     if not _email_check(email):
-        return redirect(url_for('.userlist')), 400
+        return redirect(url_for('.userlist')), 302
 
     # verify qa_group
     qa_group = request.form['qa_group']
     if len(qa_group) < 3:
         flash('QA group invalid')
-        return redirect(url_for('.userlist')), 400
+        return redirect(url_for('.userlist')), 302
 
     # verify name
     name = request.form['name']
     if len(name) < 3:
         flash('Name invalid')
-        return redirect(url_for('.userlist')), 400
+        return redirect(url_for('.userlist')), 302
 
     # verify username
     username_new = request.form['username_new']
     if len(username_new) < 3:
         flash('Username invalid')
-        return redirect(url_for('.userlist')), 400
+        return redirect(url_for('.userlist')), 302
     try:
         db_users.add(username_new, password, name, email, qa_group)
     except CursorError as e:
