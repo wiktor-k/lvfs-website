@@ -1184,12 +1184,12 @@ def login():
         return error_internal(str(e))
     if not item:
         # log failure
-        _event_log('Failed login attempt')
+        _event_log('Failed login attempt for %s' % request.form['username'])
         flash('Incorrect username or password')
         return render_template('login.html')
     if not item.is_enabled:
         # log failure
-        _event_log('Failed login attempt (user disabled)')
+        _event_log('Failed login attempt for %s (user disabled)' % request.form['username'])
         flash('User account is disabled')
         return render_template('login.html')
 
