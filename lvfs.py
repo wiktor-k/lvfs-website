@@ -1140,30 +1140,6 @@ def analytics():
     html += '};'
     html += 'var myLineChartUserAgent = new Chart(ctx).Bar(data, null);'
     html += '</script>'
-
-    # add hours
-    data_md = db_clients.get_metadata_by_hour()
-    html += '<h2>Metadata and Firmware Downloads (hour)</h2>'
-    html += '<canvas id="metadataChartHours" width="800" height="400"></canvas>'
-    html += '<script>'
-    html += 'var ctx = document.getElementById("metadataChartHours").getContext("2d");'
-    html += 'var data = {'
-    html += '    labels: %s,' % _get_chart_labels_hours()
-    html += '    datasets: ['
-    html += '        {'
-    html += '            label: "Metadata",'
-    html += '            fillColor: "rgba(20,120,220,0.2)",'
-    html += '            strokeColor: "rgba(20,120,120,0.1)",'
-    html += '            pointColor: "rgba(20,120,120,0.3)",'
-    html += '            pointStrokeColor: "#fff",'
-    html += '            pointHighlightFill: "#fff",'
-    html += '            pointHighlightStroke: "rgba(220,220,220,1)",'
-    html += '            data: %s' % data_md
-    html += '        },'
-    html += '    ]'
-    html += '};'
-    html += 'var myLineChartHours = new Chart(ctx).Line(data, null);'
-    html += '</script>'
     return render_template('analytics.html', dyncontent=html)
 
 @lvfs.route('/login', methods=['GET', 'POST'])

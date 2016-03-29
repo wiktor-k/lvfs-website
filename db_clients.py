@@ -139,18 +139,6 @@ class LvfsDatabaseClients(object):
             data.append(int(cur.fetchone()[0]))
         return data
 
-    def get_metadata_by_hour(self):
-        data = []
-        for i in range(24):
-            try:
-                cur = self._db.cursor()
-                cur.execute("SELECT COUNT(*) FROM clients "
-                            "WHERE HOUR(timestamp) = %s;", (i,))
-            except mdb.Error, e:
-                raise CursorError(cur, e)
-            data.append(int(cur.fetchone()[0]))
-        return data
-
     def get_metadata_by_month(self, kind):
         data = []
         now = datetime.date.today()
