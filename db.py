@@ -28,11 +28,6 @@ class LvfsDatabase(object):
                                        int(environ['OPENSHIFT_MYSQL_DB_PORT']),
                                        use_unicode=True, charset='utf8')
             else:
-                # mysql -u root -p
-                # CREATE DATABASE secure;
-                # CREATE USER 'test'@'localhost' IDENTIFIED BY 'test';
-                # USE secure;
-                # GRANT ALL ON secure.* TO 'test'@'localhost';
                 self._db = mdb.connect('localhost', 'test', 'test', 'secure',
                                        use_unicode=True, charset='utf8')
             self._db.autocommit(True)

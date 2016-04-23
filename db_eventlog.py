@@ -36,34 +36,6 @@ class LvfsDatabaseEventlog(object):
         """ Constructor for object """
         self._db = db
 
-        # test event log exists
-        try:
-            cur = self._db.cursor()
-            cur.execute("SELECT * FROM event_log LIMIT 1;")
-        except mdb.Error, e:
-            sql_db = """
-                CREATE TABLE event_log (
-                  id INT NOT NULL AUTO_INCREMENT,
-                  timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                  username VARCHAR(40) NOT NULL DEFAULT '',
-                  qa_group VARCHAR(40) DEFAULT NULL,
-                  addr VARCHAR(40) DEFAULT NULL,
-                  message TEXT DEFAULT NULL,
-                  is_important TINYINT DEFAULT 0,
-                  UNIQUE KEY id (id)
-                ) CHARSET=utf8;
-            """
-            cur.execute(sql_db)
-
-        # FIXME: remove after a few days
-        try:
-            sql_db = """
-                ALTER TABLE event_log ADD id INT AUTO_INCREMENT UNIQUE;
-            """
-            cur.execute(sql_db)
-        except mdb.Error, e:
-            pass
-
     def add(self, msg, username, qa_group, addr, is_important):
         """ Adds an item to the event log """
         assert msg

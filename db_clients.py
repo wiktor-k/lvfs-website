@@ -29,38 +29,6 @@ class LvfsDatabaseClients(object):
         """ Constructor for object """
         self._db = db
 
-        # test client table exists
-        cur = self._db.cursor()
-        try:
-            cur.execute("SELECT * FROM clients LIMIT 1;")
-        except mdb.Error, e:
-            sql_db = """
-                CREATE TABLE clients (
-                  id INT NOT NULL AUTO_INCREMENT,
-                  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                  addr VARCHAR(40) DEFAULT NULL,
-                  is_firmware TINYINT DEFAULT 0,
-                  filename VARCHAR(256) DEFAULT NULL,
-                  user_agent VARCHAR(256) DEFAULT NULL,
-                  UNIQUE KEY id (id)
-                ) CHARSET=utf8;
-            """
-            cur.execute(sql_db)
-
-        # test analytics table exists
-        try:
-            cur.execute("SELECT * FROM analytics LIMIT 1;")
-        except mdb.Error, e:
-            sql_db = """
-                CREATE TABLE analytics (
-                  datestr INT DEFAULT 0,
-                  kind TINYINT DEFAULT 0,
-                  cnt INT DEFAULT 1,
-                  UNIQUE (datestr,kind)
-                ) CHARSET=utf8;
-            """
-            cur.execute(sql_db)
-
     def log(self, when, kind):
         """ get the number of files we've provided """
         datestr = _get_datestr_from_datetime(when)

@@ -15,21 +15,6 @@ class LvfsDatabaseCache(object):
         """ Constructor for object """
         self._db = db
 
-        # test client table exists
-        try:
-            cur = self._db.cursor()
-            cur.execute("SELECT * FROM cache LIMIT 1;")
-        except mdb.Error as e:
-            sql_db = """
-                CREATE TABLE cache (
-                  created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                  filename VARCHAR(255) DEFAULT NULL,
-                  data BLOB DEFAULT NULL,
-                  UNIQUE KEY filename (filename)
-                ) CHARSET=utf8;
-            """
-            cur.execute(sql_db)
-
     def delete(self, filename):
         """ Deletes any DB cache for the filename """
         assert filename

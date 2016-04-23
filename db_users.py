@@ -49,67 +49,6 @@ class LvfsDatabaseUsers(object):
         """ Constructor for object """
         self._db = db
 
-        # test user list exists
-        try:
-            cur = self._db.cursor()
-            cur.execute("SELECT * FROM users LIMIT 1;")
-        except mdb.Error, e:
-            sql_db = """
-                CREATE TABLE users (
-                  username VARCHAR(40) NOT NULL DEFAULT '',
-                  password VARCHAR(40) NOT NULL DEFAULT '',
-                  display_name VARCHAR(128) DEFAULT NULL,
-                  email VARCHAR(255) DEFAULT NULL,
-                  pubkey VARCHAR(4096) DEFAULT NULL,
-                  is_enabled TINYINT DEFAULT 0,
-                  is_qa TINYINT DEFAULT 0,
-                  qa_group VARCHAR(40) NOT NULL DEFAULT '',
-                  is_locked TINYINT DEFAULT 0,
-                  UNIQUE KEY id (username)
-                ) CHARSET=utf8;
-            """
-            cur.execute(sql_db)
-
-        # FIXME: remove after a few days
-        try:
-            sql_db = """
-                ALTER TABLE users ADD CONSTRAINT id UNIQUE (username);
-            """
-            cur.execute(sql_db)
-        except mdb.Error, e:
-            pass
-
-        # FIXME, remove after a few days
-        try:
-            cur.execute("SELECT pubkey FROM users LIMIT 1;")
-        except mdb.Error, e:
-            sql_db = """
-                ALTER TABLE users ADD pubkey VARCHAR(4096) DEFAULT NULL;
-            """
-            cur.execute(sql_db)
-
-        # ensure an admin user always exists
-        cur.execute("SELECT is_enabled FROM users WHERE username='admin';")
-        if not cur.fetchone():
-            sql_db = """
-                INSERT INTO users (username, password, display_name, email, is_enabled, is_qa, is_locked, qa_group)
-                    VALUES ('admin', 'Pa$$w0rd', 'Admin User', 'sign-test@fwupd.org', 1, 1, 0, 'admin');
-            """
-            cur.execute(sql_db)
-
-        # convert legacy passwords from strings to hashes
-        cur.execute("SELECT username, password FROM users;")
-        res = cur.fetchall()
-        for l in res:
-            if len(l[1]) == 40:
-                continue
-            cur.execute("UPDATE users SET password=%s WHERE username=%s;",
-                        (_password_hash(l[1]), l[0],))
-
-        # ensure admin has all privs
-        cur.execute("UPDATE users SET is_enabled=1, is_qa=1, is_locked=0, qa_group='admin' "
-                    "WHERE username='admin';")
-
     def get_signing_uid(self):
         """ Gets the signing UID for the site, i.e. the admin email address """
         try:
