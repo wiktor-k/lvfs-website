@@ -1013,6 +1013,13 @@ def firmware_id(fwid):
 
     return render_template('firmware-details.html', dyncontent=html)
 
+@lvfs.route('/migrate')
+def migrate():
+    """ Migrate the analytics data """
+    db = LvfsDatabase(os.environ)
+    db_clients = LvfsDatabaseClients(db)
+    db_clients.migrate()
+
 @lvfs.route('/analytics')
 def analytics():
     """ A analytics screen to show information about users """
@@ -1026,9 +1033,9 @@ def analytics():
     # add days
     db = LvfsDatabase(os.environ)
     db_clients = LvfsDatabaseClients(db)
-    data_md = db_clients.get_stats(30, 1, LvfsDownloadKind.METADATA)
-    data_fw = db_clients.get_stats(30, 1, LvfsDownloadKind.FIRMWARE)
-    data_asc = db_clients.get_stats(30, 1, LvfsDownloadKind.SIGNING)
+    data_md = db_clients.get_stats_for_month(LvfsDownloadKind.METADATA)
+    data_fw = db_clients.get_stats_for_month(LvfsDownloadKind.FIRMWARE)
+    data_asc = db_clients.get_stats_for_month(LvfsDownloadKind.SIGNING)
     html = '<h2>Metadata and Firmware Downloads (day)</h2>'
     html += '<canvas id="metadataChartMonthsDays" width="800" height="400"></canvas>'
     html += '<script>'
@@ -1072,9 +1079,9 @@ def analytics():
     html += '</script>'
 
     # add months
-    data_md = db_clients.get_metadata_by_month(LvfsDownloadKind.METADATA)
-    data_fw = db_clients.get_metadata_by_month(LvfsDownloadKind.FIRMWARE)
-    data_asc = db_clients.get_metadata_by_month(LvfsDownloadKind.SIGNING)
+    data_md = db_clients.get_stats_for_year(LvfsDownloadKind.METADATA)
+    data_fw = db_clients.get_stats_for_year(LvfsDownloadKind.FIRMWARE)
+    data_asc = db_clients.get_stats_for_year(LvfsDownloadKind.SIGNING)
     html += '<h2>Metadata and Firmware Downloads (month)</h2>'
     html += '<canvas id="metadataChartMonths" width="800" height="400"></canvas>'
     html += '<script>'

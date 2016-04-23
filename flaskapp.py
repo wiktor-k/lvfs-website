@@ -5,6 +5,8 @@
 # Licensed under the GNU General Public License Version 2
 
 import os
+import datetime
+
 from flask import Flask, flash, render_template, redirect, request, send_from_directory
 
 from db import LvfsDatabase, CursorError
@@ -61,22 +63,29 @@ def serveStaticResource(resource):
     """ Return a static image or resource """
 
     # log certain kinds of files
-    kind = None
     if resource.endswith('.cab'):
-        kind = LvfsDownloadKind.FIRMWARE
-    elif resource.endswith('.xml.gz.asc'):
-        kind = LvfsDownloadKind.SIGNING
-    elif resource.endswith('.xml.gz'):
-        kind = LvfsDownloadKind.METADATA
-    if kind is not None:
         try:
-            filename = os.path.basename(resource)
             db = LvfsDatabase(os.environ)
             clients = LvfsDatabaseClients(db)
+            clients.log(datetime.date.today(), LvfsDownloadKind.FIRMWARE)
             clients.increment(_get_client_address(),
-                              kind,
-                              filename,
+                              LvfsDownloadKind.FIRMWARE,
+                              os.path.basename(resource),
                               request.headers.get('User-Agent'))
+        except CursorError as e:
+            print str(e)
+    elif resource.endswith('.xml.gz.asc'):
+        try:
+            db = LvfsDatabase(os.environ)
+            clients = LvfsDatabaseClients(db)
+            clients.log(datetime.date.today(), LvfsDownloadKind.SIGNING)
+        except CursorError as e:
+            print str(e)
+    elif resource.endswith('.xml.gz'):
+        try:
+            db = LvfsDatabase(os.environ)
+            clients = LvfsDatabaseClients(db)
+            clients.log(datetime.date.today(), LvfsDownloadKind.METADATA)
         except CursorError as e:
             print str(e)
 

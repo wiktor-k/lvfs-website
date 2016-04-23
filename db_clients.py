@@ -15,6 +15,9 @@ def _addr_hash(value):
     salt = 'addr%%%'
     return hashlib.sha1(salt + value).hexdigest()
 
+def _get_datestr_from_datetime(when):
+    return int("%04i%02i%02i" % (when.year, when.month, when.day))
+
 class LvfsDownloadKind(object):
     METADATA = 0
     FIRMWARE = 1
@@ -27,8 +30,8 @@ class LvfsDatabaseClients(object):
         self._db = db
 
         # test client table exists
+        cur = self._db.cursor()
         try:
-            cur = self._db.cursor()
             cur.execute("SELECT * FROM clients LIMIT 1;")
         except mdb.Error, e:
             sql_db = """
@@ -43,6 +46,47 @@ class LvfsDatabaseClients(object):
                 ) CHARSET=utf8;
             """
             cur.execute(sql_db)
+
+        # test analytics table exists
+        try:
+            cur.execute("SELECT * FROM analytics LIMIT 1;")
+        except mdb.Error, e:
+            sql_db = """
+                CREATE TABLE analytics (
+                  datestr INT DEFAULT 0,
+                  kind TINYINT DEFAULT 0,
+                  cnt INT DEFAULT 1,
+                  UNIQUE (datestr,kind)
+                ) CHARSET=utf8;
+            """
+            cur.execute(sql_db)
+
+    def migrate(self):
+        """ mmm, tasty warm MySQL server """
+        try:
+            cur = self._db.cursor()
+            cur.execute("DELETE FROM analytics;")
+            cur.execute("SELECT timestamp, is_firmware FROM clients;")
+            res = cur.fetchall()
+            for e in res:
+                now = e[0]
+                datestr = int("%04i%02i%02i" % (now.year, now.month, now.day))
+                cur.execute("INSERT INTO analytics (datestr,kind) VALUES (%s, %s) "
+                            "ON DUPLICATE KEY UPDATE cnt=cnt+1;",
+                            (datestr, e[1],))
+        except mdb.Error, e:
+            raise CursorError(cur, e)
+
+    def log(self, when, kind):
+        """ get the number of files we've provided """
+        datestr = _get_datestr_from_datetime(when)
+        try:
+            cur = self._db.cursor()
+            cur.execute("INSERT INTO analytics (datestr,kind) VALUES (%s, %s) "
+                        "ON DUPLICATE KEY UPDATE cnt=cnt+1;",
+                        (datestr, kind,))
+        except mdb.Error, e:
+            raise CursorError(cur, e)
 
     def get_firmware_count_unique(self, kind):
         """ get the number of files we've provided """
@@ -106,24 +150,56 @@ class LvfsDatabaseClients(object):
         except mdb.Error, e:
             raise CursorError(cur, e)
 
-    def get_stats(self, size, interval, kind):
-        """ Gets stats data """
+    def get_stats_for_month(self, kind):
+        """ Gets stats data for the last month """
         data = []
         now = datetime.date.today()
 
-        # yes, there's probably a way to do this in one query with a
-        # 30-level INNER JOIN or something clever...
-        for i in range(size):
-            start = now - datetime.timedelta((i * interval) + interval - 1)
-            end = now - datetime.timedelta((i * interval) - 1)
+        cur = self._db.cursor()
+        for i in range(30):
+            datestr = _get_datestr_from_datetime(now)
             try:
-                cur = self._db.cursor()
-                cur.execute("SELECT COUNT(*) FROM clients "
-                            "WHERE is_firmware = %s AND timestamp >= %s "
-                            "AND timestamp <  %s", (kind, start, end,))
+                cur.execute("SELECT cnt FROM analytics "
+                            "WHERE kind = %s AND datestr = %s",
+                            (kind, datestr,))
             except mdb.Error, e:
                 raise CursorError(cur, e)
-            data.append(int(cur.fetchone()[0]))
+            res = cur.fetchone()
+            if res is None:
+                data.append(0)
+                continue
+            data.append(int(res[0]))
+
+            # back one day
+            now -= datetime.timedelta(days=1)
+        return data
+
+    def get_stats_for_year(self, kind):
+        """ Gets stats data for the last year """
+        data = []
+        now = datetime.date.today()
+
+        cur = self._db.cursor()
+        for i in range(12):
+            datestrold = _get_datestr_from_datetime(now)
+            now -= datetime.timedelta(days=30)
+            datestrnew = _get_datestr_from_datetime(now)
+            try:
+                cur.execute("SELECT cnt FROM analytics WHERE kind = %s "
+                            "AND datestr < %s AND datestr >= %s;",
+                            (kind, datestrold, datestrnew,))
+            except mdb.Error, e:
+                raise CursorError(cur, e)
+            res = cur.fetchall()
+            if res is None:
+                data.append(0)
+                continue
+
+            # sum up all the totals for each day in that month
+            cnt = 0
+            for res2 in res:
+                cnt += res2[0]
+            data.append(int(cnt))
         return data
 
     def get_stats_for_fn(self, size, interval, filename):
