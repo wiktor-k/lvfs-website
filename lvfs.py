@@ -1119,7 +1119,7 @@ def analytics():
 
     # add user agent
     labels, data = db_clients.get_user_agent_stats()
-    html += '<h2>User Agents</h2>'
+    html += '<h2>Firmware Downloads by User Agent</h2>'
     html += '<canvas id="metadataChartUserAgents" width="800" height="400"></canvas>'
     html += '<script>'
     html += 'var ctx = document.getElementById("metadataChartUserAgents").getContext("2d");'

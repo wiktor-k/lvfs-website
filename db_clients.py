@@ -75,17 +75,24 @@ class LvfsDatabaseClients(object):
         try:
             cur = self._db.cursor()
             cur.execute("SELECT user_agent, COUNT(*) AS count FROM clients "
-                        "WHERE user_agent IS NOT NULL AND filename = 'firmware.xml.gz.asc' "
-                        "GROUP BY user_agent ORDER BY COUNT(*) DESC LIMIT 6;")
+                        "WHERE user_agent IS NOT NULL AND is_firmware = %s "
+                        "GROUP BY user_agent ORDER BY COUNT(*) DESC LIMIT 6;",
+                        (LvfsDownloadKind.FIRMWARE,))
         except mdb.Error, e:
             raise CursorError(cur, e)
         res = cur.fetchall()
         if not res:
-            return (["No data"],[0])
+            return (["No data"], [0])
         labels = []
         data = []
         for e in res:
-            labels.append(e[0])
+            # split up a generic agent to a specific client
+            user_agent = e[0]
+            sections = user_agent.split(' ')
+            if sections[0] == 'Mozilla/5.0':
+                if len(sections) >= 3:
+                    user_agent = sections[2].replace(';', '')
+            labels.append(user_agent)
             data.append(e[1])
         return (labels, data)
 
