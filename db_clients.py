@@ -40,19 +40,6 @@ class LvfsDatabaseClients(object):
         except mdb.Error, e:
             raise CursorError(cur, e)
 
-    def get_firmware_count_unique(self, kind):
-        """ get the number of files we've provided """
-        try:
-            cur = self._db.cursor()
-            cur.execute("SELECT DISTINCT(COUNT(addr)) FROM clients "
-                        "WHERE is_firmware = %s", (kind,))
-        except mdb.Error, e:
-            raise CursorError(cur, e)
-        user_cnt = cur.fetchone()[0]
-        if not user_cnt:
-            return 0
-        return user_cnt
-
     def get_firmware_count_filename(self, filename):
         """ get the number of files we've provided """
         try:
@@ -169,23 +156,6 @@ class LvfsDatabaseClients(object):
                 cur.execute("SELECT COUNT(*) FROM clients "
                             "WHERE filename = %s AND timestamp >= %s "
                             "AND timestamp <  %s", (filename, start, end,))
-            except mdb.Error, e:
-                raise CursorError(cur, e)
-            data.append(int(cur.fetchone()[0]))
-        return data
-
-    def get_metadata_by_month(self, kind):
-        data = []
-        now = datetime.date.today()
-        for i in range(0, 12):
-            month_num = now.month - i
-            if month_num < 1:
-                month_num = 12 - month_num
-            try:
-                cur = self._db.cursor()
-                cur.execute("SELECT COUNT(*) FROM clients "
-                            "WHERE is_firmware = %s AND MONTH(timestamp) = %s;",
-                            (kind, month_num,))
             except mdb.Error, e:
                 raise CursorError(cur, e)
             data.append(int(cur.fetchone()[0]))
