@@ -13,7 +13,7 @@ import datetime
 import ConfigParser
 
 from flask import Blueprint, session, request, flash, url_for, redirect, \
-     render_template, abort, escape
+     render_template, escape
 
 import cabarchive
 import appstream
@@ -31,7 +31,7 @@ from metadata import metadata_update_qa_group, metadata_update_targets
 
 def sizeof_fmt(num, suffix='B'):
     """ Generate user-visible size """
-    if not type(num) in (int, long):
+    if type(num) not in (int, long):
         return "???%s???" % num
     for unit in ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']:
         if abs(num) < 1024.0:
@@ -129,13 +129,13 @@ def _event_log(msg, is_important=False):
                     _get_client_address(), is_important)
 
 def _check_session():
-    if not 'username' in session:
+    if 'username' not in session:
         return False
-    if not 'qa_group' in session:
+    if 'qa_group' not in session:
         return False
-    if not 'qa_capability' in session:
+    if 'qa_capability' not in session:
         return False
-    if not 'is_locked' in session:
+    if 'is_locked' not in session:
         return False
     return True
 
@@ -170,7 +170,7 @@ def index():
     The main page that shows existing firmware and also allows the
     user to add new firmware.
     """
-    if not 'username' in session:
+    if 'username' not in session:
         return redirect(url_for('.login'))
 
     return render_template('index.html')
@@ -317,13 +317,13 @@ def upload():
             tmp = cfg.get('Version', 'Class')
         except (ConfigParser.NoOptionError, ConfigParser.NoSectionError) as e:
             return error_internal('The inf file Version:Class was missing')
-        if not tmp == 'Firmware':
+        if tmp != 'Firmware':
             return error_internal('The inf file Version:Class was invalid')
         try:
             tmp = cfg.get('Version', 'ClassGuid')
         except ConfigParser.NoOptionError as e:
             return error_internal('The inf file Version:ClassGuid was missing')
-        if not tmp == '{f2e7dd72-6468-4e36-b6f1-6488f42c1b52}':
+        if tmp != '{f2e7dd72-6468-4e36-b6f1-6488f42c1b52}':
             return error_internal('The inf file Version:ClassGuid was invalid')
         try:
             tmp = cfg.get('Version', 'DriverVer')
