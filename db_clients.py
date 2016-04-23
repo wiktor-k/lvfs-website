@@ -61,22 +61,6 @@ class LvfsDatabaseClients(object):
             """
             cur.execute(sql_db)
 
-    def migrate(self):
-        """ mmm, tasty warm MySQL server """
-        try:
-            cur = self._db.cursor()
-            cur.execute("DELETE FROM analytics;")
-            cur.execute("SELECT timestamp, is_firmware FROM clients;")
-            res = cur.fetchall()
-            for e in res:
-                now = e[0]
-                datestr = int("%04i%02i%02i" % (now.year, now.month, now.day))
-                cur.execute("INSERT INTO analytics (datestr,kind) VALUES (%s, %s) "
-                            "ON DUPLICATE KEY UPDATE cnt=cnt+1;",
-                            (datestr, e[1],))
-        except mdb.Error, e:
-            raise CursorError(cur, e)
-
     def log(self, when, kind):
         """ get the number of files we've provided """
         datestr = _get_datestr_from_datetime(when)

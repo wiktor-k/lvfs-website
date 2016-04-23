@@ -1013,13 +1013,6 @@ def firmware_id(fwid):
 
     return render_template('firmware-details.html', dyncontent=html)
 
-@lvfs.route('/migrate')
-def migrate():
-    """ Migrate the analytics data """
-    db = LvfsDatabase(os.environ)
-    db_clients = LvfsDatabaseClients(db)
-    db_clients.migrate()
-
 @lvfs.route('/analytics')
 def analytics():
     """ A analytics screen to show information about users """
