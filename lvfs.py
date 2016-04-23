@@ -25,7 +25,6 @@ from db_firmware import LvfsDatabaseFirmware, LvfsFirmware, LvfsFirmwareMd
 from db_users import LvfsDatabaseUsers, _password_hash
 from db_cache import LvfsDatabaseCache
 from inf_parser import InfParser
-from backup import ensure_checkpoint
 from config import DOWNLOAD_DIR, UPLOAD_DIR, CABEXTRACT_CMD, KEYRING_DIR
 from util import _qa_hash
 from metadata import metadata_update_qa_group, metadata_update_targets
@@ -543,10 +542,6 @@ def upload():
     except CursorError as e:
         return error_internal('Failed to generate metadata: ' + str(e))
 
-
-    # ensure we save the latest data
-    ensure_checkpoint()
-
     return redirect(url_for('.firmware_id', fwid=fwid))
 
 @lvfs.route('/device')
@@ -805,9 +800,6 @@ def firmware_delete_force(fwid):
         return error_internal('Failed to generate metadata: ' + str(e))
 
     _event_log("Deleted firmware %s" % fwid)
-
-    # ensure we save the latest data
-    ensure_checkpoint()
     return redirect(url_for('.firmware'))
 
 @lvfs.route('/firmware/<fwid>/promote/<target>')
@@ -863,10 +855,6 @@ def firmware_promote(fwid, target):
         return error_internal('Failed to sign metadata: ' + str(e))
     except CursorError as e:
         return error_internal('Failed to generate metadata: ' + str(e))
-
-    # ensure we save the latest data
-    ensure_checkpoint()
-
     return redirect(url_for('.firmware_id', fwid=fwid))
 
 @lvfs.route('/firmware/<fwid>')
@@ -1436,10 +1424,6 @@ def useradd():
     except CursorError as e:
         #FIXME
         pass
-
-    # ensure we save the latest data
-    ensure_checkpoint()
-
     _event_log("Created user %s" % username_new)
     flash('Added user')
     return redirect(url_for('.userlist')), 201
@@ -1469,10 +1453,6 @@ def user_delete(username):
     except CursorError as e:
         return error_internal(str(e))
     _event_log("Deleted user %s" % username)
-
-    # ensure we save the latest data
-    ensure_checkpoint()
-
     flash('Deleted user')
     return redirect(url_for('.userlist')), 201
 
@@ -1497,16 +1477,6 @@ def usermod(username, key, value):
 
     # set correct response code
     _event_log("Set %s=%s for user %s" % (key, value, username))
-
-    # ensure we save the latest data
-    msg = ensure_checkpoint()
-    if msg:
-        db = LvfsDatabase(os.environ)
-        db_eventlog = LvfsDatabaseEventlog(db)
-        db_eventlog.add(msg, session['username'], 'admin',
-                        _get_client_address(), False)
-
-
     return redirect(url_for('.userlist'))
 
 @lvfs.route('/user/<username>/enable')
