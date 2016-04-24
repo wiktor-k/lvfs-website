@@ -7,7 +7,7 @@
 import os
 import datetime
 
-from flask import Flask, flash, render_template, redirect, request, send_from_directory
+from flask import Flask, flash, render_template, redirect, request, send_from_directory, abort
 
 from db import LvfsDatabase, CursorError
 from db_clients import LvfsDatabaseClients, LvfsDownloadKind
@@ -62,6 +62,11 @@ def fwupd_vendors():
 def serveStaticResource(resource):
     """ Return a static image or resource """
 
+    # ban MJ12BOT, it ignores robots.txt
+    user_agent = request.headers.get('User-Agent')
+    if user_agent.find('MJ12BOT') != -1:
+        abort(403)
+
     # log certain kinds of files
     if resource.endswith('.cab'):
         try:
@@ -70,7 +75,7 @@ def serveStaticResource(resource):
             clients.log(datetime.date.today(), LvfsDownloadKind.FIRMWARE)
             clients.increment(_get_client_address(),
                               os.path.basename(resource),
-                              request.headers.get('User-Agent'))
+                              user_agent)
         except CursorError as e:
             print str(e)
     elif resource.endswith('.xml.gz.asc'):
