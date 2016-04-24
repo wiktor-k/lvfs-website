@@ -58,9 +58,8 @@ class LvfsDatabaseClients(object):
         try:
             cur = self._db.cursor()
             cur.execute("SELECT user_agent, COUNT(*) AS count FROM clients "
-                        "WHERE user_agent IS NOT NULL AND is_firmware = %s "
-                        "GROUP BY user_agent ORDER BY COUNT(*) DESC LIMIT 6;",
-                        (LvfsDownloadKind.FIRMWARE,))
+                        "WHERE user_agent IS NOT NULL "
+                        "GROUP BY user_agent ORDER BY COUNT(*) DESC LIMIT 6;")
         except mdb.Error, e:
             raise CursorError(cur, e)
         res = cur.fetchall()
@@ -79,13 +78,13 @@ class LvfsDatabaseClients(object):
             data.append(e[1])
         return (labels, data)
 
-    def increment(self, address, kind, fn=None, user_agent=None):
+    def increment(self, address, fn=None, user_agent=None):
         """ Adds a client address into the database """
         try:
             cur = self._db.cursor()
-            cur.execute("INSERT INTO clients (addr, is_firmware, filename, user_agent) "
-                        "VALUES (%s, %s, %s, %s);",
-                        (_addr_hash(address), kind, fn, user_agent,))
+            cur.execute("INSERT INTO clients (addr, filename, user_agent) "
+                        "VALUES (%s, %s, %s);",
+                        (_addr_hash(address), fn, user_agent,))
         except mdb.Error, e:
             raise CursorError(cur, e)
 

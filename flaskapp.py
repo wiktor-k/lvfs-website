@@ -69,7 +69,6 @@ def serveStaticResource(resource):
             clients = LvfsDatabaseClients(db)
             clients.log(datetime.date.today(), LvfsDownloadKind.FIRMWARE)
             clients.increment(_get_client_address(),
-                              LvfsDownloadKind.FIRMWARE,
                               os.path.basename(resource),
                               request.headers.get('User-Agent'))
         except CursorError as e:
