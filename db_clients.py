@@ -69,12 +69,7 @@ class LvfsDatabaseClients(object):
         data = []
         for e in res:
             # split up a generic agent to a specific client
-            user_agent = e[0]
-            sections = user_agent.split(' ')
-            if sections[0] == 'Mozilla/5.0':
-                if len(sections) >= 3:
-                    user_agent = sections[2].replace(';', '')
-            labels.append(user_agent)
+            labels.append(e[0].split(' ')[0])
             data.append(e[1])
         return (labels, data)
 
