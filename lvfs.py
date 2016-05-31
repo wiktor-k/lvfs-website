@@ -404,6 +404,9 @@ def upload():
         os.mkdir(UPLOAD_DIR)
     open(os.path.join(UPLOAD_DIR, new_filename), 'wb').write(data)
 
+    # add these after parsing in case multiple components use the same file
+    asc_files = {}
+
     # fix up the checksums and add the detached signature
     for component in apps:
 
@@ -430,13 +433,14 @@ def upload():
         # add the detached signature if not already signed
         sig_data = arc.find_file(csum.filename + ".asc")
         if not sig_data:
-            try:
-                affidavit = create_affidavit()
-            except NoKeyError as e:
-                return error_internal('Failed to sign archive: ' + str(e))
-            cff = cabarchive.CabFile(fw_data.filename + '.asc',
-                                     affidavit.create(fw_data.contents))
-            arc.add_file(cff)
+            if not csum.filename in asc_files:
+                try:
+                    affidavit = create_affidavit()
+                except NoKeyError as e:
+                    return error_internal('Failed to sign archive: ' + str(e))
+                cff = cabarchive.CabFile(fw_data.filename + '.asc',
+                                         affidavit.create(fw_data.contents))
+                asc_files[csum.filename] = cff
         else:
             # check this file is signed by something we trust
             try:
@@ -444,6 +448,10 @@ def upload():
                 affidavit.verify(fw_data.contents)
             except NoKeyError as e:
                 return error_internal('Failed to verify archive: ' + str(e))
+
+    # add all the .asc files to the archive
+    for key in asc_files:
+        arc.add_file(asc_files[key])
 
     # export the new archive and get the checksum
     cab_data = arc.save(compressed=True)
