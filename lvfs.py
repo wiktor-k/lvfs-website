@@ -357,9 +357,9 @@ def upload():
             component.parse(str(cf.contents))
             component.validate()
         except appstream.ParseError as e:
-            return error_internal('The metadata could not be parsed: ' + str(e))
+            return error_internal('The metadata %s could not be parsed: %s' % (cf, str(e)))
         except appstream.ValidationError as e:
-            return error_internal('The metadata file did not validate: ' + str(e))
+            return error_internal('The metadata %s file did not validate: %s' % (cf, str(e)))
 
         # check the file does not have any missing request.form
         if cf.contents.find('FIXME') != -1:
