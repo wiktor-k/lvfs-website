@@ -25,7 +25,7 @@ from db_firmware import LvfsDatabaseFirmware, LvfsFirmware, LvfsFirmwareMd
 from db_users import LvfsDatabaseUsers, _password_hash
 from db_cache import LvfsDatabaseCache
 from inf_parser import InfParser
-from config import DOWNLOAD_DIR, UPLOAD_DIR, CABEXTRACT_CMD, KEYRING_DIR
+from config import DOWNLOAD_DIR, CABEXTRACT_CMD, KEYRING_DIR
 from util import _qa_hash
 from metadata import metadata_update_qa_group, metadata_update_targets
 
@@ -400,9 +400,6 @@ def upload():
     # only save if we passed all tests
     basename = os.path.basename(fileitem.filename)
     new_filename = fwid + '-' + basename
-    if not os.path.exists(UPLOAD_DIR):
-        os.mkdir(UPLOAD_DIR)
-    open(os.path.join(UPLOAD_DIR, new_filename), 'wb').write(data)
 
     # add these after parsing in case multiple components use the same file
     asc_files = {}
@@ -783,7 +780,7 @@ def firmware_delete_force(fwid):
         return error_internal(str(e))
 
     # delete file(s)
-    for loc in [UPLOAD_DIR, DOWNLOAD_DIR]:
+    for loc in [DOWNLOAD_DIR]:
         path = os.path.join(loc, item.filename)
         if os.path.exists(path):
             os.remove(path)
@@ -1646,21 +1643,6 @@ def metadata_rebuild():
         return redirect(url_for('.login'))
     if session['username'] != 'admin':
         return error_permission_denied('Only admin is allowed to force-rebuild metadata')
-
-    # go through existing files and fix descriptions
-    try:
-        db = LvfsDatabase(os.environ)
-        db_firmware = LvfsDatabaseFirmware(db)
-        items = db_firmware.get_items()
-    except CursorError as e:
-        return error_internal(str(e))
-    for fn in glob.glob(os.path.join(UPLOAD_DIR, "*.cab")):
-        fwupd = os.path.basename(fn).split('-')[0]
-        for fwobj in items:
-            if fwobj.fwid == fwupd:
-                err_page = _update_metadata_from_fn(fwobj, fn)
-                if err_page:
-                    return err_page
 
     # update metadata
     try:
