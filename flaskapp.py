@@ -92,12 +92,6 @@ def serveStaticResource(resource):
         except CursorError as e:
             print str(e)
 
-    # use apache for the static file so we can scale
-    if 'OPENSHIFT_APP_DNS' in os.environ:
-        if resource.startswith('download/'):
-            uri = "https://%s/static/%s" % (os.environ['OPENSHIFT_APP_DNS'], resource)
-            return redirect(uri, 301)
-
     return send_from_directory('static/', resource)
 
 if __name__ == '__main__':
