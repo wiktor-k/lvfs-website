@@ -93,6 +93,11 @@ def serveStaticResource(resource):
         except CursorError as e:
             print str(e)
 
+    # firmware blobs are stored on S3 now
+    if resource.startswith('downloads/'):
+        return redirect(os.path.join(CDN_URI, resource), 301)
+
+    # static files served locally
     return send_from_directory('static/', resource)
 
 if __name__ == '__main__':
