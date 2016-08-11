@@ -92,13 +92,6 @@ To set up the database tables do:
       UNIQUE (datestr,kind)
     ) CHARSET=utf8;
 
-    CREATE TABLE cache (
-      created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      filename VARCHAR(255) DEFAULT NULL,
-      data BLOB DEFAULT NULL,
-      UNIQUE KEY filename (filename)
-    ) CHARSET=utf8;
-
 The default admin password is Pa$$w0rd
 
 Importing the GPG key
