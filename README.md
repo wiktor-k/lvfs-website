@@ -104,3 +104,11 @@ For testing, just use the test GPG key.
     gpg2 --homedir=./gnupg/ --edit-key D64F5C21
     gpg> passwd
     gpg> quit
+
+Speeding up OpenShift
+---------------------
+
+Add to python/conf.d/openshift.conf
+
+    RewriteEngine On
+    RewriteRule ^downloads/(.+)$ /static/downloads/$1 [L]
