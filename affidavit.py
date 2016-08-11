@@ -50,18 +50,6 @@ class Affidavit(object):
         return True
 
 def main():
-
-    # [mine]$ gpg2 --export-secret-key > secret.key
-    # [mine]$ sudo sshfs hash@instance:/var/lib/openshift/hash/app-root/data mnt
-    # [mine]$ mkdir mnt/gnupg
-    # [mine]$ cp secret.key mnt/gnupg
-    # [mine]$ sudo umount mnt
-    # [mine]$ ssh hash@instance
-    # [open]$ gpg2 --homedir app-root/data/gnupg --allow-secret-key-import --import secret.key
-    # [open]$ gpg2 --edit-key keyid
-    # Command> passwd
-    # Command> quit
-
     ss = Affidavit('sign-test@fwupd.org', '/home/hughsie/.gnupg')
     asc = ss.create('hello world')
     print asc
