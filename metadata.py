@@ -5,10 +5,12 @@
 # Licensed under the GNU General Public License Version 2
 
 import os
+import gzip
+
 import appstream
 
 from config import DOWNLOAD_DIR
-from util import _qa_hash
+from util import _qa_hash, _upload_to_cdn
 from db import LvfsDatabase, CursorError
 from db_eventlog import LvfsDatabaseEventlog
 from db_firmware import LvfsDatabaseFirmware
@@ -88,6 +90,11 @@ def _generate_metadata_kind(filename, targets=None, qa_group=None):
         os.mkdir(DOWNLOAD_DIR)
     filename = os.path.join(DOWNLOAD_DIR, filename)
     store.to_file(filename)
+
+    # upload to the CDN
+    blob = open(filename, 'rb').read()
+    _upload_to_cdn(filename, blob)
+
     return filename
 
 def metadata_update_qa_group(qa_group):

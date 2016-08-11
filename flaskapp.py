@@ -11,6 +11,7 @@ from flask import Flask, flash, render_template, redirect, request, send_from_di
 
 from db import LvfsDatabase, CursorError
 from db_clients import LvfsDatabaseClients, LvfsDownloadKind
+from config import CDN_URI
 
 def _get_client_address():
     """ Gets user IP address """

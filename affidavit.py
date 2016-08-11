@@ -40,6 +40,7 @@ class Affidavit(object):
         data = open(filename).read()
         with open(filename + '.asc', 'w') as f:
             f.write(self.create(data))
+        return filename + '.asc'
 
     def verify(self, data):
         """ Verify that the data was signed by something we trust """

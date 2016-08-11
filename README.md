@@ -114,7 +114,7 @@ Add to python/conf.d/openshift.conf
 Use the secure GPG key (with the long secret password).
 
     export OPENSHIFT_NAMESPACE=lvfs
-    export OPENSHIFT_APP=testing
+    export OPENSHIFT_APP=secure
     rhc scp --app ${OPENSHIFT_APP} --namespace ${OPENSHIFT_NAMESPACE} \
         upload backup/app-root/data/gnupg/fwupd-secret-signing-key.key \
         app-root/data
@@ -154,7 +154,7 @@ Or, to get a complete backup you can do:
 If this is a fresh instance you want to set up using:
 
     export OPENSHIFT_NAMESPACE=lvfs
-    export OPENSHIFT_APP=testing
+    export OPENSHIFT_APP=secure
     rhc delete-app --app ${OPENSHIFT_APP} --namespace ${OPENSHIFT_NAMESPACE}
     rhc create-app --type python-3.3 --scaling \
         --app ${OPENSHIFT_APP} --namespace ${OPENSHIFT_NAMESPACE} \
@@ -167,7 +167,7 @@ If this is a fresh instance you want to set up using:
         LVFS_CDN_URI=https://s3.amazonaws.com/lvfsbucket
     rhc env set --app ${OPENSHIFT_APP} \
         --namespace ${OPENSHIFT_NAMESPACE} \
-        LVFS_URI=https://testing-lvfs.rhcloud.com
+        LVFS_URI=https://secure-lvfs.rhcloud.com
     rhc show-app --app ${OPENSHIFT_APP} --namespace ${OPENSHIFT_NAMESPACE}
 
 To just restore the database, do:

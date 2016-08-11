@@ -25,7 +25,7 @@ from db_firmware import LvfsDatabaseFirmware, LvfsFirmware, LvfsFirmwareMd
 from db_users import LvfsDatabaseUsers, _password_hash
 from inf_parser import InfParser
 from config import DOWNLOAD_DIR, CABEXTRACT_CMD, KEYRING_DIR
-from util import _qa_hash
+from util import _qa_hash, _upload_to_cdn
 from metadata import metadata_update_qa_group, metadata_update_targets
 
 def sizeof_fmt(num, suffix='B'):
@@ -459,6 +459,10 @@ def upload():
     fn = os.path.join(DOWNLOAD_DIR, new_filename)
     open(fn, 'wb').write(cab_data)
 
+
+    # dump to the CDN
+    _upload_to_cdn(new_filename, cab_data)
+
     # create parent firmware object
     target = request.form['target']
     fwobj = LvfsFirmware()
@@ -528,7 +532,8 @@ def upload():
         # create detached signatures
         affidavit = create_affidavit()
         for filename in filenames:
-            affidavit.create_detached(filename)
+            fn_asc = affidavit.create_detached(filename)
+            _upload_to_cdn(fn_asc, open(fn_asc).read())
 
     except NoKeyError as e:
         return error_internal('Failed to sign metadata: ' + str(e))
@@ -779,7 +784,8 @@ def firmware_delete_force(fwid):
         # create detached signatures
         affidavit = create_affidavit()
         for filename in filenames:
-            affidavit.create_detached(filename)
+            fn_asc = affidavit.create_detached(filename)
+            _upload_to_cdn(fn_asc, open(fn_asc).read())
     except NoKeyError as e:
         return error_internal('Failed to sign metadata: ' + str(e))
     except CursorError as e:
@@ -836,7 +842,8 @@ def firmware_promote(fwid, target):
         # create detached signatures
         affidavit = create_affidavit()
         for filename in filenames:
-            affidavit.create_detached(filename)
+            fn_asc = affidavit.create_detached(filename)
+            _upload_to_cdn(fn_asc, open(fn_asc).read())
     except NoKeyError as e:
         return error_internal('Failed to sign metadata: ' + str(e))
     except CursorError as e:
@@ -1610,8 +1617,8 @@ def metadata_rebuild():
         # create detached signatures
         affidavit = create_affidavit()
         for filename in filenames:
-            affidavit.create_detached(filename)
-
+            fn_asc = affidavit.create_detached(filename)
+            _upload_to_cdn(fn_asc, open(fn_asc).read())
     except NoKeyError as e:
         return error_internal('Failed to sign metadata: ' + str(e))
     except CursorError as e:
