@@ -7,6 +7,7 @@
 import hashlib
 import os
 import boto3
+import sys
 
 def _qa_hash(value):
     """ Generate a salted hash of the QA group """
@@ -22,3 +23,13 @@ def _upload_to_cdn(fn, blob):
     print("uploading %s as %s" % (fn, key))
     obj = bucket.put_object(Key=key, Body=blob)
     obj.Acl().put(ACL='public-read')
+
+def main():
+    if len(sys.argv) != 2:
+        print "usage: filename"
+        return
+    blob = open(sys.argv[1], 'rb').read()
+    _upload_to_cdn(sys.argv[1], blob)
+
+if __name__ == "__main__":
+    main()
