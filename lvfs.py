@@ -7,7 +7,6 @@
 import os
 import hashlib
 import math
-import glob
 import calendar
 import datetime
 import ConfigParser
@@ -17,15 +16,15 @@ from flask import Blueprint, session, request, flash, url_for, redirect, \
 
 import cabarchive
 import appstream
-from affidavit import Affidavit, NoKeyError
+from affidavit import NoKeyError
 from db import LvfsDatabase, CursorError
 from db_clients import LvfsDatabaseClients, LvfsDownloadKind
 from db_eventlog import LvfsDatabaseEventlog
 from db_firmware import LvfsDatabaseFirmware, LvfsFirmware, LvfsFirmwareMd
 from db_users import LvfsDatabaseUsers, _password_hash
 from inf_parser import InfParser
-from config import DOWNLOAD_DIR, CABEXTRACT_CMD, KEYRING_DIR
-from util import _qa_hash, _upload_to_cdn
+from config import DOWNLOAD_DIR, CABEXTRACT_CMD
+from util import _qa_hash, _upload_to_cdn, create_affidavit
 from metadata import metadata_update_qa_group, metadata_update_targets
 
 def sizeof_fmt(num, suffix='B'):
@@ -137,13 +136,6 @@ def _check_session():
     if 'is_locked' not in session:
         return False
     return True
-
-def create_affidavit():
-    """ Create an affidavit that can be used to sign files """
-    db = LvfsDatabase(os.environ)
-    db_users = LvfsDatabaseUsers(db)
-    key_uid = db_users.get_signing_uid()
-    return Affidavit(key_uid, KEYRING_DIR)
 
 ################################################################################
 
@@ -518,22 +510,12 @@ def upload():
 
     # ensure up to date
     try:
-        filenames = []
         if target != 'private':
-            tmp = metadata_update_qa_group(fwobj.qa_group)
-            filenames.extend(tmp)
+            metadata_update_qa_group(fwobj.qa_group)
         if target == 'stable':
-            tmp = metadata_update_targets(['stable', 'testing'])
-            filenames.extend(tmp)
+            metadata_update_targets(['stable', 'testing'])
         elif target == 'testing':
-            tmp = metadata_update_targets(['testing'])
-            filenames.extend(tmp)
-
-        # create detached signatures
-        affidavit = create_affidavit()
-        for filename in filenames:
-            fn_asc = affidavit.create_detached(filename)
-            _upload_to_cdn(fn_asc, open(fn_asc).read())
+            metadata_update_targets(['testing'])
 
     except NoKeyError as e:
         return error_internal('Failed to sign metadata: ' + str(e))
@@ -773,19 +755,11 @@ def firmware_delete_force(fwid):
 
     # update everything
     try:
-        filenames = metadata_update_qa_group(item.qa_group)
+        metadata_update_qa_group(item.qa_group)
         if item.target == 'stable':
-            tmp = metadata_update_targets(targets=['stable', 'testing'])
-            filenames.extend(tmp)
+            metadata_update_targets(targets=['stable', 'testing'])
         elif item.target == 'testing':
-            tmp = metadata_update_targets(targets=['testing'])
-            filenames.extend(tmp)
-
-        # create detached signatures
-        affidavit = create_affidavit()
-        for filename in filenames:
-            fn_asc = affidavit.create_detached(filename)
-            _upload_to_cdn(fn_asc, open(fn_asc).read())
+            metadata_update_targets(targets=['testing'])
     except NoKeyError as e:
         return error_internal('Failed to sign metadata: ' + str(e))
     except CursorError as e:
@@ -831,19 +805,11 @@ def firmware_promote(fwid, target):
 
     # update everything
     try:
-        filenames = metadata_update_qa_group(item.qa_group)
+        metadata_update_qa_group(item.qa_group)
         if target == 'stable':
-            tmp = metadata_update_targets(['stable', 'testing'])
-            filenames.extend(tmp)
+            metadata_update_targets(['stable', 'testing'])
         elif target == 'testing':
-            tmp = metadata_update_targets(['testing'])
-            filenames.extend(tmp)
-
-        # create detached signatures
-        affidavit = create_affidavit()
-        for filename in filenames:
-            fn_asc = affidavit.create_detached(filename)
-            _upload_to_cdn(fn_asc, open(fn_asc).read())
+            metadata_update_targets(['testing'])
     except NoKeyError as e:
         return error_internal('Failed to sign metadata: ' + str(e))
     except CursorError as e:
@@ -1611,14 +1577,8 @@ def metadata_rebuild():
 
     # update metadata
     try:
-        filenames = metadata_update_qa_group(None)
-        filenames.extend(metadata_update_targets(['stable', 'testing']))
-
-        # create detached signatures
-        affidavit = create_affidavit()
-        for filename in filenames:
-            fn_asc = affidavit.create_detached(filename)
-            _upload_to_cdn(fn_asc, open(fn_asc).read())
+        metadata_update_qa_group(None)
+        metadata_update_targets(['stable', 'testing'])
     except NoKeyError as e:
         return error_internal('Failed to sign metadata: ' + str(e))
     except CursorError as e:

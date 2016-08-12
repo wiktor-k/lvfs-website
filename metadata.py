@@ -5,17 +5,15 @@
 # Licensed under the GNU General Public License Version 2
 
 import os
-import gzip
 
 import appstream
 
 from config import DOWNLOAD_DIR
-from util import _qa_hash, _upload_to_cdn
-from db import LvfsDatabase, CursorError
-from db_eventlog import LvfsDatabaseEventlog
+from util import _qa_hash, _upload_to_cdn, create_affidavit
+from db import LvfsDatabase
 from db_firmware import LvfsDatabaseFirmware
 
-def _generate_metadata_kind(filename, targets=None, qa_group=None):
+def _generate_metadata_kind(filename, targets=None, qa_group=None, affidavit=None):
     """ Generates AppStream metadata of a specific kind """
     db = LvfsDatabase(os.environ)
     db_firmware = LvfsDatabaseFirmware(db)
@@ -95,40 +93,42 @@ def _generate_metadata_kind(filename, targets=None, qa_group=None):
     blob = open(filename, 'rb').read()
     _upload_to_cdn(filename, blob)
 
-    return filename
+    # generate and upload the detached signature
+    if affidavit:
+        blob_asc = affidavit.create(blob)
+        _upload_to_cdn(filename + '.asc', blob_asc)
 
 def metadata_update_qa_group(qa_group):
     """ updates metadata for a specific qa_group """
 
     # explicit
+    affidavit = create_affidavit()
     if qa_group:
         filename = 'firmware-%s.xml.gz' % _qa_hash(qa_group)
-        _generate_metadata_kind(filename, qa_group=qa_group)
-        return [os.path.join(DOWNLOAD_DIR, filename)]
+        _generate_metadata_kind(filename,
+                                qa_group=qa_group,
+                                affidavit=affidavit)
+        return
 
     # do for all
     db = LvfsDatabase(os.environ)
     db_firmware = LvfsDatabaseFirmware(db)
     qa_groups = db_firmware.get_qa_groups()
-    filenames = []
     for qa_group in qa_groups:
         filename_qa = 'firmware-%s.xml.gz' % _qa_hash(qa_group)
-        filename = _generate_metadata_kind(filename_qa, qa_group=qa_group)
-        filenames.append(filename)
-
-    # return all the files we have to sign
-    return filenames
+        _generate_metadata_kind(filename_qa,
+                                qa_group=qa_group,
+                                affidavit=affidavit)
 
 def metadata_update_targets(targets):
     """ updates metadata for a specific target """
-    filenames = []
+    affidavit = create_affidavit()
     for target in targets:
         if target == 'stable':
-            filename = _generate_metadata_kind('firmware.xml.gz', targets=['stable'])
-            filenames.append(filename)
+            _generate_metadata_kind('firmware.xml.gz',
+                                    targets=['stable'],
+                                    affidavit=affidavit)
         elif target == 'testing':
-            filename = _generate_metadata_kind('firmware-testing.xml.gz', targets=['stable', 'testing'])
-            filenames.append(filename)
-
-    # return all the files we have to sign
-    return filenames
+            _generate_metadata_kind('firmware-testing.xml.gz',
+                                    targets=['stable', 'testing'],
+                                    affidavit=affidavit)
