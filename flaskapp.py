@@ -78,20 +78,6 @@ def serveStaticResource(resource):
                               user_agent)
         except CursorError as e:
             print str(e)
-    elif resource.endswith('.xml.gz.asc'):
-        try:
-            db = LvfsDatabase(os.environ)
-            clients = LvfsDatabaseClients(db)
-            clients.log(datetime.date.today(), LvfsDownloadKind.SIGNING)
-        except CursorError as e:
-            print str(e)
-    elif resource.endswith('.xml.gz'):
-        try:
-            db = LvfsDatabase(os.environ)
-            clients = LvfsDatabaseClients(db)
-            clients.log(datetime.date.today(), LvfsDownloadKind.METADATA)
-        except CursorError as e:
-            print str(e)
 
     # firmware blobs are stored on S3 now
     if resource.startswith('downloads/'):
