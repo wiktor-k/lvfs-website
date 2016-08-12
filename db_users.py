@@ -54,7 +54,7 @@ class LvfsDatabaseUsers(object):
         try:
             cur = self._db.cursor()
             cur.execute("SELECT email FROM users WHERE username='admin'")
-        except mdb.Error, e:
+        except mdb.Error as e:
             raise CursorError(cur, e)
         key_uid = cur.fetchone()
         return key_uid[0]
@@ -73,7 +73,7 @@ class LvfsDatabaseUsers(object):
                         "email, is_enabled, qa_group) "
                         "VALUES (%s, %s, %s, %s, 1, %s);",
                         (username, pw_hash, name, email, qa_group,))
-        except mdb.Error, e:
+        except mdb.Error as e:
             raise CursorError(cur, e)
 
     def remove(self, username):
@@ -82,7 +82,7 @@ class LvfsDatabaseUsers(object):
         try:
             cur = self._db.cursor()
             cur.execute("DELETE FROM users WHERE username=%s;", (username,))
-        except mdb.Error, e:
+        except mdb.Error as e:
             raise CursorError(cur, e)
 
     def set_property(self, username, key, value):
@@ -95,19 +95,19 @@ class LvfsDatabaseUsers(object):
             try:
                 cur.execute("UPDATE users SET is_qa=%s WHERE username=%s;",
                             (value, username,))
-            except mdb.Error, e:
+            except mdb.Error as e:
                 raise CursorError(cur, e)
         elif key == 'enabled':
             try:
                 cur.execute("UPDATE users SET is_enabled=%s WHERE username=%s;",
                             (value, username,))
-            except mdb.Error, e:
+            except mdb.Error as e:
                 raise CursorError(cur, e)
         elif key == 'locked':
             try:
                 cur.execute("UPDATE users SET is_locked=%s WHERE username=%s;",
                             (value, username,))
-            except mdb.Error, e:
+            except mdb.Error as e:
                 raise CursorError(cur, e)
         else:
             raise RuntimeError('Unable to change user as key invalid')
@@ -118,7 +118,7 @@ class LvfsDatabaseUsers(object):
         cur = self._db.cursor()
         try:
             cur.execute("SELECT is_enabled FROM users WHERE username=%s", (username,))
-        except mdb.Error, e:
+        except mdb.Error as e:
             raise CursorError(cur, e)
         auth = cur.fetchone()
         if auth:
@@ -134,7 +134,7 @@ class LvfsDatabaseUsers(object):
             cur = self._db.cursor()
             cur.execute("SELECT is_enabled FROM users WHERE username=%s AND password=%s;",
                         (username, pw_hash,))
-        except mdb.Error, e:
+        except mdb.Error as e:
             raise CursorError(cur, e)
         auth = cur.fetchone()
         if not auth:
@@ -152,7 +152,7 @@ class LvfsDatabaseUsers(object):
             cur.execute("UPDATE users SET display_name=%s, email=%s, password=%s, pubkey=%s "
                         "WHERE username=%s;",
                         (name, email, _password_hash(password), pubkey, username,))
-        except mdb.Error, e:
+        except mdb.Error as e:
             raise CursorError(cur, e)
 
     def get_items(self):
@@ -161,7 +161,7 @@ class LvfsDatabaseUsers(object):
             cur = self._db.cursor()
             cur.execute("SELECT username, display_name, email, password, "
                         "is_enabled, is_qa, qa_group, is_locked, pubkey FROM users;")
-        except mdb.Error, e:
+        except mdb.Error as e:
             raise CursorError(cur, e)
         res = cur.fetchall()
         if not res:
@@ -186,7 +186,7 @@ class LvfsDatabaseUsers(object):
                             "is_enabled, is_qa, qa_group, is_locked, pubkey FROM users "
                             "WHERE username = %s LIMIT 1;",
                             (username,))
-        except mdb.Error, e:
+        except mdb.Error as e:
             raise CursorError(cur, e)
         res = cur.fetchone()
         if not res:

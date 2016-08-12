@@ -37,7 +37,7 @@ class LvfsDatabaseClients(object):
             cur.execute("INSERT INTO analytics (datestr,kind) VALUES (%s, %s) "
                         "ON DUPLICATE KEY UPDATE cnt=cnt+1;",
                         (datestr, kind,))
-        except mdb.Error, e:
+        except mdb.Error as e:
             raise CursorError(cur, e)
 
     def get_firmware_count_filename(self, filename):
@@ -46,7 +46,7 @@ class LvfsDatabaseClients(object):
             cur = self._db.cursor()
             cur.execute("SELECT DISTINCT(COUNT(addr)) FROM clients "
                         "WHERE filename = %s", (filename,))
-        except mdb.Error, e:
+        except mdb.Error as e:
             raise CursorError(cur, e)
         user_cnt = cur.fetchone()[0]
         if not user_cnt:
@@ -60,7 +60,7 @@ class LvfsDatabaseClients(object):
             cur.execute("SELECT user_agent, COUNT(*) AS count FROM clients "
                         "WHERE user_agent IS NOT NULL "
                         "GROUP BY user_agent ORDER BY COUNT(*) DESC LIMIT 6;")
-        except mdb.Error, e:
+        except mdb.Error as e:
             raise CursorError(cur, e)
         res = cur.fetchall()
         if not res:
@@ -80,7 +80,7 @@ class LvfsDatabaseClients(object):
             cur.execute("INSERT INTO clients (addr, filename, user_agent) "
                         "VALUES (%s, %s, %s);",
                         (_addr_hash(address), fn, user_agent,))
-        except mdb.Error, e:
+        except mdb.Error as e:
             raise CursorError(cur, e)
 
     def get_stats_for_month(self, kind):
@@ -95,7 +95,7 @@ class LvfsDatabaseClients(object):
                 cur.execute("SELECT cnt FROM analytics "
                             "WHERE kind = %s AND datestr = %s",
                             (kind, datestr,))
-            except mdb.Error, e:
+            except mdb.Error as e:
                 raise CursorError(cur, e)
             res = cur.fetchone()
             if res is None:
@@ -121,7 +121,7 @@ class LvfsDatabaseClients(object):
                 cur.execute("SELECT cnt FROM analytics WHERE kind = %s "
                             "AND datestr < %s AND datestr >= %s;",
                             (kind, datestrold, datestrnew,))
-            except mdb.Error, e:
+            except mdb.Error as e:
                 raise CursorError(cur, e)
             res = cur.fetchall()
             if res is None:
@@ -150,7 +150,7 @@ class LvfsDatabaseClients(object):
                 cur.execute("SELECT COUNT(*) FROM clients "
                             "WHERE filename = %s AND timestamp >= %s "
                             "AND timestamp <  %s", (filename, start, end,))
-            except mdb.Error, e:
+            except mdb.Error as e:
                 raise CursorError(cur, e)
             data.append(int(cur.fetchone()[0]))
         return data

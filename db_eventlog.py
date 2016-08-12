@@ -47,7 +47,7 @@ class LvfsDatabaseEventlog(object):
             cur.execute("INSERT INTO event_log (username, qa_group, addr, message, is_important) "
                         "VALUES (%s, %s, %s, %s, %s);",
                         (username, qa_group, addr, msg, is_important,))
-        except mdb.Error, e:
+        except mdb.Error as e:
             raise CursorError(cur, e)
 
     def size(self):
@@ -55,7 +55,7 @@ class LvfsDatabaseEventlog(object):
         try:
             cur = self._db.cursor()
             cur.execute("SELECT COUNT(timestamp) FROM event_log")
-        except mdb.Error, e:
+        except mdb.Error as e:
             raise CursorError(cur, e)
         res = cur.fetchone()[0]
         if not res:
@@ -68,7 +68,7 @@ class LvfsDatabaseEventlog(object):
             cur = self._db.cursor()
             cur.execute("SELECT COUNT(timestamp) FROM event_log "
                         "WHERE qa_group = %s", (qa_group,))
-        except mdb.Error, e:
+        except mdb.Error as e:
             raise CursorError(cur, e)
         res = cur.fetchone()[0]
         if not res:
@@ -82,7 +82,7 @@ class LvfsDatabaseEventlog(object):
             cur.execute("SELECT timestamp, username, qa_group, addr, message, is_important "
                         "FROM event_log ORDER BY id DESC LIMIT %s,%s;",
                         (start, length,))
-        except mdb.Error, e:
+        except mdb.Error as e:
             raise CursorError(cur, e)
         res = cur.fetchall()
         if not res:
@@ -99,7 +99,7 @@ class LvfsDatabaseEventlog(object):
             cur.execute("SELECT timestamp, username, qa_group, addr, message, is_important "
                         "FROM event_log WHERE qa_group = %s ORDER BY id DESC LIMIT %s,%s;",
                         (qa_group, start, length,))
-        except mdb.Error, e:
+        except mdb.Error as e:
             raise CursorError(cur, e)
         res = cur.fetchall()
         if not res:

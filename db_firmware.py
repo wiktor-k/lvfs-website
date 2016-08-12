@@ -94,7 +94,7 @@ class LvfsDatabaseFirmware(object):
         try:
             cur = self._db.cursor()
             cur.execute("UPDATE firmware SET target=%s WHERE fwid=%s;", (target, fwid,))
-        except mdb.Error, e:
+        except mdb.Error as e:
             raise CursorError(cur, e)
 
     def get_qa_groups(self):
@@ -102,7 +102,7 @@ class LvfsDatabaseFirmware(object):
         try:
             cur = self._db.cursor()
             cur.execute("SELECT DISTINCT qa_group FROM firmware;")
-        except mdb.Error, e:
+        except mdb.Error as e:
             raise CursorError(cur, e)
         res = cur.fetchall()
         if not res:
@@ -134,7 +134,7 @@ class LvfsDatabaseFirmware(object):
                              md.release_installed_size,
                              md.release_download_size,
                              fwobj.fwid,))
-        except mdb.Error, e:
+        except mdb.Error as e:
             raise CursorError(cur, e)
 
     def add(self, fwobj):
@@ -179,7 +179,7 @@ class LvfsDatabaseFirmware(object):
                              md.release_installed_size,
                              md.release_download_size,
                              md.release_urgency,))
-        except mdb.Error, e:
+        except mdb.Error as e:
             raise CursorError(cur, e)
 
     def remove(self, fwid):
@@ -188,7 +188,7 @@ class LvfsDatabaseFirmware(object):
             cur = self._db.cursor()
             cur.execute("DELETE FROM firmware WHERE fwid = %s;", (fwid,))
             cur.execute("DELETE FROM firmware_md WHERE fwid = %s;", (fwid,))
-        except mdb.Error, e:
+        except mdb.Error as e:
             raise CursorError(cur, e)
 
     def _add_items_md(self, item):
@@ -203,7 +203,7 @@ class LvfsDatabaseFirmware(object):
                         "release_urgency "
                         "FROM firmware_md WHERE fwid = %s ORDER BY guid DESC;",
                         (item.fwid,))
-        except mdb.Error, e:
+        except mdb.Error as e:
             raise CursorError(cur, e)
         res = cur.fetchall()
         if not res:
@@ -220,7 +220,7 @@ class LvfsDatabaseFirmware(object):
             cur.execute("SELECT qa_group, addr, timestamp, "
                         "filename, fwid, target, version_display "
                         "FROM firmware ORDER BY timestamp DESC;")
-        except mdb.Error, e:
+        except mdb.Error as e:
             raise CursorError(cur, e)
         res = cur.fetchall()
         if not res:
