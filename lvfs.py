@@ -10,6 +10,7 @@ import math
 import calendar
 import datetime
 import ConfigParser
+from StringIO import StringIO
 
 from flask import Blueprint, session, request, flash, url_for, redirect, \
      render_template, escape
@@ -451,9 +452,8 @@ def upload():
     fn = os.path.join(DOWNLOAD_DIR, new_filename)
     open(fn, 'wb').write(cab_data)
 
-
     # dump to the CDN
-    _upload_to_cdn(new_filename, cab_data)
+    _upload_to_cdn(new_filename, StringIO(cab_data))
 
     # create parent firmware object
     target = request.form['target']
