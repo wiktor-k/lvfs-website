@@ -30,6 +30,8 @@ class LvfsFirmwareMd(object):
         self.release_installed_size = 0
         self.release_download_size = 0
         self.release_urgency = None
+        self.screenshot_url = None
+        self.screenshot_caption = None
     def __repr__(self):
         return "LvfsFirmwareMd object %s" % self.fwid
 
@@ -68,6 +70,8 @@ def _create_firmware_md(e):
     md.release_installed_size = e[16]
     md.release_download_size = e[17]
     md.release_urgency = e[18]
+    md.screenshot_url = e[19]
+    md.screenshot_caption = e[20]
     return md
 
 def _create_firmware_item(e):
@@ -157,9 +161,10 @@ class LvfsDatabaseFirmware(object):
                             "project_license, url_homepage, description, "
                             "checksum_container, filename_contents, "
                             "release_installed_size, "
-                            "release_download_size, release_urgency) "
+                            "release_download_size, release_urgency, "
+                            "screenshot_url, screenshot_caption) "
                             "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, "
-                            "%s, %s, %s, %s, %s, %s, %s, %s);",
+                            "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s);",
                             (fwobj.fwid,
                              md.cid,
                              md.guid,
@@ -178,7 +183,9 @@ class LvfsDatabaseFirmware(object):
                              md.filename_contents,
                              md.release_installed_size,
                              md.release_download_size,
-                             md.release_urgency,))
+                             md.release_urgency,
+                             md.screenshot_url,
+                             md.screenshot_caption,))
         except mdb.Error as e:
             raise CursorError(cur, e)
 
@@ -200,7 +207,7 @@ class LvfsDatabaseFirmware(object):
                         "project_license, url_homepage, description, "
                         "checksum_container, filename_contents, "
                         "release_installed_size, release_download_size, "
-                        "release_urgency "
+                        "release_urgency, screenshot_url, screenshot_caption "
                         "FROM firmware_md WHERE fwid = %s ORDER BY guid DESC;",
                         (item.fwid,))
         except mdb.Error as e:

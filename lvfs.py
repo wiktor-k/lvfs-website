@@ -493,6 +493,16 @@ def upload():
         md.release_download_size = rel.size_download
         md.release_urgency = rel.urgency
 
+        # from the first screenshot
+        if len(component.screenshots) > 0:
+            ss = component.screenshots[0]
+            if ss.caption:
+                md.screenshot_caption = ss.caption
+            if len(ss.images) > 0:
+                im = ss.images[0]
+                if im.url:
+                    md.screenshot_url = im.url
+
         # from the content checksum
         csum = component.releases[0].get_checksum_by_target('content')
         md.checksum_contents = csum.value
@@ -890,6 +900,10 @@ def firmware_id(fwid):
         html += '<tr><th>Version</th><td>%s</td></tr>' % md.version
         html += '<tr><th>Installed Size</th><td>%s</td></tr>' % sizeof_fmt(md.release_installed_size)
         html += '<tr><th>Download Size</th><td>%s</td></tr>' % sizeof_fmt(md.release_download_size)
+        if md.screenshot_caption:
+            html += '<tr><th>Screenshot Caption</th><td>%s</td></tr>' % md.screenshot_caption
+        if md.screenshot_url:
+            html += '<tr><th>Screenshot URL</th><td>%s</td></tr>' % md.screenshot_url
         html += '</table>'
 
         # show editable update details

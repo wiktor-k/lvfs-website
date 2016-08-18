@@ -80,6 +80,16 @@ def _generate_metadata_kind(filename, targets=None, qa_group=None, affidavit=Non
                     csum.filename = md.filename_contents
                     rel.add_checksum(csum)
 
+            # add screenshot
+            if md.screenshot_caption:
+                ss = appstream.Screenshot()
+                ss.caption = md.screenshot_caption
+                if md.screenshot_url:
+                    im = appstream.Image()
+                    im.url = md.screenshot_url
+                    ss.add_image(im)
+                component.add_screenshot(ss)
+
             # add component
             store.add(component)
 

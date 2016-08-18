@@ -59,6 +59,8 @@ IMPORTANT: This needs to be hosted over SSL, i.e. with a `https://` prefix.
       release_installed_size INTEGER DEFAULT 0,
       release_download_size INTEGER DEFAULT 0,
       release_urgency VARCHAR(16) DEFAULT NULL,
+      screenshot_url TEXT DEFAULT NULL,
+      screenshot_caption TEXT DEFAULT NULL,
       UNIQUE KEY id (fwid,guid)
     ) CHARSET=utf8;
 
@@ -203,3 +205,8 @@ If you're using new-format cab files, cabextract needs to be setup using:
       python3-flask-wtf \
       python3-gnupg \
       python3-PyMySQL
+
+## How do I upgrade the schema ##
+
+    ALTER TABLE firmware_md ADD screenshot_url TEXT DEFAULT NULL;
+    ALTER TABLE firmware_md ADD screenshot_caption TEXT DEFAULT NULL;
