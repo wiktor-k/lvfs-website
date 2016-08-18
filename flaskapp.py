@@ -64,7 +64,7 @@ def serveStaticResource(resource):
 
     # ban MJ12BOT, it ignores robots.txt
     user_agent = request.headers.get('User-Agent')
-    if user_agent.find('MJ12BOT') != -1:
+    if user_agent and user_agent.find('MJ12BOT') != -1:
         abort(403)
 
     # log certain kinds of files
