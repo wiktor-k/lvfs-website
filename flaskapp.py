@@ -1,7 +1,7 @@
 #!/usr/bin/python2
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2015 Richard Hughes <richard@hughsie.com>
+# Copyright (C) 2015-2016 Richard Hughes <richard@hughsie.com>
 # Licensed under the GNU General Public License Version 2
 
 import os
@@ -28,35 +28,11 @@ app = Flask(__name__)
 app.config.from_pyfile('flaskapp.cfg')
 app.register_blueprint(lvfs)
 
-################################################################################
-
 @app.errorhandler(404)
 def error_page_not_found(msg=None):
     """ Error handler: File not found """
     flash(msg)
     return render_template('error.html'), 404
-
-@app.route('/')
-def fwupd_index():
-    """ Main fwupd.org site """
-    return render_template('fwupd/index.html')
-
-@app.route('/users')
-def fwupd_users():
-    """ User-centric fwupd help """
-    return render_template('fwupd/users.html')
-
-@app.route('/developers')
-def fwupd_developers():
-    """ Developer-centric fwupd help """
-    return render_template('fwupd/developers.html')
-
-@app.route('/vendors')
-def fwupd_vendors():
-    """ Vendor-centric fwupd help """
-    return render_template('fwupd/vendors.html')
-
-################################################################################
 
 @app.route('/<path:resource>')
 def serveStaticResource(resource):
