@@ -140,10 +140,10 @@ To get just the database you can do:
               -P ${OPENSHIFT_MYSQL_DB_PORT:-3306} \
               -u ${OPENSHIFT_MYSQL_DB_USERNAME:-'admin'} \
               --password="$OPENSHIFT_MYSQL_DB_PASSWORD" \
-              secure > app-root/data/backup.sql
+              secure > app-root/data/backup-`date +%Y%m%d`.sql
     rhc scp --app ${OPENSHIFT_APP} \
             --namespace ${OPENSHIFT_NAMESPACE} \
-            download . app-root/data/backup.sql
+            download . app-root/data/backup-`date +%Y%m%d`.sql
 
 Or, to get a complete backup you can do:
 
