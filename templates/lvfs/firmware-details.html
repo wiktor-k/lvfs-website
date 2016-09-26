@@ -10,7 +10,151 @@
 <script>
 Chart.defaults.global.animation = false;
 </script>
-{% endblock %}
 
-<!-- dynamic content -->
-{% block dyncontent %}{{dyncontent|safe}}{% endblock %}
+<table class="aligned">
+  <tr><th>Filename</th><td><a href="/downloads/{{fw.filename}}">{{orig_filename}}</a></td></tr>
+  <tr><th>Current Target</th><td>{{fw.target}}</td></tr>
+  <tr><th>Submitted</th><td>{{fw.timestamp}}</td></tr>
+  <tr><th>QA Group</th><td><a href="{{embargo_url}}">{{qa_group}}</a></td></tr>
+  <tr><th>Uploaded from</th><td><code>{{fw.addr}}</code></td></tr>
+{% if fw.version_display %}
+  <tr><th>Version (display only)</th><td>{{fw.version_display}}</td></tr>
+{% endif %}
+  <tr><th>Downloads</th><td>{{cnt_fn}}</td></tr>
+  <tr>
+    <th>Actions</th>
+    <td>
+{% if fw.target == 'private' or qa_capability %}
+      <form method="get" action="/lvfs/firmware/{{fwid}}/delete">
+      <button class="fixedwidth">Delete</button>
+      </form>
+{% endif %}
+{% if qa_capability %}
+{% if fw.target == 'private' %}
+      <form method="get" action="/lvfs/firmware/{{fwid}}/promote/embargo">
+      <button class="fixedwidth">&#8594; Embargo</button>
+      </form>
+{% endif %}
+{% if fw.target == 'embargo' %}
+      <form method="get" action="/lvfs/firmware/{{fwid}}/promote/testing">
+      <button class="fixedwidth">&#8594; Testing</button>
+      </form>
+{% endif %}
+{% if fw.target == 'testing' %}
+      <form method="get" action="/lvfs/firmware/{{fwid}}/promote/stable">
+      <button class="fixedwidth">&#8594; Stable</button>
+      </form>
+{% endif %}
+{% endif %}
+    </td>
+  </tr>
+</table>
+
+{% for md in fw.mds %}
+<h2>{{md.name}}</h2>
+<p>{{md.summary}}</p>
+<table class="aligned">
+  <tr><th>ID</th><td>{{md.cid}}</td></tr>
+  <tr><th>Device GUID</th><td><code>{{md.guid}}</code></td></tr>
+  <tr><th>Version</th><td>{{md.version}}</td></tr>
+  <tr><th>Installed Size</th><td>{{format_size(md.release_installed_size)}}</td></tr>
+  <tr><th>Download Size</th><td>{{format_size(md.release_download_size)}}</td></tr>
+{% if md.screenshot_caption %}
+  <tr><th>Screenshot Caption</th><td>{{md.screenshot_caption}}</td></tr>
+{% endif %}
+{% if md.screenshot_url %}
+  <tr><th>Screenshot URL</th><td>%{{md.screenshot_url}}</td></tr>
+{% endif %}
+</table>
+
+<h2>Update Details</h2>
+
+{% if fw.target == 'stable' or not qa_capability %}
+<table class="history">
+{% if md.release_urgency %}
+  <tr><th>Release Urgency</th><td>{{md.release_urgency}}</td></tr>
+{% endif %}
+  <tr><th>Update Description</th><td>{{md.release_description|safe}}</td></tr>
+</table>
+{% else %}
+
+<table class="history">
+  <form method="post" action="/lvfs/firmware/{{fwid}}/modify">
+  <tr>
+    <th>Release Urgency</th>
+    <td>
+    <select name="urgency" class="fixedwidth" required>
+{% if md.release_urgency == "unknown" %}
+      <option value="unknown" selected>Unknown</option>
+{% else %}
+      <option value="unknown">Unknown</option>
+{% endif %}
+{% if md.release_urgency == "low" %}
+      <option value="low" selected>Low</option>
+{% else %}
+      <option value="low">Low</option>
+{% endif %}
+{% if md.release_urgency == "medium" %}
+      <option value="medium" selected>Medium</option>
+{% else %}
+      <option value="medium">Medium</option>
+{% endif %}
+{% if md.release_urgency == "high" %}
+      <option value="high" selected>High</option>
+{% else %}
+      <option value="high">High</option>
+{% endif %}
+{% if md.release_urgency == "critical" %}
+      <option value="critical" selected>Critical</option>
+{% else %}
+      <option value="critical">Critical</option>
+{% endif %}
+{% if md.release_urgency == "unknown" %}
+      <option value="unknown" selected>Unknown</option>
+{% else %}
+      <option value="unknown">Unknown</option>
+{% endif %}
+    </select>
+    </td>
+  </tr>
+  <tr>
+    <th>Update Description</th>
+    <td>
+      <textarea name="description" cols="64" rows="5">{{md.release_description|safe}}</textarea>
+      <p>Unformatted text will be automatically converted to
+        <a href="http://www.freedesktop.org/software/appstream/docs/chap-Metadata.html#tag-description">
+        AppStream XML description markup</a>.
+        </p>
+    </td>
+  </tr>
+  <tr><th>&nbsp;</th><td><input type="submit" value="Save update details"/></td></tr>
+  </form>
+</table>
+{% endif %}
+
+{% endfor %}
+
+<h1>User Downloads</h1>
+<p>This graph will only show downloads since 2015-11-02.</p>
+<canvas id="metadataChartMonths" width="800" height="400"></canvas>
+<script>
+var ctx = document.getElementById("metadataChartMonths").getContext("2d");
+var data = {
+    labels: {{graph_labels|safe}},
+    datasets: [
+        {
+            label: "Firmware",
+            fillColor: "rgba(251,14,5,0.2)",
+            strokeColor: "rgba(151,14,5,0.1)",
+            pointColor: "rgba(151,14,5,0.3)",
+            pointStrokeColor: "#fff",
+            pointHighlightFill: "#fff",
+            pointHighlightStroke: "rgba(151,187,205,1)",
+            data: {{graph_data}}
+        },
+    ]
+};
+var myLineChartMonths = new Chart(ctx).Line(data, null);
+</script>
+
+{% endblock %}

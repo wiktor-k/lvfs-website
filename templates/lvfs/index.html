@@ -7,18 +7,18 @@
 
 {% block content %}
 <p>
-LVFS provides functionality for hardware vendors to submit packaged firmware updates.
-There is no charge to vendors for the hosting or distribution of content.
+  LVFS provides functionality for hardware vendors to submit packaged firmware updates.
+  There is no charge to vendors for the hosting or distribution of content.
 </p>
 
 <h2>Add New Firmware</h2>
 <p>By uploading a firmware file you must agree that:</p>
 <ul>
-<li>You are legally permitted to submit the firmware</li>
-<li>The submitted firmware file is permitted to be mirrored by our site</li>
-<li>We can extract and repackage the information inside the metainfo file</li>
-<li>The firmware installation must complete without requiring user input</li>
-<li>The update must not be malicious e.g. be a virus or to exploit security issues</li>
+  <li>You are legally permitted to submit the firmware</li>
+  <li>The submitted firmware file is permitted to be mirrored by our site</li>
+  <li>We can extract and repackage the information inside the metainfo file</li>
+  <li>The firmware installation must complete without requiring user input</li>
+  <li>The update must not be malicious e.g. be a virus or to exploit security issues</li>
 </ul>
 
 <form action="/lvfs/upload" method="post" enctype="multipart/form-data">
@@ -59,20 +59,19 @@ There is no charge to vendors for the hosting or distribution of content.
 <input type="submit" class="submit" value="Upload"/>
 </form>
 <p>
- Updates normally go through these stages: 
-<a href="#" title="The private target keeps the firmware secret and is
-only downloadable from this admin console. An admin or QA user can move
-the firmware to either embargo, testing or stable.">Private</a> &#8594; 
-<a href="#" title="The embargo target makes the firmware available to
-users knowing a secret metdata URL. An admin or QA user can move the
-firmware to testing when the hardware has been released.">Embargoed</a> &#8594; 
-<a href="#" title="The testing target makes the firmware available to
-some users. An admin or QA user can move the firmware to stable when
-testing is complete.">Testing</a> &#8594; 
-<a href="#" title="The stable target makes the firmware available to all
-users. Make sure the firmware has been carefully tested before using
-this target.">Stable</a>
+  Updates normally go through these stages:
+  <a href="#" title="The private target keeps the firmware secret and is
+  only downloadable from this admin console. An admin or QA user can move
+  the firmware to either embargo, testing or stable.">Private</a> &#8594;
+  <a href="#" title="The embargo target makes the firmware available to
+  users knowing a secret metdata URL. An admin or QA user can move the
+  firmware to testing when the hardware has been released.">Embargoed</a> &#8594;
+  <a href="#" title="The testing target makes the firmware available to
+  some users. An admin or QA user can move the firmware to stable when
+  testing is complete.">Testing</a> &#8594;
+  <a href="#" title="The stable target makes the firmware available to all
+  users. Make sure the firmware has been carefully tested before using
+  this target.">Stable</a>
 </p>
-</table>
 
 {% endblock %}

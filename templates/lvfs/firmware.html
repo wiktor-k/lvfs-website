@@ -6,7 +6,53 @@
 {% endblock %}
 
 {% block content %}
-{% endblock %}
 
-<!-- dynamic content -->
-{% block dyncontent %}{{dyncontent|safe}}{% endblock %}
+{% if fw_by_name|length == 0 %}
+<p>
+  No firmware has been uploaded to the &lsquo;{{qa_group}}&rsquo; QA group yet.
+</p>
+
+{% else %}
+
+<p>
+  The following firmware files have been uploaded to the
+  &lsquo;{{qa_group}}&rsquo; QA group.
+{% if not show_all %}
+  By default only one firmware per device is shown in each state.
+  To show all files for all devices, <a href="/lvfs/firmware_all">click here</a>.
+{% endif %}
+</p>
+
+{% for name in names_sorted %}
+<h2>{{name}}</h2>
+<table class="history">
+  <tr>
+    <th>Submitted</td>
+    <th>Version</td>
+    <th>Target</td>
+    <th></td>
+  </tr>
+{% for fw in fw_by_name[name] %}
+{% if show_all or fw.is_newest_in_state %}
+  <tr>
+    <td>{{fw.timestamp}}</td>
+{% if not fw.version_display or fw.mds[0].version == fw.version_display %}
+    <td>{{fw.mds[0].version}}</td>
+{% else %}
+    <td>{{fw.version_display}} [{{fw.mds[0].version}}]</td>
+{% endif %}
+    <td>{{fw.target}}</td>
+    <td>
+      <form method="get" action="/lvfs/firmware/{{fw.fwid}}">
+      <button class="fixedwidth">Details</button>
+      </form>
+    </td>
+  </tr>
+{% endif %}
+{% endfor %}
+</table>
+{% endfor %}
+
+{% endif %}
+
+{% endblock %}

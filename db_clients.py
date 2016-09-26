@@ -69,8 +69,8 @@ class LvfsDatabaseClients(object):
         data = []
         for e in res:
             # split up a generic agent to a specific client
-            labels.append(e[0].split(' ')[0])
-            data.append(e[1])
+            labels.append(str(e[0].split(' ')[0]))
+            data.append(int(e[1]))
         return (labels, data)
 
     def increment(self, address, fn=None, user_agent=None):

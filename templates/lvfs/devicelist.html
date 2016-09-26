@@ -10,16 +10,23 @@
 
 {% block content %}
 <p>
- This list shows all the updates that have been pushed to the stable metadata.
- This is a very incomplete list as a lot of the devices in the LVFS
- have not yet been released publicly and the firmware updates are in a
- secret embargoed state.
+  This list shows all the updates that have been pushed to the stable metadata.
+  This is a very incomplete list as a lot of the devices in the LVFS
+  have not yet been released publicly and the firmware updates are in a
+  secret embargoed state.
 </p>
 <p>
- This list is automatically generated and will be updated when new firmware
- is added or devices are released to the public.
+  This list is automatically generated and will be updated when new firmware
+  is added or devices are released to the public.
 </p>
-{% endblock %}
 
-<!-- dynamic content -->
-{% block dyncontent %}{{dyncontent|safe}}{% endblock %}
+{% for vendor in vendors %}
+<h2>{{vendor}}</h2>
+<ul>
+{% for md in mds_by_vendor[vendor] %}
+  <li><a href="/lvfs/device/{{md.guid}}">{{md.name}}</a></li>
+{% endfor %}
+</ul>
+{% endfor %}
+
+{% endblock %}

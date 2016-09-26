@@ -13,14 +13,28 @@
 {% endif %}
 
 <table class="history">
-<tr>
-<th>Timestamp</th>
-<th>Address</th>
-<th>User</th>
-<th></th>
-<th>Message</th>
-</tr>
-{% endblock %}
+  <tr>
+    <th>Timestamp</th>
+    <th>Address</th>
+    <th>User</th>
+    <th></th>
+    <th>Message</th>
+  </tr>
+{% for e in events %}
+  <tr>
+    <td class="history">{{e.timestamp}}</td>
+    <td class="history">{{e.address}}</td>
+    <td class="history">{{e.username}}</td>
+{% if e.is_important %}
+    <td class="history">&#x272a;</td>
+{% else %}
+    <td class="history"></td>
+{% endif %}
+    <td class="history">{{e.message}}</td>
+  </tr>
+{% endfor %}
+</table>
 
-<!-- dynamic content -->
-{% block dyncontent %}{{dyncontent|safe}}{% endblock %}
+{{pagination_footer|safe}}
+
+{% endblock %}

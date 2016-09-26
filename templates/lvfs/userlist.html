@@ -8,14 +8,72 @@
 {% block content %}
 <table class="history">
 <tr>
-<th>Username</th>
-<th>Password</th>
-<th>Name</th>
-<th>Email</th>
-<th>Group</th>
-<th>Actions</th>
+  <th>Username</th>
+  <th>Password</th>
+  <th>Name</th>
+  <th>Email</th>
+  <th>Group</th>
+  <th>Actions</th>
 </tr>
-{% endblock %}
 
-<!-- dynamic content -->
-{% block dyncontent %}{{dyncontent|safe}}{% endblock %}
+{% for u in users %}
+<tr>
+  <td>{{u.username}}</td>
+  <td>{{u.password[0:8]}}&hellip;</td>
+  <td>{{u.display_name}}</td>
+  <td>{{u.email}}</td>
+  <td>{{u.qa_group}}</td>
+  <td>
+{% if u.username != 'admin' %}
+<form method="get" action="/lvfs/user/{{u.username}}/delete">
+<button class="fixedwidth">Delete</button>
+</form>
+
+{% if u.is_enabled %}
+<form method="get" action="/lvfs/user/{{u.username}}/disable">
+<button class="fixedwidth">Disable</button>
+</form>
+{% else %}
+<form method="get" action="/lvfs/user/{{u.username}}/enable">
+<button class="fixedwidth">Enable</button>
+</form>
+{% endif %}
+
+{% if u.is_locked %}
+<form method="get" action="/lvfs/user/{{u.username}}/unlock">
+<button class="fixedwidth">Unlock</button>
+</form>
+{% else %}
+<form method="get" action="/lvfs/user/{{u.username}}/lock">
+<button class="fixedwidth">Lock</button>
+</form>
+{% endif %}
+
+{% if u.is_qa %}
+<form method="get" action="/lvfs/user/{{u.username}}/demote">
+<button class="fixedwidth">-QA</button>
+</form>
+{% else %}
+<form method="get" action="/lvfs/user/{{u.username}}/promote">
+<button class="fixedwidth">+QA</button>
+</form>
+{% endif %}
+
+{% endif %}
+  </td>
+</tr>
+{% endfor %}
+
+<tr>
+<form method="post" action="/lvfs/user/add">
+  <td><input type="text" size="8" name="username_new" placeholder="username" required></td>
+  <td><input type="password" size="8" name="password_new" placeholder="password" required></td>
+  <td><input type="text" size="14" name="name" placeholder="Example Name" required></td>
+  <td><input type="text" size="14" name="email" placeholder="info@example.com" required></td>
+  <td><input type="text" size="8" name="qa_group" placeholder="example" required></td>
+  <td><input type="submit" style="width: 6em" value="Add"></td>
+</form>
+</tr>
+</table>
+
+{% endblock %}

@@ -28,16 +28,6 @@ from config import DOWNLOAD_DIR, CABEXTRACT_CMD
 from util import _qa_hash, _upload_to_cdn, create_affidavit
 from metadata import metadata_update_qa_group, metadata_update_targets
 
-def sizeof_fmt(num, suffix='B'):
-    """ Generate user-visible size """
-    if type(num) not in (int, long):
-        return "???%s???" % num
-    for unit in ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']:
-        if abs(num) < 1024.0:
-            return "%3.1f%s%s" % (num, unit, suffix)
-        num /= 1024.0
-    return "%.1f%s%s" % (num, 'Yi', suffix)
-
 def _password_check(value):
     """ Check the password for suitability """
     success = True
@@ -142,6 +132,32 @@ def _check_session():
 
 lvfs = Blueprint('lvfs', __name__, url_prefix='/lvfs', template_folder='templates/lvfs')
 
+@lvfs.context_processor
+def utility_processor():
+
+    def format_truncate(tmp, length):
+        if len(tmp) <= length:
+            return tmp
+        return tmp[:length] + u'…'
+
+    def format_timestamp(tmp):
+        if not tmp:
+            return 'n/a'
+        return datetime.datetime.fromtimestamp(tmp).strftime('%Y-%m-%d %H:%M:%S')
+
+    def format_size(num, suffix='B'):
+        if type(num) not in (int, long):
+            return "???%s???" % num
+        for unit in ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']:
+            if abs(num) < 1024.0:
+                return "%3.1f%s%s" % (num, unit, suffix)
+            num /= 1024.0
+        return "%.1f%s%s" % (num, 'Yi', suffix)
+
+    return dict(format_size=format_size,
+                format_truncate=format_truncate,
+                format_timestamp=format_timestamp)
+
 @lvfs.errorhandler(401)
 def error_permission_denied(msg=None):
     """ Error handler: Permission Denied """
@@ -210,16 +226,12 @@ def device_list():
             continue
         vendors.append(vendor)
 
-    html = ''
     seen_guid = {}
+    mds_by_vendor = {}
     for vendor in sorted(vendors):
-
-        html += '<h2>%s</h2>\n' % vendor
-        html += '<ul>\n'
         for item in items:
             if item.target != 'stable':
                 continue
-
             for md in item.mds:
 
                 # only show correct vendor
@@ -231,10 +243,14 @@ def device_list():
                     continue
                 seen_guid[md.guid] = 1
 
-                # show name
-                html += '<li><a href="/lvfs/device/%s">%s</a></li>\n' % (md.guid, md.name)
-        html += '</ul>\n'
-    return render_template('devicelist.html', dyncontent=html)
+                # add
+                if not vendor in mds_by_vendor:
+                    mds_by_vendor[vendor] = []
+                mds_by_vendor[vendor].append(md)
+
+    return render_template('devicelist.html',
+                           vendors=sorted(vendors),
+                           mds_by_vendor=mds_by_vendor)
 
 @lvfs.route('/upload', methods=['GET', 'POST'])
 def upload():
@@ -609,12 +625,6 @@ def firmware(show_all=False):
     except CursorError as e:
         return error_internal(str(e))
 
-    # nothing!
-    if len(items) == 0:
-        html = "<p>No firmware has been uploaded to the " \
-               "&lsquo;%s&rsquo; QA group yet.</p>" % session['qa_group']
-        return render_template('firmware.html', dyncontent=html)
-
     # group by the firmware name
     names = {}
     for item in items:
@@ -627,50 +637,21 @@ def firmware(show_all=False):
             names[name] = []
         names[name].append(item)
 
-    html = "<p>"
-    html += "The following firmware files have been uploaded to the " \
-            "&lsquo;%s&rsquo; QA group. " % session['qa_group']
-    if not show_all:
-        html += "By default only one firmware per device is shown in each state. "
-        html += "To show all files for all devices, <a href=\"/lvfs/firmware_all\">click here</a>."
-    html += "</p>"
-
-    # group each thing in it's own header
+    # only show one version in each state
     for name in sorted(names):
-        html += "<h2>%s</h2>\n" % name
-        html += "<table class=\"history\">"
-        html += "<tr>"
-        html += "<th>Submitted</td>"
-        html += "<th>Version</td>"
-        html += "<th>Target</td>"
-        html += "<th></td>"
-        html += "</tr>\n"
-
-        # by default we only show the first version of each target
         targets_seen = {}
-
         for item in names[name]:
-
-            # only show one
             if item.target in targets_seen:
-                continue
-            if not show_all:
+                item.is_newest_in_state = False
+            else:
+                item.is_newest_in_state = True
                 targets_seen[item.target] = item
 
-            buttons = "<form method=\"get\" action=\"/lvfs/firmware/%s\">" \
-                      "<button class=\"fixedwidth\">Details</button>" \
-                      "</form>" % item.fwid
-            html += '<tr>'
-            html += "<td>%s</td>" % item.timestamp
-            if not item.version_display or item.mds[0].version == item.version_display:
-                html += "<td>%s</td>" % item.mds[0].version
-            else:
-                html += "<td>%s [%s]</td>" % (item.version_display, item.mds[0].version)
-            html += "<td>%s</td>" % item.target
-            html += "<td>%s</td>" % buttons
-            html += '</tr>\n'
-        html += "</table>"
-    return render_template('firmware.html', dyncontent=html)
+    return render_template('firmware.html',
+                           fw_by_name=names,
+                           names_sorted=sorted(names),
+                           qa_group=session['qa_group'],
+                           show_all=show_all)
 
 @lvfs.route('/firmware_all')
 def firmware_all():
@@ -853,126 +834,21 @@ def firmware_id(fwid):
         qa_group = 'None'
     else:
         embargo_url = '/downloads/firmware-%s.xml.gz' % _qa_hash(qa_group)
-    file_uri = '/downloads/' + item.filename
 
-    buttons = ''
-    if session['qa_capability'] or item.target == 'private':
-        buttons += "<form method=\"get\" action=\"/lvfs/firmware/%s/delete\">" \
-                   "<button class=\"fixedwidth\">Delete</button>" \
-                   "</form>" % fwid
-    if session['qa_capability']:
-        if item.target == 'private':
-            buttons += "<form method=\"get\" action=\"/lvfs/firmware/%s/promote/embargo\">" \
-                       "<button class=\"fixedwidth\">&#8594; Embargo</button>" \
-                       "</form>" % fwid
-        elif item.target == 'embargo':
-            buttons += "<form method=\"get\" action=\"/lvfs/firmware/%s/promote/testing\">" \
-                       "<button class=\"fixedwidth\">&#8594; Testing</button>" \
-                       "</form>" % fwid
-        elif item.target == 'testing':
-            buttons += "<form method=\"get\" action=\"/lvfs/firmware/%s/promote/stable\">" \
-                       "<button class=\"fixedwidth\">&#8594; Stable</button>" \
-                       "</form>" % fwid
-
-    html = '<table class="aligned">'
-    orig_filename = '-'.join(item.filename.split('-')[1:])
-    html += '<tr><th>Filename</th><td><a href=\"%s\">%s</a></td></tr>' % (file_uri, orig_filename)
-    html += '<tr><th>Current Target</th><td>%s</td></tr>' % item.target
-    html += '<tr><th>Submitted</th><td>%s</td></tr>' % item.timestamp
-    html += '<tr><th>QA Group</th><td><a href="%s">%s</a></td></tr>' % (embargo_url, qa_group)
-    html += '<tr><th>Uploaded from</th><td>%s</td></tr>' % item.addr
-    if item.version_display:
-        html += '<tr><th>Version (display only)</th><td>%s</td></tr>' % item.version_display
     db = LvfsDatabase(os.environ)
     db_clients = LvfsDatabaseClients(db)
     cnt_fn = db_clients.get_firmware_count_filename(item.filename)
-    html += '<tr><th>Downloads</th><td>%i</td></tr>' % cnt_fn
-    html += '<tr><th>Actions</th><td>%s</td></tr>' % buttons
-    html += '</table>'
-
-    # show each component
-    for md in item.mds:
-        html += '<h2>%s</h2>' % md.name
-        html += '<p>%s</p>' % md.summary
-        html += '<table class="aligned">'
-        html += '<tr><th>ID</th><td>%s</td></tr>' % md.cid
-        html += '<tr><th>Device GUID</th><td><code>%s</code></td></tr>' % md.guid
-        html += '<tr><th>Version</th><td>%s</td></tr>' % md.version
-        html += '<tr><th>Installed Size</th><td>%s</td></tr>' % sizeof_fmt(md.release_installed_size)
-        html += '<tr><th>Download Size</th><td>%s</td></tr>' % sizeof_fmt(md.release_download_size)
-        if md.screenshot_caption:
-            html += '<tr><th>Screenshot Caption</th><td>%s</td></tr>' % md.screenshot_caption
-        if md.screenshot_url:
-            html += '<tr><th>Screenshot URL</th><td>%s</td></tr>' % md.screenshot_url
-        html += '</table>'
-
-        # show editable update details
-        html += '<h2>Update Details</h2>\n'
-
-        # show urgency and update description
-        if item.target == 'stable' or not session['qa_capability']:
-            html += '<table class="history">\n'
-            urgency = md.release_urgency
-            if not urgency:
-                urgency = 'unknown'
-            html += '<tr><th>Release Urgency</th><td>%s</td></tr>\n' % urgency
-            html += '<tr><th>Update Description</th><td>%s</td></tr>\n' % md.release_description
-            html += '</table>\n'
-        else:
-            html += '<table class="history">\n'
-            html += '<form method="post" action="/lvfs/firmware/%s/modify">\n' % fwid
-            urgency_states = []
-            urgency_states.append('unknown')
-            urgency_states.append('low')
-            urgency_states.append('medium')
-            urgency_states.append('high')
-            urgency_states.append('critical')
-            html += '<tr><th>Release Urgency</th><td>\n'
-            html += '<select name="urgency" class="fixedwidth" required>\n'
-            for state in urgency_states:
-                selected = ''
-                if state == md.release_urgency:
-                    selected = "selected"
-                html += '<option value="%s" %s>%s</option>\n' % (state, selected, state)
-            html += '</select>\n'
-            html += '</td></tr>\n'
-
-            url = 'http://www.freedesktop.org/software/appstream/docs/chap-Metadata.html#tag-description'
-            desc = '<textarea name="description" cols="64" rows="5">%s</textarea>\n' % md.release_description
-            desc += '<p>Unformatted text will be automatically converted to '
-            desc += '<a href="%s">AppStream XML description markup</a>.</p>' % url
-            html += '<tr><th>Update Description</th><td>%s</td></tr>\n' % desc
-            html += '<tr><th>&nbsp;</th><td><input type="submit" value="Save update details"/></td></tr>\n'
-            html += '</form>\n'
-            html += '</table>\n'
-
-    # show graph
-    db_clients = LvfsDatabaseClients(db)
     data_fw = db_clients.get_stats_for_fn(12, 30, item.filename)
-    html += '<h1>User Downloads</h1>'
-    html += '<p>This graph will only show downloads since 2015-11-02.</p>'
-    html += '<canvas id="metadataChartMonths" width="800" height="400"></canvas>'
-    html += '<script>'
-    html += 'var ctx = document.getElementById("metadataChartMonths").getContext("2d");'
-    html += 'var data = {'
-    html += '    labels: %s,' % _get_chart_labels_months()[::-1]
-    html += '    datasets: ['
-    html += '        {'
-    html += '            label: "Firmware",'
-    html += '            fillColor: "rgba(251,14,5,0.2)",'
-    html += '            strokeColor: "rgba(151,14,5,0.1)",'
-    html += '            pointColor: "rgba(151,14,5,0.3)",'
-    html += '            pointStrokeColor: "#fff",'
-    html += '            pointHighlightFill: "#fff",'
-    html += '            pointHighlightStroke: "rgba(151,187,205,1)",'
-    html += '            data: %s' % data_fw[::-1]
-    html += '        },'
-    html += '    ]'
-    html += '};'
-    html += 'var myLineChartMonths = new Chart(ctx).Line(data, null);'
-    html += '</script>'
-
-    return render_template('firmware-details.html', dyncontent=html)
+    return render_template('firmware-details.html',
+                           fw=item,
+                           qa_capability=session['qa_capability'],
+                           orig_filename='-'.join(item.filename.split('-')[1:]),
+                           embargo_url=embargo_url,
+                           qa_group=qa_group,
+                           cnt_fn=cnt_fn,
+                           fwid=fwid,
+                           graph_labels=_get_chart_labels_months()[::-1],
+                           graph_data=data_fw[::-1])
 
 @lvfs.route('/analytics')
 def analytics():
@@ -983,81 +859,20 @@ def analytics():
         return redirect(url_for('.login'))
     if session['username'] != 'admin':
         return error_permission_denied('Unable to view analytics')
-
-    # add days
     db = LvfsDatabase(os.environ)
     db_clients = LvfsDatabaseClients(db)
-    data_fw = db_clients.get_stats_for_month(LvfsDownloadKind.FIRMWARE)
-    html = '<h2>Metadata and Firmware Downloads (day)</h2>'
-    html += '<canvas id="metadataChartMonthsDays" width="800" height="400"></canvas>'
-    html += '<script>'
-    html += 'var ctx = document.getElementById("metadataChartMonthsDays").getContext("2d");'
-    html += 'var data = {'
-    html += '    labels: %s,' % _get_chart_labels_days()[::-1]
-    html += '    datasets: ['
-    html += '        {'
-    html += '            label: "Firmware",'
-    html += '            fillColor: "rgba(251,14,5,0.2)",'
-    html += '            strokeColor: "rgba(151,14,5,0.1)",'
-    html += '            pointColor: "rgba(151,14,5,0.3)",'
-    html += '            pointStrokeColor: "#fff",'
-    html += '            pointHighlightFill: "#fff",'
-    html += '            pointHighlightStroke: "rgba(151,187,205,1)",'
-    html += '            data: %s' % data_fw[::-1]
-    html += '        },'
-    html += '    ]'
-    html += '};'
-    html += 'var myLineChartDays = new Chart(ctx).Line(data, null);'
-    html += '</script>'
-
-    # add months
-    data_fw = db_clients.get_stats_for_year(LvfsDownloadKind.FIRMWARE)
-    html += '<h2>Metadata and Firmware Downloads (month)</h2>'
-    html += '<canvas id="metadataChartMonths" width="800" height="400"></canvas>'
-    html += '<script>'
-    html += 'var ctx = document.getElementById("metadataChartMonths").getContext("2d");'
-    html += 'var data = {'
-    html += '    labels: %s,' % _get_chart_labels_months()[::-1]
-    html += '    datasets: ['
-    html += '        {'
-    html += '            label: "Firmware",'
-    html += '            fillColor: "rgba(251,14,5,0.2)",'
-    html += '            strokeColor: "rgba(151,14,5,0.1)",'
-    html += '            pointColor: "rgba(151,14,5,0.3)",'
-    html += '            pointStrokeColor: "#fff",'
-    html += '            pointHighlightFill: "#fff",'
-    html += '            pointHighlightStroke: "rgba(151,187,205,1)",'
-    html += '            data: %s' % data_fw[::-1]
-    html += '        },'
-    html += '    ]'
-    html += '};'
-    html += 'var myLineChartMonths = new Chart(ctx).Line(data, null);'
-    html += '</script>'
-
-    # add user agent
-    labels, data = db_clients.get_user_agent_stats()
-    html += '<h2>Firmware Downloads by User Agent</h2>'
-    html += '<canvas id="metadataChartUserAgents" width="800" height="400"></canvas>'
-    html += '<script>'
-    html += 'var ctx = document.getElementById("metadataChartUserAgents").getContext("2d");'
-    html += 'var data = {'
-    html += '    labels: %s,' % _to_javascript_array(labels)
-    html += '    datasets: ['
-    html += '        {'
-    html += '            label: "User Agents",'
-    html += '            fillColor: "rgba(20,120,220,0.2)",'
-    html += '            strokeColor: "rgba(20,120,120,0.1)",'
-    html += '            pointColor: "rgba(20,120,120,0.3)",'
-    html += '            pointStrokeColor: "#fff",'
-    html += '            pointHighlightFill: "#fff",'
-    html += '            pointHighlightStroke: "rgba(220,220,220,1)",'
-    html += '            data: %s' % _to_javascript_array(data)
-    html += '        },'
-    html += '    ]'
-    html += '};'
-    html += 'var myLineChartUserAgent = new Chart(ctx).Bar(data, null);'
-    html += '</script>'
-    return render_template('analytics.html', dyncontent=html)
+    labels_days = _get_chart_labels_days()[::-1]
+    data_days = db_clients.get_stats_for_month(LvfsDownloadKind.FIRMWARE)[::-1]
+    labels_months = _get_chart_labels_months()[::-1]
+    data_months = db_clients.get_stats_for_year(LvfsDownloadKind.FIRMWARE)[::-1]
+    labels_user_agent, data_user_agent = db_clients.get_user_agent_stats()
+    return render_template('analytics.html',
+                           labels_days=labels_days,
+                           data_days=data_days,
+                           labels_months=labels_months,
+                           data_months=data_months,
+                           labels_user_agent=labels_user_agent,
+                           data_user_agent=data_user_agent)
 
 @lvfs.route('/login', methods=['GET', 'POST'])
 def login():
@@ -1125,7 +940,6 @@ def eventlog(start=0, length=20):
     nr_pages = int(math.ceil(eventlog_len / float(length)))
 
     # table contents
-    html = ''
     try:
         if session['username'] == 'admin':
             items = db_eventlog.get_items(int(start), int(length))
@@ -1135,29 +949,18 @@ def eventlog(start=0, length=20):
         return error_internal(str(e))
     if len(items) == 0:
         return error_internal('No event log available!')
-    for item in items:
-        html += '<tr>'
-        html += '<td class="history">%s</td>' % str(item.timestamp).split('.')[0]
-        html += '<td class="history">%s</td>' % item.address
-        html += '<td class="history">%s</td>' % item.username
-        if item.is_important == 1:
-            html += '<td class="history">&#x272a;</td>'
-        else:
-            html += '<td class="history"></td>'
-        html += '<td class="history">%s</td>' % escape(item.message)
-        html += '</tr>\n'
-    html += '</table>'
 
     # limit this to keep the UI sane
     if nr_pages > 20:
         nr_pages = 20
 
+    html = ''
     for i in range(nr_pages):
         if int(start) == i * int(length):
             html += '%i ' % (i + 1)
         else:
             html += '<a href="/lvfs/eventlog/%i/%s">%i</a> ' % (i * int(length), int(length), i + 1)
-    return render_template('eventlog.html', dyncontent=html)
+    return render_template('eventlog.html', events=items, pagination_footer=html)
 
 def _update_metadata_from_fn(fwobj, fn):
     """
@@ -1437,7 +1240,6 @@ def userlist():
     """
     Show a list of all users
     """
-
     if session['username'] != 'admin':
         return error_permission_denied('Unable to show userlist for non-admin user')
     try:
@@ -1446,60 +1248,7 @@ def userlist():
         items = db_users.get_items()
     except CursorError as e:
         return error_internal(str(e))
-    html = ''
-    for item in items:
-        if item.username == 'admin':
-            button = ''
-        else:
-            button = "<form method=\"get\" action=\"/lvfs/user/%s/delete\">" \
-                     "<button class=\"fixedwidth\">Delete</button>" \
-                     "</form>" % item.username
-            if not item.is_enabled:
-                button += "<form method=\"get\" action=\"/lvfs/user/%s/enable\">" \
-                          "<button class=\"fixedwidth\">Enable</button>" \
-                          "</form>" % item.username
-            else:
-                button += "<form method=\"get\" action=\"/lvfs/user/%s/disable\">" \
-                          "<button class=\"fixedwidth\">Disable</button>" \
-                          "</form>" % item.username
-            if not item.is_locked:
-                button += "<form method=\"get\" action=\"/lvfs/user/%s/lock\">" \
-                          "<button class=\"fixedwidth\">Lock</button>" \
-                          "</form>" % item.username
-            else:
-                button += "<form method=\"get\" action=\"/lvfs/user/%s/unlock\">" \
-                          "<button class=\"fixedwidth\">Unlock</button>" \
-                          "</form>" % item.username
-            if not item.is_qa:
-                button += "<form method=\"get\" action=\"/lvfs/user/%s/promote\">" \
-                          "<button class=\"fixedwidth\">+QA</button>" \
-                          "</form>" % item.username
-            else:
-                button += "<form method=\"get\" action=\"/lvfs/user/%s/demote\">" \
-                          "<button class=\"fixedwidth\">-QA</button>" \
-                          "</form>" % item.username
-        html += '<tr>'
-        html += "<td>%s</td>\n" % item.username
-        html += "<td>%s&hellip;</td>\n" % item.password[0:8]
-        html += "<td>%s</td>\n" % item.display_name
-        html += "<td>%s</td>\n" % item.email
-        html += "<td>%s</td>\n" % item.qa_group
-        html += "<td>%s</td>\n" % button
-        html += '</tr>'
-
-    # add new user form
-    html += "<tr>"
-    html += "<form method=\"post\" action=\"/lvfs/user/add\">"
-    html += "<td><input type=\"text\" size=\"8\" name=\"username_new\" placeholder=\"username\" required></td>"
-    html += "<td><input type=\"password\" size=\"8\" name=\"password_new\" placeholder=\"password\" required></td>"
-    html += "<td><input type=\"text\" size=\"14\" name=\"name\" placeholder=\"Example Name\" required></td>"
-    html += "<td><input type=\"text\" size=\"14\" name=\"email\" placeholder=\"info@example.com\" required></td>"
-    html += "<td><input type=\"text\" size=\"8\" name=\"qa_group\" placeholder=\"example\" required></td>"
-    html += "<td><input type=\"submit\" style=\"width: 6em\" value=\"Add\"></td>"
-    html += "</form>"
-    html += "</tr>\n"
-    html += '</table>'
-    return render_template('userlist.html', dyncontent=html)
+    return render_template('userlist.html', users=items)
 
 @lvfs.route('/profile')
 def profile():
