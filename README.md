@@ -25,14 +25,6 @@ Use the test GPG key (with the initial password of `fwupd`).
     gpg> passwd
     gpg> quit
 
-Speeding up OpenShift
----------------------
-
-Add to python/conf.d/openshift.conf
-
-    RewriteEngine On
-    RewriteRule ^downloads/(.+)$ /static/downloads/$1 [L]
-
 ## How do I install the production key on Openshift? ##
 
 Use the secure GPG key (with the long secret password).
