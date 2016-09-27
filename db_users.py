@@ -40,6 +40,22 @@ class LvfsUser(object):
         self.qa_group = None
         self.is_locked = False
         self.pubkey = None
+
+    @property
+    def is_authenticated(self):
+        return True
+
+    @property
+    def is_active(self):
+        return True
+
+    @property
+    def is_anonymous(self):
+        return False
+
+    def get_id(self):
+        return str(self.username)
+
     def __repr__(self):
         return "LvfsUser object %s" % self.username
 

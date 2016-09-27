@@ -8,9 +8,11 @@ import os
 import datetime
 
 from flask import Flask, flash, render_template, redirect, request, send_from_directory, abort
+from flask.ext.login import LoginManager
 
 from db import LvfsDatabase, CursorError
 from db_clients import LvfsDatabaseClients, LvfsDownloadKind
+from db_users import LvfsDatabaseUsers
 from config import CDN_URI
 
 def _get_client_address():
@@ -27,6 +29,16 @@ from lvfs import lvfs
 app = Flask(__name__)
 app.config.from_pyfile('flaskapp.cfg')
 app.register_blueprint(lvfs)
+
+login_manager = LoginManager()
+login_manager.init_app(app)
+
+@login_manager.user_loader
+def load_user(user_id):
+    db = LvfsDatabase(os.environ)
+    db_users = LvfsDatabaseUsers(db)
+    user = db_users.get_item(user_id)
+    return user
 
 @app.errorhandler(404)
 def error_page_not_found(msg=None):

@@ -14,6 +14,7 @@ from StringIO import StringIO
 
 from flask import Blueprint, session, request, flash, url_for, redirect, \
      render_template, escape
+from flask.ext.login import login_required, login_user, logout_user
 
 import cabarchive
 import appstream
@@ -189,14 +190,11 @@ def new_account():
     return render_template('new-account.html')
 
 @lvfs.route('/metadata')
+@login_required
 def metadata():
     """
     Show all metadata available to this user.
     """
-
-    # security check
-    if not _check_session():
-        return redirect(url_for('.login'))
 
     # show static lists based on QA group
     qa_url = 'firmware-%s.xml.gz' % _qa_hash(session['qa_group'])
@@ -253,16 +251,13 @@ def device_list():
                            mds_by_vendor=mds_by_vendor)
 
 @lvfs.route('/upload', methods=['GET', 'POST'])
+@login_required
 def upload():
     """ Upload a .cab file to the LVFS service """
 
     # only accept form data
     if request.method != 'POST':
         return redirect(url_for('.index'))
-
-    # security check
-    if not _check_session():
-        return redirect(url_for('.login'))
 
     # not correct parameters
     if not 'target' in request.form:
@@ -551,14 +546,13 @@ def upload():
     return redirect(url_for('.firmware_id', fwid=fwid))
 
 @lvfs.route('/device')
+@login_required
 def device():
     """
     Show all devices -- probably only useful for the admin user.
     """
 
     # security check
-    if not _check_session():
-        return redirect(url_for('.login'))
     if session['username'] != 'admin':
         return error_permission_denied('Unable to view devices')
 
@@ -613,10 +607,6 @@ def firmware(show_all=False):
     Show all previsouly uploaded firmware for this user.
     """
 
-    # security check
-    if not _check_session():
-        return redirect(url_for('.login'))
-
     # get all firmware
     try:
         db = LvfsDatabase(os.environ)
@@ -663,15 +653,12 @@ def firmware_delete(fwid):
     return render_template('firmware-delete.html', fwid=fwid), 406
 
 @lvfs.route('/firmware/<fwid>/modify', methods=['GET', 'POST'])
+@login_required
 def firmware_modify(fwid):
     """ Modifies the update urgency and release notes for the update """
 
     if request.method != 'POST':
         return redirect(url_for('.firmware'))
-
-    # security check
-    if not _check_session():
-        return redirect(url_for('.login'))
 
     # find firmware
     try:
@@ -709,12 +696,9 @@ def firmware_modify(fwid):
     return redirect(url_for('.firmware_id', fwid=fwid))
 
 @lvfs.route('/firmware/<fwid>/delete_force')
+@login_required
 def firmware_delete_force(fwid):
     """ Delete a firmware entry and also delete the file from disk """
-
-    # security check
-    if not _check_session():
-        return redirect(url_for('.login'))
 
     # check firmware exists in database
     db = LvfsDatabase(os.environ)
@@ -760,15 +744,12 @@ def firmware_delete_force(fwid):
     return redirect(url_for('.firmware'))
 
 @lvfs.route('/firmware/<fwid>/promote/<target>')
+@login_required
 def firmware_promote(fwid, target):
     """
     Promote or demote a firmware file from one target to another,
     for example from testing to stable, or stable to testing.
      """
-
-    # security check
-    if not _check_session():
-        return redirect(url_for('.login'))
 
     # check is QA
     if not session['qa_capability']:
@@ -808,12 +789,9 @@ def firmware_promote(fwid, target):
     return redirect(url_for('.firmware_id', fwid=fwid))
 
 @lvfs.route('/firmware/<fwid>')
+@login_required
 def firmware_id(fwid):
     """ Show firmware information """
-
-    # security check
-    if not _check_session():
-        return redirect(url_for('.login'))
 
     # get details about the firmware
     db = LvfsDatabase(os.environ)
@@ -851,12 +829,11 @@ def firmware_id(fwid):
                            graph_data=data_fw[::-1])
 
 @lvfs.route('/analytics')
+@login_required
 def analytics():
     """ A analytics screen to show information about users """
 
     # security check
-    if not _check_session():
-        return redirect(url_for('.login'))
     if session['username'] != 'admin':
         return error_permission_denied('Unable to view analytics')
     db = LvfsDatabase(os.environ)
@@ -881,31 +858,32 @@ def login():
         return render_template('login.html')
 
     # auth check
-    item = None
+    user = None
     password = _password_hash(request.form['password'])
     try:
         db = LvfsDatabase(os.environ)
         db_users = LvfsDatabaseUsers(db)
-        item = db_users.get_item(request.form['username'],
+        user = db_users.get_item(request.form['username'],
                                  password)
     except CursorError as e:
         return error_internal(str(e))
-    if not item:
+    if not user:
         # log failure
         _event_log('Failed login attempt for %s' % request.form['username'])
         flash('Incorrect username or password')
         return render_template('login.html')
-    if not item.is_enabled:
+    if not user.is_enabled:
         # log failure
         _event_log('Failed login attempt for %s (user disabled)' % request.form['username'])
         flash('User account is disabled')
         return render_template('login.html')
 
     # this is signed, not encrypted
-    session['username'] = item.username
-    session['qa_capability'] = item.is_qa
-    session['qa_group'] = item.qa_group
-    session['is_locked'] = item.is_locked
+    session['username'] = user.username
+    session['qa_capability'] = user.is_qa
+    session['qa_group'] = user.qa_group
+    session['is_locked'] = user.is_locked
+    login_user(user, remember=False)
 
     # log success
     _event_log('Logged on')
@@ -915,18 +893,18 @@ def login():
 def logout():
     # remove the username from the session
     session.pop('username', None)
+    logout_user()
     return redirect(url_for('.index'))
 
 @lvfs.route('/eventlog')
 @lvfs.route('/eventlog/<start>')
 @lvfs.route('/eventlog/<start>/<length>')
+@login_required
 def eventlog(start=0, length=20):
     """
     Show an event log of user actions.
     """
     # security check
-    if not _check_session():
-        return redirect(url_for('.login'))
     if not session['qa_capability']:
         return error_permission_denied('Unable to show event log for non-QA user')
 
@@ -1024,6 +1002,7 @@ def _update_metadata_from_fn(fwobj, fn):
     return None
 
 @lvfs.route('/user/<username>/modify', methods=['GET', 'POST'])
+@login_required
 def user_modify(username):
     """ Change details about the current user """
 
@@ -1032,8 +1011,6 @@ def user_modify(username):
         return redirect(url_for('.profile'))
 
     # security check
-    if not _check_session():
-        return redirect(url_for('.login'))
     if session['username'] != username:
         return error_permission_denied('Unable to modify a different user')
     if session['is_locked']:
@@ -1092,6 +1069,7 @@ def user_modify(username):
     return redirect(url_for('.profile'))
 
 @lvfs.route('/user/add', methods=['GET', 'POST'])
+@login_required
 def useradd():
     """ Add a user [ADMIN ONLY] """
 
@@ -1100,8 +1078,6 @@ def useradd():
         return redirect(url_for('.profile'))
 
     # security check
-    if not _check_session():
-        return redirect(url_for('.login'))
     if session['username'] != 'admin':
         return error_permission_denied('Unable to add user as non-admin')
 
@@ -1161,12 +1137,11 @@ def useradd():
     return redirect(url_for('.userlist')), 201
 
 @lvfs.route('/user/<username>/delete')
+@login_required
 def user_delete(username):
     """ Delete a user """
 
     # security check
-    if not _check_session():
-        return redirect(url_for('.login'))
     if session['username'] != 'admin':
         return error_permission_denied('Unable to remove user as not admin')
 
@@ -1192,8 +1167,6 @@ def usermod(username, key, value):
     """ Adds or remove a capability to a user """
 
     # security check
-    if not _check_session():
-        return redirect(url_for('.login'))
     if session['username'] != 'admin':
         return error_permission_denied('Unable to inc user as not admin')
 
@@ -1212,30 +1185,37 @@ def usermod(username, key, value):
     return redirect(url_for('.userlist'))
 
 @lvfs.route('/user/<username>/enable')
+@login_required
 def user_enable(username):
     return usermod(username, 'enabled', True)
 
 @lvfs.route('/user/<username>/disable')
+@login_required
 def user_disable(username):
     return usermod(username, 'enabled', False)
 
 @lvfs.route('/user/<username>/lock')
+@login_required
 def user_lock(username):
     return usermod(username, 'locked', True)
 
 @lvfs.route('/user/<username>/unlock')
+@login_required
 def user_unlock(username):
     return usermod(username, 'locked', False)
 
 @lvfs.route('/user/<username>/promote')
+@login_required
 def user_promote(username):
     return usermod(username, 'qa', True)
 
 @lvfs.route('/user/<username>/demote')
+@login_required
 def user_demote(username):
     return usermod(username, 'qa', False)
 
 @lvfs.route('/userlist')
+@login_required
 def userlist():
     """
     Show a list of all users
@@ -1251,14 +1231,13 @@ def userlist():
     return render_template('userlist.html', users=items)
 
 @lvfs.route('/profile')
+@login_required
 def profile():
     """
     Allows the normal user to change details about the account,
     """
 
     # security check
-    if not _check_session():
-        return redirect(url_for('.login'))
     if session['is_locked']:
         return error_permission_denied('Unable to view profile as account locked')
 
@@ -1283,14 +1262,13 @@ def profile():
                            pubkey=item.pubkey)
 
 @lvfs.route('/metadata_rebuild')
+@login_required
 def metadata_rebuild():
     """
     Forces a rebuild of all metadata.
     """
 
     # security check
-    if not _check_session():
-        return redirect(url_for('.login'))
     if session['username'] != 'admin':
         return error_permission_denied('Only admin is allowed to force-rebuild metadata')
 
