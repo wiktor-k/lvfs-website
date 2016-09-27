@@ -1,4 +1,4 @@
-
+DROP TABLE IF EXISTS users;
 CREATE TABLE users (
   username VARCHAR(40) NOT NULL DEFAULT '',
   password VARCHAR(40) NOT NULL DEFAULT '',
@@ -11,10 +11,10 @@ CREATE TABLE users (
   is_locked TINYINT DEFAULT 0,
   UNIQUE KEY id (username)
 ) CHARSET=utf8;
-
 INSERT INTO users (username, password, display_name, email, is_enabled, is_qa, is_locked, qa_group)
     VALUES ('admin', '5459dbe5e9aa80e077bfa40f3fb2ca8368ed09b4', 'Admin User', 'sign-test@fwupd.org', 1, 1, 0, 'admin');
 
+DROP TABLE IF EXISTS firmware;
 CREATE TABLE firmware (
   qa_group VARCHAR(40) NOT NULL DEFAULT '',
   addr VARCHAR(40) DEFAULT NULL,
@@ -26,6 +26,7 @@ CREATE TABLE firmware (
   UNIQUE KEY id (fwid)
 ) CHARSET=utf8;
 
+DROP TABLE IF EXISTS firmware_md;
 CREATE TABLE firmware_md (
   fwid VARCHAR(40) DEFAULT NULL,
   checksum_contents VARCHAR(40) DEFAULT NULL,
@@ -51,6 +52,7 @@ CREATE TABLE firmware_md (
   UNIQUE KEY id (fwid,guid)
 ) CHARSET=utf8;
 
+DROP TABLE IF EXISTS event_log;
 CREATE TABLE event_log (
   id INT NOT NULL AUTO_INCREMENT,
   timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -62,6 +64,7 @@ CREATE TABLE event_log (
   UNIQUE KEY id (id)
 ) CHARSET=utf8;
 
+DROP TABLE IF EXISTS clients;
 CREATE TABLE clients (
   id INT NOT NULL AUTO_INCREMENT,
   timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -71,6 +74,7 @@ CREATE TABLE clients (
   UNIQUE KEY id (id)
 ) CHARSET=utf8;
 
+DROP TABLE IF EXISTS analytics;
 CREATE TABLE analytics (
   datestr INT DEFAULT 0,
   kind TINYINT DEFAULT 0,
