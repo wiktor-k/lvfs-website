@@ -24,7 +24,7 @@ Chart.defaults.global.animation = false;
   <tr>
     <th>Actions</th>
     <td>
-{% if fw.target == 'private' or qa_capability %}
+{% if fw.target != 'stable' or qa_capability %}
       <form method="get" action="/lvfs/firmware/{{fwid}}/delete">
       <button class="fixedwidth">Delete</button>
       </form>
