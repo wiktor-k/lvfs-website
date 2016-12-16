@@ -615,12 +615,19 @@ def firmware(show_all=False):
     except CursorError as e:
         return error_internal(str(e))
 
+    session_qa_group = None
+    if 'qa_group' in session:
+        session_qa_group = session['qa_group']
+    session_username = None
+    if 'username' in session:
+        session_username = session['username']
+
     # group by the firmware name
     names = {}
     for item in items:
         # admin can see everything
-        if session['username'] != 'admin':
-            if item.qa_group != session['qa_group']:
+        if session_username != 'admin':
+            if item.qa_group != session_qa_group:
                 continue
         name = item.mds[0].name
         if not name in names:
@@ -640,7 +647,7 @@ def firmware(show_all=False):
     return render_template('firmware.html',
                            fw_by_name=names,
                            names_sorted=sorted(names),
-                           qa_group=session['qa_group'],
+                           qa_group=session_qa_group,
                            show_all=show_all)
 
 @lvfs.route('/firmware_all')
