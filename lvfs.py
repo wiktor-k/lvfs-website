@@ -629,7 +629,7 @@ def firmware(show_all=False):
         if session_username != 'admin':
             if item.qa_group != session_qa_group:
                 continue
-        name = item.mds[0].name
+        name = item.mds[0].developer_name + ' ' + item.mds[0].name
         if not name in names:
             names[name] = []
         names[name].append(item)
