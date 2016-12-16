@@ -638,11 +638,12 @@ def firmware(show_all=False):
     for name in sorted(names):
         targets_seen = {}
         for item in names[name]:
-            if item.target in targets_seen:
+            key = item.target + item.mds[0].cid
+            if key in targets_seen:
                 item.is_newest_in_state = False
             else:
                 item.is_newest_in_state = True
-                targets_seen[item.target] = item
+                targets_seen[key] = item
 
     return render_template('firmware.html',
                            fw_by_name=names,
