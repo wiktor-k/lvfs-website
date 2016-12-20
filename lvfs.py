@@ -27,7 +27,7 @@ from db_users import LvfsDatabaseUsers, _password_hash
 from inf_parser import InfParser
 from config import DOWNLOAD_DIR, CABEXTRACT_CMD
 from util import _qa_hash, _upload_to_cdn, create_affidavit
-from metadata import metadata_update_qa_group, metadata_update_targets
+from metadata import metadata_update_qa_group, metadata_update_targets, metadata_update_pulp
 
 def _password_check(value):
     """ Check the password for suitability """
@@ -1284,6 +1284,7 @@ def metadata_rebuild():
     try:
         metadata_update_qa_group(None)
         metadata_update_targets(['stable', 'testing'])
+        metadata_update_pulp()
     except NoKeyError as e:
         return error_internal('Failed to sign metadata: ' + str(e))
     except CursorError as e:

@@ -5,6 +5,7 @@
 # Licensed under the GNU General Public License Version 2
 
 import os
+import hashlib
 
 import appstream
 
@@ -142,3 +143,46 @@ def metadata_update_targets(targets):
             _generate_metadata_kind('firmware-testing.xml.gz',
                                     targets=['stable', 'testing'],
                                     affidavit=affidavit)
+
+def _hashfile(afile, hasher, blocksize=65536):
+    buf = afile.read(blocksize)
+    while len(buf) > 0:
+        hasher.update(buf)
+        buf = afile.read(blocksize)
+    return hasher.hexdigest()
+
+def metadata_update_pulp():
+    """ updates metadata for Pulp """
+    db = LvfsDatabase(os.environ)
+    db_firmware = LvfsDatabaseFirmware(db)
+    items = db_firmware.get_items()
+    files_to_scan = []
+    files_to_scan.append('firmware.xml.gz')
+    files_to_scan.append('firmware.xml.gz.asc')
+    for item in items:
+        if item.target != 'stable':
+            continue
+        files_to_scan.append(item.filename)
+
+    # for each file in stable plus metadata
+    data = []
+    for f in files_to_scan:
+        fn = os.path.join(DOWNLOAD_DIR, f)
+        if not os.path.exists(fn):
+            continue
+
+        # filename,sha256,size
+        sha256 = _hashfile(open(fn, 'rb'), hashlib.sha256())
+        fn_sz = os.path.getsize(fn)
+        data.append('%s,%s,%i\n' % (f, sha256, fn_sz))
+
+    # write file
+    filename = os.path.join(DOWNLOAD_DIR, 'PULP_MANIFEST')
+    f = open(filename, 'w')
+    f.writelines(data)
+    f.close()
+
+    # upload to CDN
+    blob = open(filename, 'rb').read()
+    _upload_to_cdn(filename, blob)
+    return
