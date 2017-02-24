@@ -364,6 +364,9 @@ def upload():
         except appstream.ValidationError as e:
             return error_internal('The metadata %s file did not validate: %s' % (cf, str(e)))
 
+        # get the metadata ID
+        component.custom['metainfo_id'] = hashlib.sha1(cf.contents).hexdigest()
+
         # check the file does not have any missing request.form
         if cf.contents.find('FIXME') != -1:
             return error_internal("The metadata file was not complete; "
@@ -481,6 +484,7 @@ def upload():
     for component in apps:
         md = LvfsFirmwareMd()
         md.fwid = fwid
+        md.metainfo_id = component.custom['metainfo_id']
         md.cid = component.id
         md.name = component.name
         md.summary = component.summary
@@ -544,6 +548,14 @@ def upload():
         return error_internal('Failed to generate metadata: ' + str(e))
 
     return redirect(url_for('.firmware_id', fwid=fwid))
+
+@lvfs.route('/dbmigrate')
+@login_required
+def dbmigrate():
+    db = LvfsDatabase(os.environ)
+    db_firmware = LvfsDatabaseFirmware(db)
+    db_firmware.migrate()
+    return redirect(url_for('.index'))
 
 @lvfs.route('/device')
 @login_required

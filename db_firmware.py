@@ -4,6 +4,8 @@
 # Copyright (C) 2015 Richard Hughes <richard@hughsie.com>
 # Licensed under the GNU General Public License Version 2
 
+import hashlib
+
 import MySQLdb as mdb
 
 from db import CursorError
@@ -32,6 +34,7 @@ class LvfsFirmwareMd(object):
         self.release_urgency = None
         self.screenshot_url = None
         self.screenshot_caption = None
+        self.metainfo_id = None
     def __repr__(self):
         return "LvfsFirmwareMd object %s" % self.fwid
 
@@ -72,6 +75,7 @@ def _create_firmware_md(e):
     md.release_urgency = e[18]
     md.screenshot_url = e[19]
     md.screenshot_caption = e[20]
+    md.metainfo_id = e[21]
     return md
 
 def _create_firmware_item(e):
@@ -162,9 +166,9 @@ class LvfsDatabaseFirmware(object):
                             "checksum_container, filename_contents, "
                             "release_installed_size, "
                             "release_download_size, release_urgency, "
-                            "screenshot_url, screenshot_caption) "
+                            "screenshot_url, screenshot_caption, metainfo_id) "
                             "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, "
-                            "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s);",
+                            "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);",
                             (fwobj.fwid,
                              md.cid,
                              md.guid,
@@ -185,7 +189,8 @@ class LvfsDatabaseFirmware(object):
                              md.release_download_size,
                              md.release_urgency,
                              md.screenshot_url,
-                             md.screenshot_caption,))
+                             md.screenshot_caption,
+                             md.metainfo_id,))
         except mdb.Error as e:
             raise CursorError(cur, e)
 
@@ -207,7 +212,8 @@ class LvfsDatabaseFirmware(object):
                         "project_license, url_homepage, description, "
                         "checksum_container, filename_contents, "
                         "release_installed_size, release_download_size, "
-                        "release_urgency, screenshot_url, screenshot_caption "
+                        "release_urgency, screenshot_url, screenshot_caption, "
+                        "metainfo_id "
                         "FROM firmware_md WHERE fwid = %s ORDER BY guid DESC;",
                         (item.fwid,))
         except mdb.Error as e:
@@ -245,3 +251,21 @@ class LvfsDatabaseFirmware(object):
             if item.fwid == fwid:
                 return item
         return None
+
+    def migrate(self):
+        """ Migrates databases to latest schema """
+        try:
+            cur = self._db.cursor()
+            cur.execute("SELECT fwid, id FROM firmware_md WHERE metainfo_id IS NULL;")
+            res = cur.fetchall()
+            if not res:
+                return
+            for e in res:
+                fake_id = list(hashlib.sha1(e[0]+e[1]).hexdigest())
+                for idx in range(0, 8):
+                    fake_id[idx] = '0'
+                cur.execute("UPDATE firmware_md SET metainfo_id=%s "
+                            "WHERE fwid=%s AND id=%s;",
+                            (''.join(fake_id), e[0], e[1],))
+        except mdb.Error as e:
+            raise CursorError(cur, e)

@@ -248,6 +248,7 @@ class Component(object):
         self.screenshots = []
         self.kudos = []
         self.keywords = []
+        self.custom = {}
 
     def to_xml(self):
         xml = '  <component type="firmware">\n'

@@ -14,24 +14,37 @@ CREATE TABLE users (
 INSERT INTO users (username, password, display_name, email, is_enabled, is_qa, is_locked, qa_group)
     VALUES ('admin', '5459dbe5e9aa80e077bfa40f3fb2ca8368ed09b4', 'Admin User', 'sign-test@fwupd.org', 1, 1, 0, 'admin');
 
+-- the cab file
 DROP TABLE IF EXISTS firmware;
 CREATE TABLE firmware (
-  qa_group VARCHAR(40) NOT NULL DEFAULT '',
-  addr VARCHAR(40) DEFAULT NULL,
-  timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  filename VARCHAR(255) DEFAULT NULL,
-  target VARCHAR(255) DEFAULT NULL,
-  fwid VARCHAR(40) DEFAULT NULL,
-  version_display VARCHAR(255) DEFAULT NULL,
+
+  -- information about the upload
+  qa_group VARCHAR(40) NOT NULL DEFAULT '',     -- QA group of uploader
+  addr VARCHAR(40) DEFAULT NULL,                -- IP address of uploader
+  timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, -- upload date/time
+  filename VARCHAR(255) DEFAULT NULL,           -- filename of the original .cab file
+
+  -- parsed from the uploaded data
+  fwid VARCHAR(40) DEFAULT NULL,                -- SHA1 of the original .cab file
+  version_display VARCHAR(255) DEFAULT NULL,    -- from the firmware.inf file
+
+  -- modified as the firmware is tested
+  target VARCHAR(255) DEFAULT NULL,             -- pivate, embargo, testing, etc.
+
   UNIQUE KEY id (fwid)
 ) CHARSET=utf8;
 
+-- the metainfo file
 DROP TABLE IF EXISTS firmware_md;
 CREATE TABLE firmware_md (
-  fwid VARCHAR(40) DEFAULT NULL,
-  checksum_contents VARCHAR(40) DEFAULT NULL,
-  checksum_container VARCHAR(40) DEFAULT NULL,
-  id TEXT DEFAULT NULL,
+
+  metainfo_id VARCHAR(40) DEFAULT NULL,         -- SHA1 of the metainfo.xml file
+  fwid VARCHAR(40) DEFAULT NULL,                -- which cab file owns this?
+  checksum_contents VARCHAR(40) DEFAULT NULL,   -- SHA1 of the firmware.bin
+  checksum_container VARCHAR(40) DEFAULT NULL,  -- SHA1 of the signed .cab file
+
+  -- information parsed from the metainfo file XML
+  id TEXT DEFAULT NULL,                         -- e.g. com.hughski.ColorHug.firmware
   name TEXT DEFAULT NULL,
   summary TEXT DEFAULT NULL,
   guid VARCHAR(36) DEFAULT NULL,
@@ -41,7 +54,7 @@ CREATE TABLE firmware_md (
   metadata_license TEXT DEFAULT NULL,
   project_license TEXT DEFAULT NULL,
   developer_name TEXT DEFAULT NULL,
-  filename_contents TEXT DEFAULT NULL,
+  filename_contents TEXT DEFAULT NULL,          -- filename of the firmware.bin
   release_timestamp INTEGER DEFAULT 0,
   version VARCHAR(255) DEFAULT NULL,
   release_installed_size INTEGER DEFAULT 0,
