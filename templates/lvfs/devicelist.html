@@ -24,7 +24,7 @@
 <h2>{{vendor}}</h2>
 <ul>
 {% for md in mds_by_vendor[vendor] %}
-  <li><a href="/lvfs/device/{{md.guid}}">{{md.name}}</a></li>
+  <li><a href="/lvfs/device/{{md.guids[0]}}">{{md.name}}</a></li>
 {% endfor %}
 </ul>
 {% endfor %}

@@ -45,10 +45,10 @@ def _generate_metadata_kind(filename, targets=None, qa_group=None, affidavit=Non
             component.developer_name = md.developer_name
 
             # add provide
-            if md.guid:
+            for guid in md.guids:
                 prov = appstream.Provide()
                 prov.kind = 'firmware-flashed'
-                prov.value = md.guid
+                prov.value = guid
                 component.add_provide(prov)
 
             # add release
