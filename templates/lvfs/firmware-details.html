@@ -55,7 +55,9 @@ Chart.defaults.global.animation = false;
 <p>{{md.summary}}</p>
 <table class="aligned">
   <tr><th>ID</th><td>{{md.cid}}</td></tr>
-  <tr><th>Device GUID</th><td><code>{{md.guid}}</code></td></tr>
+{% for guid in md.guids %}
+  <tr><th>Device GUID</th><td><code>{{guid}}</code></td></tr>
+{% endfor %}
   <tr><th>Version</th><td>{{md.version}}</td></tr>
   <tr><th>Installed Size</th><td>{{format_size(md.release_installed_size)}}</td></tr>
   <tr><th>Download Size</th><td>{{format_size(md.release_download_size)}}</td></tr>

@@ -224,7 +224,7 @@ def device_list():
             continue
         vendors.append(vendor)
 
-    seen_guid = {}
+    seen_ids = {}
     mds_by_vendor = {}
     for vendor in sorted(vendors):
         for item in items:
@@ -237,14 +237,18 @@ def device_list():
                     continue
 
                 # only show the newest version
-                if md.guid in seen_guid:
+                if md.cid in seen_ids:
                     continue
-                seen_guid[md.guid] = 1
+                seen_ids[md.cid] = 1
 
                 # add
                 if not vendor in mds_by_vendor:
                     mds_by_vendor[vendor] = []
                 mds_by_vendor[vendor].append(md)
+
+    # ensure list is sorted
+    for vendor in mds_by_vendor:
+        mds_by_vendor[vendor].sort(key=lambda obj: obj.name)
 
     return render_template('devicelist.html',
                            vendors=sorted(vendors),
@@ -391,14 +395,15 @@ def upload():
             return error_internal(str(e))
         for item in items:
             for md in item.mds:
-                if md.guid == component.provides[0].value and md.version == component.releases[0].version:
-                    return error_internal("A firmware file for this version already exists", 422)
+                for guid in md.guids:
+                    if guid == component.provides[0].value and md.version == component.releases[0].version:
+                        return error_internal("A firmware file for this version already exists", 422)
 
         # check the ID hasn't been reused by a different GUID
         for item in items:
             for md in item.mds:
-                if md.cid == component.id and not md.guid == component.provides[0].value:
-                    return error_internal("The %s ID has already been used by GUID %s" % (md.cid, md.guid), 422)
+                if md.cid == component.id and not md.guids[0] == component.provides[0].value:
+                    return error_internal("The %s ID has already been used by GUID %s" % (md.cid, md.guids[0]), 422)
 
         # add to array
         apps.append(component)
@@ -496,8 +501,8 @@ def upload():
         md.checksum_container = checksum_container
 
         # from the provide
-        prov = component.provides[0]
-        md.guid = prov.value
+        for prov in component.provides:
+            md.guids.append(prov.value)
 
         # from the release
         rel = component.releases[0]
@@ -581,10 +586,10 @@ def device():
     seen_guid = {}
     for item in items:
         for md in item.mds:
-            if md.guid in seen_guid:
+            if md.guids[0] in seen_guid:
                 continue
-            seen_guid[md.guid] = 1
-            devices.append(md.guid)
+            seen_guid[md.guids[0]] = 1
+            devices.append(md.guids[0])
 
     return render_template('devices.html', devices=devices)
 
@@ -606,7 +611,7 @@ def device_guid(guid):
     firmware_items = []
     for item in items:
         for md in item.mds:
-            if md.guid != guid:
+            if md.guids[0] != guid:
                 continue
             firmware_items.append(item)
             break

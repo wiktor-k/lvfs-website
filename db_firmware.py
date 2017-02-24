@@ -15,7 +15,7 @@ class LvfsFirmwareMd(object):
         """ Constructor for object """
         self.fwid = None    # this maps the object back into a LvfsFirmware
         self.cid = None
-        self.guid = None
+        self.guids = []
         self.version = None
         self.name = None
         self.summary = None
@@ -56,7 +56,7 @@ def _create_firmware_md(e):
     md = LvfsFirmwareMd()
     md.fwid = e[0]
     md.cid = e[1]
-    md.guid = e[2]
+    md.guids = e[2].split(',')
     md.version = e[3]
     md.name = e[4]
     md.summary = e[5]
@@ -171,7 +171,7 @@ class LvfsDatabaseFirmware(object):
                             "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);",
                             (fwobj.fwid,
                              md.cid,
-                             md.guid,
+                             ','.join(md.guids),
                              md.version,
                              md.name,
                              md.summary,

@@ -47,7 +47,7 @@ CREATE TABLE firmware_md (
   id TEXT DEFAULT NULL,                         -- e.g. com.hughski.ColorHug.firmware
   name TEXT DEFAULT NULL,
   summary TEXT DEFAULT NULL,
-  guid VARCHAR(36) DEFAULT NULL,
+  guid TEXT DEFAULT NULL,
   description TEXT DEFAULT NULL,
   release_description TEXT DEFAULT NULL,
   url_homepage TEXT DEFAULT NULL,
@@ -62,7 +62,7 @@ CREATE TABLE firmware_md (
   release_urgency VARCHAR(16) DEFAULT NULL,
   screenshot_url TEXT DEFAULT NULL,
   screenshot_caption TEXT DEFAULT NULL,
-  UNIQUE KEY id (fwid,guid)
+  UNIQUE KEY id (fwid,metainfo_id)
 ) CHARSET=utf8;
 
 DROP TABLE IF EXISTS event_log;
