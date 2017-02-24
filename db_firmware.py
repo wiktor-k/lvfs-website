@@ -215,7 +215,6 @@ class LvfsDatabaseFirmware(object):
         res = cur.fetchall()
         if not res:
             return []
-        items = []
         for e in res:
             md = _create_firmware_md(e)
             item.mds.append(md)
