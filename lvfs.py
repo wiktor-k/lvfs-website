@@ -155,8 +155,12 @@ def utility_processor():
             num /= 1024.0
         return "%.1f%s%s" % (num, 'Yi', suffix)
 
+    def format_qa_hash(tmp):
+        return _qa_hash(tmp)
+
     return dict(format_size=format_size,
                 format_truncate=format_truncate,
+                format_qa_hash=format_qa_hash,
                 format_timestamp=format_timestamp)
 
 @lvfs.errorhandler(401)
@@ -196,13 +200,20 @@ def metadata():
     Show all metadata available to this user.
     """
 
-    # show static lists based on QA group
-    qa_url = 'firmware-%s.xml.gz' % _qa_hash(session['qa_group'])
-    qa_disp = 'firmware-%s&hellip;.xml.gz' % _qa_hash(session['qa_group'])[0:8]
+    # show all embargo metadata URLs when admin user
+    qa_groups = []
+    if session['qa_group'] == 'admin':
+        db = LvfsDatabase(os.environ)
+        db_users = LvfsDatabaseUsers(db)
+        try:
+            qa_groups = db_users.get_qa_groups()
+        except CursorError as e:
+            return error_internal(str(e))
+    else:
+        qa_groups.append(session['qa_group'])
     return render_template('metadata.html',
                            qa_group=session['qa_group'],
-                           qa_url=qa_url,
-                           qa_desc=qa_disp)
+                           qa_groups=qa_groups)
 
 @lvfs.route('/devicelist')
 def device_list():

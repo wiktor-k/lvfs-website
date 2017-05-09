@@ -26,14 +26,16 @@
     <th>Stable</th>
   <th>URL</th>
   </tr>
+{% for qa in qa_groups %}
   <tr>
-    <td>QA Group &lsquo;{{qa_group}}&rsquo;</td>
+    <td>Embargoed for &lsquo;{{qa}}&rsquo;</td>
     <td>No</td>
     <td><b>Yes</b></td>
     <td><b>Yes</b></td>
     <td><b>Yes</b></td>
-    <td><a href="/downloads/{{qa_url}}">{{qa_desc|safe}}</td>
+    <td><a href="/downloads/{{ 'firmware-%s.xml.gz' % format_qa_hash(qa) }}">{{ 'firmware-%s...xml.gz' % format_qa_hash(qa)[0:8] }}</td>
   </tr>
+{% endfor %}
   <tr>
     <td>Testing</td>
     <td>No</td>

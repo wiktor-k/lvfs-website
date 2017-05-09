@@ -208,3 +208,18 @@ class LvfsDatabaseUsers(object):
         if not res:
             return None
         return _create_user_item(res)
+
+    def get_qa_groups(self):
+        """ Gets the list of QA groups """
+        try:
+            cur = self._db.cursor()
+            cur.execute("SELECT DISTINCT qa_group FROM users;")
+        except mdb.Error as e:
+            raise CursorError(cur, e)
+        qa_groups = []
+        res = cur.fetchall()
+        if not res:
+            return qa_groups
+        for e in res:
+            qa_groups.append(e[0])
+        return qa_groups
