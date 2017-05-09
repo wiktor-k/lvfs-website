@@ -116,6 +116,8 @@ If you're using new-format cab files, cabextract needs to be setup using:
     pkcon install \
       python2-boto3 \
       python2-gnupg \
-      python2-PyMySQL
+      python2-PyMySQL \
+      python2-mysql \
       python-flask \
-      python-flask-wtf \
+      python-flask-login \
+      python-flask-wtf
