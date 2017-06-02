@@ -70,20 +70,20 @@ Or, to get a complete backup you can do:
 If this is a fresh instance you want to set up using:
 
     export OPENSHIFT_NAMESPACE=lvfs
-    export OPENSHIFT_APP=secure
+    export OPENSHIFT_APP=testing
     rhc delete-app --app ${OPENSHIFT_APP} --namespace ${OPENSHIFT_NAMESPACE}
-    rhc create-app --type python-3.3 --scaling \
+    rhc create-app --type python-2.7 \
         --app ${OPENSHIFT_APP} --namespace ${OPENSHIFT_NAMESPACE} \
         --from-code https://github.com/hughsie/lvfs-website.git
     rhc cartridge add --app ${OPENSHIFT_APP} \
         --namespace ${OPENSHIFT_NAMESPACE} \
         mysql-5.5
+    rhc cartridge add --app ${OPENSHIFT_APP} \
+        --namespace ${OPENSHIFT_NAMESPACE} \
+        phpmyadmin-4
     rhc env set --app ${OPENSHIFT_APP} \
         --namespace ${OPENSHIFT_NAMESPACE} \
         LVFS_CDN_URI=https://s3.amazonaws.com/lvfsbucket
-    rhc env set --app ${OPENSHIFT_APP} \
-        --namespace ${OPENSHIFT_NAMESPACE} \
-        LVFS_URI=https://secure-lvfs.rhcloud.com
     rhc show-app --app ${OPENSHIFT_APP} --namespace ${OPENSHIFT_NAMESPACE}
 
 To just restore the database, do:
