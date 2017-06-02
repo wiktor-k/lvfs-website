@@ -84,6 +84,10 @@ If this is a fresh instance you want to set up using:
     rhc env set --app ${OPENSHIFT_APP} \
         --namespace ${OPENSHIFT_NAMESPACE} \
         LVFS_CDN_URI=https://s3.amazonaws.com/lvfsbucket
+    # you can generate a new key with os.urandom(24).encode('hex')
+    rhc env set --app ${OPENSHIFT_APP} \
+        --namespace ${OPENSHIFT_NAMESPACE} \
+        LVFS_SECRET_KEY=deadbeef
     rhc show-app --app ${OPENSHIFT_APP} --namespace ${OPENSHIFT_NAMESPACE}
 
 To just restore the database, do:
