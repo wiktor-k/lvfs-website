@@ -227,7 +227,7 @@ def device_list():
     # get a sorted list of vendors
     vendors = []
     for item in items:
-        if item.target != 'stable':
+        if item.target not in ['stable', 'testing']:
             continue
         vendor = item.mds[0].developer_name
         if vendor in vendors:
@@ -238,7 +238,7 @@ def device_list():
     mds_by_vendor = {}
     for vendor in sorted(vendors):
         for item in items:
-            if item.target != 'stable':
+            if item.target not in ['stable', 'testing']:
                 continue
             for md in item.mds:
 
