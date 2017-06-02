@@ -170,7 +170,6 @@ def error_permission_denied(msg=None):
     flash("Permission denied: %s" % msg)
     return render_template('error.html'), 401
 
-@lvfs.errorhandler(402)
 def error_internal(msg=None, errcode=402):
     """ Error handler: Internal """
     _event_log("Internal error: %s" % msg, is_important=True)
