@@ -12,10 +12,11 @@ import sys
 
 import boto3
 
+from flask import current_app as app
+
 from affidavit import Affidavit
 from db import LvfsDatabase
 from db_users import LvfsDatabaseUsers
-from config import KEYRING_DIR
 
 def _qa_hash(value):
     """ Generate a salted hash of the QA group """
@@ -27,13 +28,15 @@ def create_affidavit():
     db = LvfsDatabase(os.environ)
     db_users = LvfsDatabaseUsers(db)
     key_uid = db_users.get_signing_uid()
-    return Affidavit(key_uid, KEYRING_DIR)
+    return Affidavit(key_uid, app.config['KEYRING_DIR'])
 
 def _upload_to_cdn(fn, blob):
     """ Upload something to the CDN """
+    if not app.config['CDN_BUCKET']:
+        return
     key = os.path.join("downloads/", os.path.basename(fn))
     s3 = boto3.resource('s3')
-    bucket = s3.Bucket('lvfsbucket')
+    bucket = s3.Bucket(app.config['CDN_BUCKET'])
     bucket.Acl().put(ACL='public-read')
     print("uploading %s as %s" % (fn, key))
     obj = bucket.put_object(Key=key, Body=blob)

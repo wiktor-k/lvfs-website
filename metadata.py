@@ -9,10 +9,10 @@ import hashlib
 
 import appstream
 
-from config import DOWNLOAD_DIR
 from util import _qa_hash, _upload_to_cdn, create_affidavit
 from db import LvfsDatabase
 from db_firmware import LvfsDatabaseFirmware
+from flask import current_app as app
 
 def _generate_metadata_kind(filename, targets=None, qa_group=None, affidavit=None):
     """ Generates AppStream metadata of a specific kind """
@@ -95,9 +95,10 @@ def _generate_metadata_kind(filename, targets=None, qa_group=None, affidavit=Non
             store.add(component)
 
     # dump to file
-    if not os.path.exists(DOWNLOAD_DIR):
-        os.mkdir(DOWNLOAD_DIR)
-    filename = os.path.join(DOWNLOAD_DIR, filename)
+    download_dir = app.config['DOWNLOAD_DIR']
+    if not os.path.exists(download_dir):
+        os.mkdir(download_dir)
+    filename = os.path.join(download_dir, filename)
     store.to_file(filename)
 
     # upload to the CDN
@@ -166,8 +167,9 @@ def metadata_update_pulp():
 
     # for each file in stable plus metadata
     data = []
+    download_dir = app.config['DOWNLOAD_DIR']
     for f in files_to_scan:
-        fn = os.path.join(DOWNLOAD_DIR, f)
+        fn = os.path.join(download_dir, f)
         if not os.path.exists(fn):
             continue
 
@@ -177,7 +179,7 @@ def metadata_update_pulp():
         data.append('%s,%s,%i\n' % (f, sha256, fn_sz))
 
     # write file
-    filename = os.path.join(DOWNLOAD_DIR, 'PULP_MANIFEST')
+    filename = os.path.join(download_dir, 'PULP_MANIFEST')
     f = open(filename, 'w')
     f.writelines(data)
     f.close()

@@ -8,12 +8,12 @@ import os
 import datetime
 
 from flask import Flask, flash, render_template, redirect, request, send_from_directory, abort
+from flask import current_app as app
 from flask.ext.login import LoginManager
 
 from db import LvfsDatabase, CursorError
 from db_clients import LvfsDatabaseClients, LvfsDownloadKind
 from db_users import LvfsDatabaseUsers
-from config import CDN_URI
 
 def _get_client_address():
     """ Gets user IP address """
@@ -27,7 +27,10 @@ def _get_client_address():
 from lvfs import lvfs
 
 app = Flask(__name__)
-app.config.from_pyfile('flaskapp.cfg')
+if 'OPENSHIFT_PYTHON_DIR' in os.environ:
+    app.config.from_pyfile('openshift.cfg')
+else:
+    app.config.from_pyfile('flaskapp.cfg')
 app.register_blueprint(lvfs)
 
 login_manager = LoginManager()
@@ -67,14 +70,14 @@ def serveStaticResource(resource):
         except CursorError as e:
             print str(e)
 
-    # firmware blobs are stored on S3 now
+    # firmware blobs can be stored on a CDN
     if resource.startswith('downloads/'):
-        return redirect(os.path.join(CDN_URI, resource), 301)
+        if app.config['CDN_URI']:
+            return redirect(os.path.join(app.config['CDN_URI'], resource), 301)
+        return send_from_directory('downloads/', os.path.basename(resource))
 
     # static files served locally
     return send_from_directory('static/', resource)
 
 if __name__ == '__main__':
-    if not 'OPENSHIFT_APP_DNS' in os.environ:
-        app.debug = True
     app.run()

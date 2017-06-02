@@ -15,6 +15,7 @@ from StringIO import StringIO
 from flask import Blueprint, session, request, flash, url_for, redirect, \
      render_template, escape
 from flask.ext.login import login_required, login_user, logout_user
+from flask import current_app as app
 
 import cabarchive
 import appstream
@@ -25,7 +26,6 @@ from db_eventlog import LvfsDatabaseEventlog
 from db_firmware import LvfsDatabaseFirmware, LvfsFirmware, LvfsFirmwareMd
 from db_users import LvfsDatabaseUsers, _password_hash
 from inf_parser import InfParser
-from config import DOWNLOAD_DIR, CABEXTRACT_CMD
 from util import _qa_hash, _upload_to_cdn, create_affidavit
 from metadata import metadata_update_qa_group, metadata_update_targets, metadata_update_pulp
 
@@ -310,8 +310,9 @@ def upload():
     # parse the file
     arc = cabarchive.CabArchive()
     try:
-        if os.path.exists(CABEXTRACT_CMD):
-            arc.set_decompressor(CABEXTRACT_CMD)
+        cabextract_cmd = app.config['CABEXTRACT_CMD']
+        if os.path.exists(cabextract_cmd):
+            arc.set_decompressor(cabextract_cmd)
         arc.parse(data)
     except cabarchive.CorruptionError as e:
         return error_internal('Invalid file type: %s' % str(e), 415)
@@ -476,9 +477,10 @@ def upload():
     checksum_container = hashlib.sha1(cab_data).hexdigest()
 
     # dump to a file
-    if not os.path.exists(DOWNLOAD_DIR):
-        os.mkdir(DOWNLOAD_DIR)
-    fn = os.path.join(DOWNLOAD_DIR, new_filename)
+    download_dir = app.config['DOWNLOAD_DIR']
+    if not os.path.exists(download_dir):
+        os.mkdir(download_dir)
+    fn = os.path.join(download_dir, new_filename)
     open(fn, 'wb').write(cab_data)
 
     # dump to the CDN
@@ -757,11 +759,10 @@ def firmware_delete_force(fwid):
     except CursorError as e:
         return error_internal(str(e))
 
-    # delete file(s)
-    for loc in [DOWNLOAD_DIR]:
-        path = os.path.join(loc, item.filename)
-        if os.path.exists(path):
-            os.remove(path)
+    # delete file
+    path = os.path.join(app.config['DOWNLOAD_DIR'], item.filename)
+    if os.path.exists(path):
+        os.remove(path)
 
     # update everything
     try:
@@ -983,8 +984,9 @@ def _update_metadata_from_fn(fwobj, fn):
     # load cab file
     arc = cabarchive.CabArchive()
     try:
-        if os.path.exists(CABEXTRACT_CMD):
-            arc.set_decompressor(CABEXTRACT_CMD)
+        cabextract_cmd = app.config['CABEXTRACT_CMD']
+        if os.path.exists(cabextract_cmd):
+            arc.set_decompressor(cabextract_cmd)
         arc.parse_file(fn)
     except cabarchive.CorruptionError as e:
         return error_internal('Invalid file type: %s' % str(e))

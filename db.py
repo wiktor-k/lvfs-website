@@ -6,6 +6,7 @@
 
 import MySQLdb as mdb
 import cgi
+from flask import current_app as app
 
 class CursorError(Exception):
     def __init__(self, cur, e):
@@ -20,16 +21,12 @@ class LvfsDatabase(object):
         assert environ
         self._db = None
         try:
-            if 'OPENSHIFT_MYSQL_DB_HOST' in environ:
-                self._db = mdb.connect(environ['OPENSHIFT_MYSQL_DB_HOST'],
-                                       environ['OPENSHIFT_MYSQL_DB_USERNAME'],
-                                       environ['OPENSHIFT_MYSQL_DB_PASSWORD'],
-                                       'secure',
-                                       int(environ['OPENSHIFT_MYSQL_DB_PORT']),
-                                       use_unicode=True, charset='utf8')
-            else:
-                self._db = mdb.connect('localhost', 'test', 'test', 'secure',
-                                       use_unicode=True, charset='utf8')
+            self._db = mdb.connect(app.config['DATABASE_HOST'],
+                                   app.config['DATABASE_USERNAME'],
+                                   app.config['DATABASE_PASSWORD'],
+                                   app.config['DATABASE_DB'],
+                                   int(app.config['DATABASE_PORT']),
+                                   use_unicode=True, charset='utf8')
             self._db.autocommit(True)
         except mdb.Error as e:
             print("Error %d: %s" % (e.args[0], e.args[1]))
