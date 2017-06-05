@@ -13,7 +13,7 @@ import ConfigParser
 from StringIO import StringIO
 
 from flask import Blueprint, session, request, flash, url_for, redirect, \
-     render_template, escape
+     render_template
 from flask.ext.login import login_required, login_user, logout_user
 from flask import current_app as app
 
