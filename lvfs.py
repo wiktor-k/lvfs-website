@@ -409,11 +409,17 @@ def upload():
                     if guid == component.provides[0].value and md.version == component.releases[0].version:
                         return error_internal("A firmware file for this version already exists", 422)
 
-        # check the ID hasn't been reused by a different GUID
+        # check if the file dropped a GUID previously supported
+        new_guids = []
+        for prov in component.provides:
+            new_guids.append(prov.value)
         for item in items:
             for md in item.mds:
-                if md.cid == component.id and not md.guids[0] == component.provides[0].value:
-                    return error_internal("The %s ID has already been used by GUID %s" % (md.cid, md.guids[0]), 422)
+                if md.cid != component.id:
+                    continue
+                for old_guid in md.guids:
+                    if not old_guid in new_guids:
+                        return error_internal("Firmware %s dropped a GUID previously supported %s" % (md.cid, old_guid), 422)
 
         # add to array
         apps.append(component)
