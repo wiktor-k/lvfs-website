@@ -98,8 +98,7 @@ def _get_client_address():
     """ Gets user IP address """
     if request.headers.getlist("X-Forwarded-For"):
         return request.headers.getlist("X-Forwarded-For")[0]
-    else:
-        return request.remote_addr
+    return request.remote_addr
 
 def _event_log(msg, is_important=False):
     """ Adds an item to the event log """
@@ -452,7 +451,7 @@ def upload():
         # add the detached signature if not already signed
         sig_data = arc.find_file(csum.filename + ".asc")
         if not sig_data:
-            if not csum.filename in asc_files:
+            if csum.filename not in asc_files:
                 try:
                     affidavit = create_affidavit()
                 except NoKeyError as e:
