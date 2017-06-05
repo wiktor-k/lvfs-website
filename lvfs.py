@@ -1166,8 +1166,7 @@ def useradd():
     try:
         db_users.add(username_new, password, name, email, qa_group)
     except CursorError as e:
-        #FIXME
-        pass
+        return error_internal(str(e))
     _event_log("Created user %s" % username_new)
     flash('Added user')
     return redirect(url_for('.userlist')), 201
