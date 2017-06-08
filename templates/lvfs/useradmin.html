@@ -1,0 +1,98 @@
+{% extends "default.html" %}
+{% block title %}User Details{% endblock %}
+
+{% block page_header %}
+<h1>User Details</h1>
+{% endblock %}
+
+{% block content %}
+
+{% if u.username == 'admin' %}
+<p>
+  The email address set here will be used as the signing key for all firmware
+  and metadata.
+</p>
+{% endif %}
+
+<form method="post" action="/lvfs/user/{{u.username}}/modify_by_admin">
+<table class="upload">
+  <tr>
+    <th class="upload">Username:</th>
+    <td><code>{{u.username}}</code></td>
+  </tr>
+  <tr>
+    <th class="upload">QA Group:</th>
+    <td><input type="text" name="qa_group" value="{{u.qa_group}}" required></td>
+  </tr>
+  <tr>
+    <th class="upload">Vendor Name:</th>
+    <td><input type="text" name="display_name" value="{{u.display_name}}" required></td>
+  </tr>
+  <tr>
+    <th class="upload">Contact Email:</th>
+    <td><input type="text" name="email" value="{{u.email}}" required></td>
+  </tr>
+{% if u.username != 'admin' %}
+  <tr>
+    <th class="upload">GPG Public Key<br/>(optional):</th>
+    <td><textarea name="pubkey" cols="64" rows="5">{{u.pubkey}}</textarea></td>
+  </tr>
+{% endif %}
+  <tr>
+    <th class="upload">New Password:</th>
+    <td><input type="password" name="password"></td>
+  </tr>
+{% if u.username != 'admin' %}
+  <tr>
+    <th class="upload">Account enabled:</th>
+{% if u.is_enabled %}
+    <td><input type="checkbox" name="is_enabled" value="1" checked /></td>
+{% else %}
+    <td><input type="checkbox" name="is_enabled" value="1"/></td>
+{% endif %}
+  </tr>
+  <tr>
+    <th class="upload">Prevent password change:</th>
+{% if u.is_locked %}
+    <td><input type="checkbox" name="is_locked" value="1" checked /></td>
+{% else %}
+    <td><input type="checkbox" name="is_locked" value="1"/></td>
+{% endif %}
+  </tr>
+  <tr>
+    <th class="upload">Allow moving to testing and stable:</th>
+{% if u.is_qa %}
+    <td><input type="checkbox" name="is_qa" value="1" checked /></td>
+{% else %}
+    <td><input type="checkbox" name="is_qa" value="1"/></td>
+{% endif %}
+  </tr>
+{% endif %}
+</table>
+<input type="submit" class="submit" value="Modify">
+</form>
+
+{% if u.username != 'admin' %}
+<h1>Delete User</h1>
+<p>
+  Unless you are required to delete a user for legal or compliance reasons,
+  removing a user is not recommended for the following reasons:
+</p>
+<ul>
+  <li class="confirm">
+    All firmware uploaded by the user will be deleted.
+  </li>
+  <li class="confirm">
+    A new user cannot be added with the same name as the old user.
+  </li>
+  <li class="confirm">
+    Any statistics and logs for this user are also deleted.
+  </li>
+</ul>
+
+<form method="get" action="/lvfs/user/{{u.username}}/delete">
+  <button class="fixedwidth">Delete</button>
+</form>
+{% endif %}
+
+{% endblock %}

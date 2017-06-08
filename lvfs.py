@@ -1110,6 +1110,42 @@ def user_modify(username):
     flash('Updated profile')
     return redirect(url_for('.profile'))
 
+@lvfs.route('/user/<username>/modify_by_admin', methods=['POST'])
+@login_required
+def user_modify_by_admin(username):
+    """ Change details about the any user """
+
+    # security check
+    if session['username'] != 'admin':
+        return error_permission_denied('Unable to modify user as non-admin')
+
+    # set each thing in turn
+    for key in ['qa_group',
+                'display_name',
+                'email',
+                'password',
+                'is_enabled',
+                'is_qa',
+                'is_locked',
+                'pubkey']:
+        # unchecked checkbuttons are not included in the form data
+        if key in request.form:
+            tmp = request.form[key]
+        else:
+            tmp = '0'
+        try:
+            db = LvfsDatabase(os.environ)
+            db_users = LvfsDatabaseUsers(db)
+            # don't set the optional password
+            if key == 'password' and len(tmp) == 0:
+                continue
+            db_users.set_property(username, key, tmp)
+        except CursorError as e:
+            return error_internal(str(e))
+    _event_log('Changed user %s properties' % username)
+    flash('Updated profile')
+    return redirect(url_for('.user_admin', user_name=username))
+
 @lvfs.route('/user/add', methods=['GET', 'POST'])
 @login_required
 def useradd():
@@ -1204,57 +1240,6 @@ def user_delete(username):
     flash('Deleted user')
     return redirect(url_for('.userlist')), 201
 
-def usermod(username, key, value):
-    """ Adds or remove a capability to a user """
-
-    # security check
-    if session['username'] != 'admin':
-        return error_permission_denied('Unable to inc user as not admin')
-
-    # save new value
-    try:
-        db = LvfsDatabase(os.environ)
-        db_users = LvfsDatabaseUsers(db)
-        db_users.set_property(username, key, value)
-    except CursorError as e:
-        return error_internal(str(e))
-    except RuntimeError as e:
-        return error_permission_denied('Unable to change user as key invalid')
-
-    # set correct response code
-    _event_log("Set %s=%s for user %s" % (key, value, username))
-    return redirect(url_for('.userlist'))
-
-@lvfs.route('/user/<username>/enable')
-@login_required
-def user_enable(username):
-    return usermod(username, 'enabled', True)
-
-@lvfs.route('/user/<username>/disable')
-@login_required
-def user_disable(username):
-    return usermod(username, 'enabled', False)
-
-@lvfs.route('/user/<username>/lock')
-@login_required
-def user_lock(username):
-    return usermod(username, 'locked', True)
-
-@lvfs.route('/user/<username>/unlock')
-@login_required
-def user_unlock(username):
-    return usermod(username, 'locked', False)
-
-@lvfs.route('/user/<username>/promote')
-@login_required
-def user_promote(username):
-    return usermod(username, 'qa', True)
-
-@lvfs.route('/user/<username>/demote')
-@login_required
-def user_demote(username):
-    return usermod(username, 'qa', False)
-
 @lvfs.route('/userlist')
 @login_required
 def userlist():
@@ -1270,6 +1255,22 @@ def userlist():
     except CursorError as e:
         return error_internal(str(e))
     return render_template('userlist.html', users=items)
+
+@lvfs.route('/user/<user_name>/admin')
+@login_required
+def user_admin(user_name):
+    """
+    Shows an admin panel for a user
+    """
+    if session['username'] != 'admin':
+        return error_permission_denied('Unable to modify user for non-admin user')
+    try:
+        db = LvfsDatabase(os.environ)
+        db_users = LvfsDatabaseUsers(db)
+        item = db_users.get_item(user_name)
+    except CursorError as e:
+        return error_internal(str(e))
+    return render_template('useradmin.html', u=item)
 
 @lvfs.route('/profile')
 @login_required

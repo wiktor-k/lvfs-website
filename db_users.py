@@ -107,26 +107,13 @@ class LvfsDatabaseUsers(object):
         assert key
 
         cur = self._db.cursor()
-        if key == 'qa':
-            try:
-                cur.execute("UPDATE users SET is_qa=%s WHERE username=%s;",
-                            (value, username,))
-            except mdb.Error as e:
-                raise CursorError(cur, e)
-        elif key == 'enabled':
-            try:
-                cur.execute("UPDATE users SET is_enabled=%s WHERE username=%s;",
-                            (value, username,))
-            except mdb.Error as e:
-                raise CursorError(cur, e)
-        elif key == 'locked':
-            try:
-                cur.execute("UPDATE users SET is_locked=%s WHERE username=%s;",
-                            (value, username,))
-            except mdb.Error as e:
-                raise CursorError(cur, e)
-        else:
-            raise RuntimeError('Unable to change user as key invalid')
+        try:
+            query = "UPDATE users SET %s=%%s WHERE username=%%s;" % key
+            if key == 'password':
+                value = _password_hash(value)
+            cur.execute(query, (value, username,))
+        except mdb.Error as e:
+            raise CursorError(cur, e)
 
     def is_enabled(self, username):
         """ Returns success if the username is present and enabled """

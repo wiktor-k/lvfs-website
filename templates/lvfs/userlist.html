@@ -2,78 +2,63 @@
 {% block title %}User List{% endblock %}
 
 {% block page_header %}
-<h1>User List</h1>
+<h1>Existing Users</h1>
 {% endblock %}
 
 {% block content %}
-<table class="history">
-<tr>
+<table>
+<tr class="history">
+  <th>&nbsp;</th>
   <th>Username</th>
-  <th>Password</th>
+  <th>QA Group</th>
   <th>Name</th>
   <th>Email</th>
-  <th>Group</th>
-  <th>Actions</th>
 </tr>
 
 {% for u in users %}
-<tr>
+<tr class="history">
+  <td>
+    <a href="/lvfs/user/{{u.username}}/admin"><img src="/preferences-other.svg"/></a>
+  </td>
   <td>{{u.username}}</td>
-  <td>{{u.password[0:8]}}&hellip;</td>
+  <td>{{u.qa_group}}</td>
   <td>{{u.display_name}}</td>
   <td>{{u.email}}</td>
-  <td>{{u.qa_group}}</td>
-  <td>
-{% if u.username != 'admin' %}
-<form method="get" action="/lvfs/user/{{u.username}}/delete">
-<button class="fixedwidth">Delete</button>
-</form>
-
-{% if u.is_enabled %}
-<form method="get" action="/lvfs/user/{{u.username}}/disable">
-<button class="fixedwidth">Disable</button>
-</form>
-{% else %}
-<form method="get" action="/lvfs/user/{{u.username}}/enable">
-<button class="fixedwidth">Enable</button>
-</form>
-{% endif %}
-
-{% if u.is_locked %}
-<form method="get" action="/lvfs/user/{{u.username}}/unlock">
-<button class="fixedwidth">Unlock</button>
-</form>
-{% else %}
-<form method="get" action="/lvfs/user/{{u.username}}/lock">
-<button class="fixedwidth">Lock</button>
-</form>
-{% endif %}
-
-{% if u.is_qa %}
-<form method="get" action="/lvfs/user/{{u.username}}/demote">
-<button class="fixedwidth">-QA</button>
-</form>
-{% else %}
-<form method="get" action="/lvfs/user/{{u.username}}/promote">
-<button class="fixedwidth">+QA</button>
-</form>
-{% endif %}
-
-{% endif %}
-  </td>
 </tr>
 {% endfor %}
 
-<tr>
-<form method="post" action="/lvfs/user/add">
-  <td><input type="text" size="8" name="username_new" placeholder="username" required></td>
-  <td><input type="password" size="8" name="password_new" placeholder="password" required></td>
-  <td><input type="text" size="14" name="name" placeholder="Example Name" required></td>
-  <td><input type="text" size="14" name="email" placeholder="info@example.com" required></td>
-  <td><input type="text" size="8" name="qa_group" placeholder="example" required></td>
-  <td><input type="submit" style="width: 6em" value="Add"></td>
-</form>
-</tr>
+</table>
+
+<h2>Create a new user</h2>
+<table class="history">
+  <tr>
+    <td>Username</td>
+    <td><input type="text" size="20" name="username_new" placeholder="username" required></td>
+  </tr>
+  <tr>
+    <td>Password</td>
+    <td><input type="password" size="20" name="password_new" placeholder="password" required></td>
+  </tr>
+  <tr>
+    <td>Name</td>
+    <td><input type="text" size="20" name="name" placeholder="Example Name" required></td>
+  </tr>
+  <tr>
+    <td>Email</td>
+    <td><input type="text" size="20" name="email" placeholder="info@example.com" required></td>
+  </tr>
+  <tr>
+    <td>QA Group</td>
+    <td><input type="text" size="20" name="qa_group" placeholder="example" required></td>
+  </tr>
+  <tr>
+    <td>&nbsp;</td>
+    <td>
+      <form method="post" action="/lvfs/user/add">
+        <input type="submit" style="width: 6em" value="Add">
+      </form>
+    </td>
+  </tr>
 </table>
 
 {% endblock %}
