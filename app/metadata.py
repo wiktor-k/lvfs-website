@@ -133,11 +133,11 @@ def metadata_update_group_id(group_id):
         return
 
     # do for all
-    group_ids = db.users.get_group_ids()
-    for group_id in group_ids:
-        filename_qa = 'firmware-%s.xml.gz' % _qa_hash(group_id)
+    groups = db.groups.get_all()
+    for group in groups:
+        filename_qa = 'firmware-%s.xml.gz' % _qa_hash(group.group_id)
         _generate_metadata_kind(filename_qa,
-                                group_id=group_id,
+                                group_id=group.group_id,
                                 affidavit=affidavit)
 
 def metadata_update_targets(targets):

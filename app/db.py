@@ -350,21 +350,6 @@ class DatabaseUsers(object):
             return None
         return _create_user_item(res)
 
-    def get_group_ids(self):
-        """ Gets the list of QA groups """
-        try:
-            cur = self._db.cursor()
-            cur.execute("SELECT DISTINCT group_id FROM users;")
-        except mdb.Error as e:
-            raise CursorError(cur, e)
-        group_ids = []
-        res = cur.fetchall()
-        if not res:
-            return group_ids
-        for e in res:
-            group_ids.append(e[0])
-        return group_ids
-
 class DatabaseFirmware(object):
 
     def __init__(self, db):

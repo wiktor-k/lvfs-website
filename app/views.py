@@ -163,7 +163,9 @@ def metadata():
     group_ids = []
     if session['group_id'] == 'admin':
         try:
-            group_ids = db.users.get_group_ids()
+            groups = db.groups.get_all()
+            for group in groups:
+                group_ids.append(group.group_id)
         except CursorError as e:
             return _error_internal(str(e))
     else:
