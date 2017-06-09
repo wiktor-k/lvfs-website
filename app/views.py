@@ -118,7 +118,10 @@ def index():
         item = db.groups.get_item(session['group_id'])
     except CursorError as e:
         return _error_internal(str(e))
-    return render_template('index.html', vendor_ids=item.vendor_ids)
+    vendor_ids = item.vendor_ids
+    if not vendor_ids:
+        vendor_ids = []
+    return render_template('index.html', vendor_ids=vendor_ids)
 
 @app.route('/lvfs/newaccount')
 def new_account():
