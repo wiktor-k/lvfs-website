@@ -16,7 +16,7 @@ from app import app, db
 from .affidavit import NoKeyError
 from .db import CursorError
 from .hash import _qa_hash
-from .metadata import metadata_update_group_id, metadata_update_targets
+from .metadata import _metadata_update_group, _metadata_update_targets
 from .util import _event_log, _error_internal, _error_permission_denied, _get_chart_labels_months
 
 @app.route('/lvfs/firmware')
@@ -149,11 +149,11 @@ def firmware_delete_force(firmware_id):
 
     # update everything
     try:
-        metadata_update_group_id(item.group_id)
+        _metadata_update_group(item.group_id)
         if item.target == 'stable':
-            metadata_update_targets(targets=['stable', 'testing'])
+            _metadata_update_targets(targets=['stable', 'testing'])
         elif item.target == 'testing':
-            metadata_update_targets(targets=['testing'])
+            _metadata_update_targets(targets=['testing'])
     except NoKeyError as e:
         return _error_internal('Failed to sign metadata: ' + str(e))
     except CursorError as e:
@@ -194,11 +194,11 @@ def firmware_promote(firmware_id, target):
 
     # update everything
     try:
-        metadata_update_group_id(item.group_id)
+        _metadata_update_group(item.group_id)
         if target == 'stable':
-            metadata_update_targets(['stable', 'testing'])
+            _metadata_update_targets(['stable', 'testing'])
         elif target == 'testing':
-            metadata_update_targets(['testing'])
+            _metadata_update_targets(['testing'])
     except NoKeyError as e:
         return _error_internal('Failed to sign metadata: ' + str(e))
     except CursorError as e:

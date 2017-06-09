@@ -28,7 +28,7 @@ from .hash import _qa_hash, _password_hash
 from .util import _upload_to_cdn, _create_affidavit, _event_log, _get_client_address
 from .util import _error_internal, _error_permission_denied
 from .util import _get_chart_labels_months, _get_chart_labels_days
-from .metadata import metadata_update_group_id, metadata_update_targets, metadata_update_pulp
+from .metadata import _metadata_update_group, _metadata_update_targets, _metadata_update_pulp
 
 def _check_session():
     if 'username' not in session:
@@ -446,11 +446,11 @@ def upload():
     # ensure up to date
     try:
         if target != 'private':
-            metadata_update_group_id(fwobj.group_id)
+            _metadata_update_group(fwobj.group_id)
         if target == 'stable':
-            metadata_update_targets(['stable', 'testing'])
+            _metadata_update_targets(['stable', 'testing'])
         elif target == 'testing':
-            metadata_update_targets(['testing'])
+            _metadata_update_targets(['testing'])
 
     except NoKeyError as e:
         return _error_internal('Failed to sign metadata: ' + str(e))
@@ -667,9 +667,9 @@ def metadata_rebuild():
 
     # update metadata
     try:
-        metadata_update_group_id(None)
-        metadata_update_targets(['stable', 'testing'])
-        metadata_update_pulp()
+        _metadata_update_group(None)
+        _metadata_update_targets(['stable', 'testing'])
+        _metadata_update_pulp()
     except NoKeyError as e:
         return _error_internal('Failed to sign metadata: ' + str(e))
     except CursorError as e:
