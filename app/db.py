@@ -32,7 +32,7 @@ def _create_user_item(e):
 
 def _create_firmware_md(e):
     md = FirmwareMd()
-    md.fwid = e[0]
+    md.firmware_id = e[0]
     md.cid = e[1]
     md.guids = e[2].split(',')
     md.version = e[3]
@@ -62,7 +62,7 @@ def _create_firmware_item(e):
     item.addr = e[1]
     item.timestamp = e[2]
     item.filename = e[3]
-    item.fwid = e[4]
+    item.firmware_id = e[4]
     item.target = e[5]
     item.version_display = e[6]
     return item
@@ -117,8 +117,8 @@ class Database(object):
 
     def verify(self):
         """ repairs database when required """
+        cur = self._db.cursor()
         try:
-            cur = self._db.cursor()
             cur.execute("SELECT vendor_ids FROM groups LIMIT 1;")
         except mdb.Error as e:
             cur.execute("""
@@ -131,12 +131,16 @@ class Database(object):
                 if not self.groups.get_item(user.group_id):
                     self.groups.add(user.group_id)
         try:
-            cur = self._db.cursor()
             cur.execute("SELECT group_id FROM users LIMIT 1;")
         except mdb.Error as e:
             cur.execute('ALTER TABLE firmware CHANGE COLUMN qa_group group_id VARCHAR(40) DEFAULT NULL;')
             cur.execute('ALTER TABLE event_log CHANGE COLUMN qa_group group_id VARCHAR(40) DEFAULT NULL;')
             cur.execute('ALTER TABLE users CHANGE COLUMN qa_group group_id VARCHAR(40) DEFAULT NULL;')
+        try:
+            cur.execute("SELECT firmware_id FROM firmware LIMIT 1;")
+        except mdb.Error as e:
+            cur.execute('ALTER TABLE firmware CHANGE COLUMN fwid firmware_id VARCHAR(40) DEFAULT NULL;')
+            cur.execute('ALTER TABLE firmware_md CHANGE COLUMN fwid firmware_id VARCHAR(40) DEFAULT NULL;')
 
     def __del__(self):
         """ Clean up the database """
@@ -356,13 +360,13 @@ class DatabaseFirmware(object):
         """ Constructor for object """
         self._db = db
 
-    def set_target(self, fwid, target):
+    def set_target(self, firmware_id, target):
         """ get the number of firmware files we've provided """
-        assert fwid
+        assert firmware_id
         assert target
         try:
             cur = self._db.cursor()
-            cur.execute("UPDATE firmware SET target=%s WHERE fwid=%s;", (target, fwid,))
+            cur.execute("UPDATE firmware SET target=%s WHERE firmware_id=%s;", (target, firmware_id,))
         except mdb.Error as e:
             raise CursorError(cur, e)
 
@@ -372,22 +376,22 @@ class DatabaseFirmware(object):
         try:
             cur = self._db.cursor()
             cur.execute("UPDATE firmware SET version_display=%s "
-                        "WHERE fwid=%s;",
+                        "WHERE firmware_id=%s;",
                         (fwobj.version_display,
-                         fwobj.fwid,))
+                         fwobj.firmware_id,))
             for md in fwobj.mds:
                 cur.execute("UPDATE firmware_md SET description=%s, "
                             "release_description=%s, "
                             "release_urgency=%s, "
                             "release_installed_size=%s, "
                             "release_download_size=%s "
-                            "WHERE fwid=%s;",
+                            "WHERE firmware_id=%s;",
                             (md.description,
                              md.release_description,
                              md.release_urgency,
                              md.release_installed_size,
                              md.release_download_size,
-                             fwobj.fwid,))
+                             fwobj.firmware_id,))
         except mdb.Error as e:
             raise CursorError(cur, e)
 
@@ -396,16 +400,16 @@ class DatabaseFirmware(object):
         try:
             cur = self._db.cursor()
             cur.execute("INSERT INTO firmware (group_id, addr, timestamp, "
-                        "filename, fwid, target, version_display) "
+                        "filename, firmware_id, target, version_display) "
                         "VALUES (%s, %s, CURRENT_TIMESTAMP, %s, %s, %s, %s);",
                         (fwobj.group_id,
                          fwobj.addr,
                          fwobj.filename,
-                         fwobj.fwid,
+                         fwobj.firmware_id,
                          fwobj.target,
                          fwobj.version_display,))
             for md in fwobj.mds:
-                cur.execute("INSERT INTO firmware_md (fwid, id, guid, version, "
+                cur.execute("INSERT INTO firmware_md (firmware_id, id, guid, version, "
                             "name, summary, checksum_contents, release_description, "
                             "release_timestamp, developer_name, metadata_license, "
                             "project_license, url_homepage, description, "
@@ -415,7 +419,7 @@ class DatabaseFirmware(object):
                             "screenshot_url, screenshot_caption, metainfo_id) "
                             "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, "
                             "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);",
-                            (fwobj.fwid,
+                            (fwobj.firmware_id,
                              md.cid,
                              ','.join(md.guids),
                              md.version,
@@ -440,19 +444,19 @@ class DatabaseFirmware(object):
         except mdb.Error as e:
             raise CursorError(cur, e)
 
-    def remove(self, fwid):
+    def remove(self, firmware_id):
         """ Removes firmware from the database if it exists """
         try:
             cur = self._db.cursor()
-            cur.execute("DELETE FROM firmware WHERE fwid = %s;", (fwid,))
-            cur.execute("DELETE FROM firmware_md WHERE fwid = %s;", (fwid,))
+            cur.execute("DELETE FROM firmware WHERE firmware_id = %s;", (firmware_id,))
+            cur.execute("DELETE FROM firmware_md WHERE firmware_id = %s;", (firmware_id,))
         except mdb.Error as e:
             raise CursorError(cur, e)
 
     def _add_items_md(self, item):
         try:
             cur = self._db.cursor()
-            cur.execute("SELECT fwid, id, guid, version, "
+            cur.execute("SELECT firmware_id, id, guid, version, "
                         "name, summary, checksum_contents, release_description, "
                         "release_timestamp, developer_name, metadata_license, "
                         "project_license, url_homepage, description, "
@@ -460,8 +464,8 @@ class DatabaseFirmware(object):
                         "release_installed_size, release_download_size, "
                         "release_urgency, screenshot_url, screenshot_caption, "
                         "metainfo_id "
-                        "FROM firmware_md WHERE fwid = %s ORDER BY guid DESC;",
-                        (item.fwid,))
+                        "FROM firmware_md WHERE firmware_id = %s ORDER BY guid DESC;",
+                        (item.firmware_id,))
         except mdb.Error as e:
             raise CursorError(cur, e)
         res = cur.fetchall()
@@ -476,7 +480,7 @@ class DatabaseFirmware(object):
         try:
             cur = self._db.cursor()
             cur.execute("SELECT group_id, addr, timestamp, "
-                        "filename, fwid, target, version_display "
+                        "filename, firmware_id, target, version_display "
                         "FROM firmware ORDER BY timestamp DESC;")
         except mdb.Error as e:
             raise CursorError(cur, e)
@@ -490,11 +494,11 @@ class DatabaseFirmware(object):
             self._add_items_md(item)
         return items
 
-    def get_item(self, fwid):
+    def get_item(self, firmware_id):
         """ Gets a specific firmware object """
         items = self.get_all()
         for item in items:
-            if item.fwid == fwid:
+            if item.firmware_id == firmware_id:
                 return item
         return None
 

@@ -25,23 +25,23 @@ Chart.defaults.global.animation = false;
     <th>Actions</th>
     <td>
 {% if fw.target != 'stable' or qa_capability %}
-      <form method="get" action="/lvfs/firmware/{{fwid}}/delete">
+      <form method="get" action="/lvfs/firmware/{{firmware_id}}/delete">
       <button class="fixedwidth">Delete</button>
       </form>
 {% endif %}
 {% if qa_capability %}
 {% if fw.target == 'private' %}
-      <form method="get" action="/lvfs/firmware/{{fwid}}/promote/embargo">
+      <form method="get" action="/lvfs/firmware/{{firmware_id}}/promote/embargo">
       <button class="fixedwidth">&#8594; Embargo</button>
       </form>
 {% endif %}
 {% if fw.target == 'embargo' %}
-      <form method="get" action="/lvfs/firmware/{{fwid}}/promote/testing">
+      <form method="get" action="/lvfs/firmware/{{firmware_id}}/promote/testing">
       <button class="fixedwidth">&#8594; Testing</button>
       </form>
 {% endif %}
 {% if fw.target == 'testing' %}
-      <form method="get" action="/lvfs/firmware/{{fwid}}/promote/stable">
+      <form method="get" action="/lvfs/firmware/{{firmware_id}}/promote/stable">
       <button class="fixedwidth">&#8594; Stable</button>
       </form>
 {% endif %}
@@ -81,7 +81,7 @@ Chart.defaults.global.animation = false;
 {% else %}
 
 <table class="history">
-  <form method="post" action="/lvfs/firmware/{{fwid}}/modify">
+  <form method="post" action="/lvfs/firmware/{{firmware_id}}/modify">
   <tr>
     <th>Release Urgency</th>
     <td>

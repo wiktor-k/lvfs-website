@@ -19,19 +19,19 @@ DROP TABLE IF EXISTS firmware;
 CREATE TABLE firmware (
 
   -- information about the upload
-  group_id VARCHAR(40) DEFAULT NULL,     -- QA group of uploader
+  group_id VARCHAR(40) DEFAULT NULL,            -- QA group of uploader
   addr VARCHAR(40) DEFAULT NULL,                -- IP address of uploader
   timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, -- upload date/time
   filename VARCHAR(255) DEFAULT NULL,           -- filename of the original .cab file
 
   -- parsed from the uploaded data
-  fwid VARCHAR(40) DEFAULT NULL,                -- SHA1 of the original .cab file
+  firmware_id VARCHAR(40) DEFAULT NULL,         -- SHA1 of the original .cab file
   version_display VARCHAR(255) DEFAULT NULL,    -- from the firmware.inf file
 
   -- modified as the firmware is tested
   target VARCHAR(255) DEFAULT NULL,             -- pivate, embargo, testing, etc.
 
-  UNIQUE KEY id (fwid)
+  UNIQUE KEY id (firmware_id)
 ) CHARSET=utf8;
 
 -- the metainfo file
@@ -39,7 +39,7 @@ DROP TABLE IF EXISTS firmware_md;
 CREATE TABLE firmware_md (
 
   metainfo_id VARCHAR(40) DEFAULT NULL,         -- SHA1 of the metainfo.xml file
-  fwid VARCHAR(40) DEFAULT NULL,                -- which cab file owns this?
+  firmware_id VARCHAR(40) DEFAULT NULL,         -- which cab file owns this?
   checksum_contents VARCHAR(40) DEFAULT NULL,   -- SHA1 of the firmware.bin
   checksum_container VARCHAR(40) DEFAULT NULL,  -- SHA1 of the signed .cab file
 
@@ -62,7 +62,7 @@ CREATE TABLE firmware_md (
   release_urgency VARCHAR(16) DEFAULT NULL,
   screenshot_url TEXT DEFAULT NULL,
   screenshot_caption TEXT DEFAULT NULL,
-  UNIQUE KEY id (fwid,metainfo_id)
+  UNIQUE KEY id (firmware_id,metainfo_id)
 ) CHARSET=utf8;
 
 DROP TABLE IF EXISTS event_log;

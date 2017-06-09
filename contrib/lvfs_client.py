@@ -32,9 +32,9 @@ class LvfsClient(object):
         return {'username': data[0],
                 'password': data[1]}
 
-    def action_fwdelete(self, fwid, auth='user'):
+    def action_fwdelete(self, firmware_id, auth='user'):
         """ Delete a firmware file """
-        uri = "%s/lvfs/fwdelete&id=%s&confirm=1" % (self.server, fwid)
+        uri = "%s/lvfs/fwdelete&id=%s&confirm=1" % (self.server, firmware_id)
         return requests.post(uri, data=self._get_payload(auth))
 
     def action_metadata_rebuild(self, auth='user'):

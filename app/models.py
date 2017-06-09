@@ -60,7 +60,7 @@ class EventLogItem(object):
 class FirmwareMd(object):
     def __init__(self):
         """ Constructor for object """
-        self.fwid = None    # this maps the object back into a Firmware
+        self.firmware_id = None    # this maps the object back into a Firmware
         self.cid = None
         self.guids = []
         self.version = None
@@ -83,7 +83,7 @@ class FirmwareMd(object):
         self.screenshot_caption = None
         self.metainfo_id = None
     def __repr__(self):
-        return "FirmwareMd object %s" % self.fwid
+        return "FirmwareMd object %s" % self.firmware_id
 
 class Firmware(object):
     def __init__(self):
@@ -92,12 +92,12 @@ class Firmware(object):
         self.addr = None
         self.timestamp = None
         self.filename = None
-        self.fwid = None
+        self.firmware_id = None
         self.target = None
         self.version_display = None
         self.mds = []
     def __repr__(self):
-        return "Firmware object %s" % self.fwid
+        return "Firmware object %s" % self.firmware_id
 
 class DownloadKind(object):
     METADATA = 0

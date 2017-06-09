@@ -255,13 +255,13 @@ def upload():
         return _error_internal('File too small, mimimum is 1k')
 
     # check the file does not already exist
-    fwid = hashlib.sha1(data).hexdigest()
+    firmware_id = hashlib.sha1(data).hexdigest()
     try:
-        item = db.firmware.get_item(fwid)
+        item = db.firmware.get_item(firmware_id)
     except CursorError as e:
         return _error_internal(str(e))
     if item:
-        return _error_internal("A firmware file with hash %s already exists" % fwid, 422)
+        return _error_internal("A firmware file with hash %s already exists" % firmware_id, 422)
 
     # parse the file
     arc = cabarchive.CabArchive()
@@ -389,7 +389,7 @@ def upload():
 
     # only save if we passed all tests
     basename = os.path.basename(fileitem.filename)
-    new_filename = fwid + '-' + basename
+    new_filename = firmware_id + '-' + basename
 
     # add these after parsing in case multiple components use the same file
     asc_files = {}
@@ -460,7 +460,7 @@ def upload():
     fwobj.group_id = session['group_id']
     fwobj.addr = _get_client_address()
     fwobj.filename = new_filename
-    fwobj.fwid = fwid
+    fwobj.firmware_id = firmware_id
     fwobj.target = target
     if fw_version_display_inf:
         fwobj.version_display = fw_version_display_inf[1]
@@ -468,7 +468,7 @@ def upload():
     # create child metadata object for the component
     for component in apps:
         md = FirmwareMd()
-        md.fwid = fwid
+        md.firmware_id = firmware_id
         md.metainfo_id = component.custom['metainfo_id']
         md.cid = component.id
         md.name = component.name
@@ -532,7 +532,7 @@ def upload():
     except CursorError as e:
         return _error_internal('Failed to generate metadata: ' + str(e))
 
-    return redirect(url_for('.firmware_id', fwid=fwid))
+    return redirect(url_for('.firmware_show', firmware_id=firmware_id))
 
 @app.route('/lvfs/device')
 @login_required
@@ -638,14 +638,14 @@ def firmware(show_all=False):
 def firmware_all():
     return firmware(True)
 
-@app.route('/lvfs/firmware/<fwid>/delete')
-def firmware_delete(fwid):
+@app.route('/lvfs/firmware/<firmware_id>/delete')
+def firmware_delete(firmware_id):
     """ Confirms deletion of firmware """
-    return render_template('firmware-delete.html', fwid=fwid), 406
+    return render_template('firmware-delete.html', firmware_id=firmware_id), 406
 
-@app.route('/lvfs/firmware/<fwid>/modify', methods=['GET', 'POST'])
+@app.route('/lvfs/firmware/<firmware_id>/modify', methods=['GET', 'POST'])
 @login_required
-def firmware_modify(fwid):
+def firmware_modify(firmware_id):
     """ Modifies the update urgency and release notes for the update """
 
     if request.method != 'POST':
@@ -653,11 +653,11 @@ def firmware_modify(fwid):
 
     # find firmware
     try:
-        fwobj = db.firmware.get_item(fwid)
+        fwobj = db.firmware.get_item(firmware_id)
     except CursorError as e:
         return _error_internal(str(e))
     if not fwobj:
-        return _error_internal("No firmware %s" % fwid)
+        return _error_internal("No firmware %s" % firmware_id)
 
     # set new metadata values
     for md in fwobj.mds:
@@ -680,24 +680,24 @@ def firmware_modify(fwid):
         return _error_internal(str(e))
 
     # log
-    _event_log('Changed update description on %s' % fwid)
+    _event_log('Changed update description on %s' % firmware_id)
 
-    return redirect(url_for('.firmware_id', fwid=fwid))
+    return redirect(url_for('.firmware_show', firmware_id=firmware_id))
 
-@app.route('/lvfs/firmware/<fwid>/delete_force')
+@app.route('/lvfs/firmware/<firmware_id>/delete_force')
 @login_required
-def firmware_delete_force(fwid):
+def firmware_delete_force(firmware_id):
     """ Delete a firmware entry and also delete the file from disk """
 
     # check firmware exists in database
     try:
-        item = db.firmware.get_item(fwid)
+        item = db.firmware.get_item(firmware_id)
     except CursorError as e:
         return _error_internal(str(e))
     if not item:
-        return _error_internal("No firmware file with hash %s exists" % fwid)
+        return _error_internal("No firmware file with hash %s exists" % firmware_id)
     if session['username'] != 'admin' and item.group_id != session['group_id']:
-        return _error_permission_denied("No QA access to %s" % fwid)
+        return _error_permission_denied("No QA access to %s" % firmware_id)
 
     # only QA users can delete once the firmware has gone stable
     if not session['qa_capability'] and item.target == 'stable':
@@ -705,7 +705,7 @@ def firmware_delete_force(fwid):
 
     # delete id from database
     try:
-        db.firmware.remove(fwid)
+        db.firmware.remove(firmware_id)
     except CursorError as e:
         return _error_internal(str(e))
 
@@ -726,12 +726,12 @@ def firmware_delete_force(fwid):
     except CursorError as e:
         return _error_internal('Failed to generate metadata: ' + str(e))
 
-    _event_log("Deleted firmware %s" % fwid)
+    _event_log("Deleted firmware %s" % firmware_id)
     return redirect(url_for('.firmware'))
 
-@app.route('/lvfs/firmware/<fwid>/promote/<target>')
+@app.route('/lvfs/firmware/<firmware_id>/promote/<target>')
 @login_required
-def firmware_promote(fwid, target):
+def firmware_promote(firmware_id, target):
     """
     Promote or demote a firmware file from one target to another,
     for example from testing to stable, or stable to testing.
@@ -747,17 +747,17 @@ def firmware_promote(fwid, target):
 
     # check firmware exists in database
     try:
-        item = db.firmware.get_item(fwid)
+        item = db.firmware.get_item(firmware_id)
     except CursorError as e:
         return _error_internal(str(e))
     if session['username'] != 'admin' and item.group_id != session['group_id']:
-        return _error_permission_denied("No QA access to %s" % fwid)
+        return _error_permission_denied("No QA access to %s" % firmware_id)
     try:
-        db.firmware.set_target(fwid, target)
+        db.firmware.set_target(firmware_id, target)
     except CursorError as e:
         return _error_internal(str(e))
     # set correct response code
-    _event_log("Moved firmware %s to %s" % (fwid, target))
+    _event_log("Moved firmware %s to %s" % (firmware_id, target))
 
     # update everything
     try:
@@ -770,16 +770,16 @@ def firmware_promote(fwid, target):
         return _error_internal('Failed to sign metadata: ' + str(e))
     except CursorError as e:
         return _error_internal('Failed to generate metadata: ' + str(e))
-    return redirect(url_for('.firmware_id', fwid=fwid))
+    return redirect(url_for('.firmware_show', firmware_id=firmware_id))
 
-@app.route('/lvfs/firmware/<fwid>')
+@app.route('/lvfs/firmware/<firmware_id>')
 @login_required
-def firmware_id(fwid):
+def firmware_show(firmware_id):
     """ Show firmware information """
 
     # get details about the firmware
     try:
-        item = db.firmware.get_item(fwid)
+        item = db.firmware.get_item(firmware_id)
     except CursorError as e:
         return _error_internal(str(e))
     if not item:
@@ -804,7 +804,7 @@ def firmware_id(fwid):
                            embargo_url=embargo_url,
                            group_id=group_id,
                            cnt_fn=cnt_fn,
-                           fwid=fwid,
+                           firmware_id=firmware_id,
                            graph_labels=_get_chart_labels_months()[::-1],
                            graph_data=data_fw[::-1])
 
