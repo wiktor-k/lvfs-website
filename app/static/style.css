@@ -42,12 +42,13 @@ table.history {
   width: 100%;
 }
 
-.history th {
-  font-weight: 300;
-  font-size: 120%;
+th {
+  font-weight: bolder;
+  font-size: 130%;
   white-space: nowrap;
   padding-right: 1em;
   text-align: left;
+  font-weight: 300;
 }
 
 .history td {

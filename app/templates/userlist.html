@@ -7,29 +7,19 @@
 
 {% block content %}
 <table>
-<tr class="history">
-  <th>&nbsp;</th>
-  <th>Username</th>
-  <th>QA Group</th>
-  <th>Name</th>
-  <th>Email</th>
-</tr>
-
 {% for u in users %}
 <tr class="history">
   <td>
-    <a href="/lvfs/user/{{u.username}}/admin"><img src="/preferences-other.svg"/></a>
+    <a href="/lvfs/user/{{u.username}}/admin"><img width="32px" src="/user-info-symbolic.svg"/></a>
   </td>
-  <td>{{u.username}}</td>
-  <td>{{u.qa_group}}</td>
-  <td>{{u.display_name}}</td>
-  <td>{{u.email}}</td>
+  <td>{{u.display_name}} (<code>{{u.username}}</code>)</td>
 </tr>
 {% endfor %}
 
 </table>
 
 <h2>Create a new user</h2>
+<form method="post" action="/lvfs/user/add">
 <table class="history">
   <tr>
     <td>Username</td>
@@ -54,11 +44,10 @@
   <tr>
     <td>&nbsp;</td>
     <td>
-      <form method="post" action="/lvfs/user/add">
-        <input type="submit" style="width: 6em" value="Add">
-      </form>
+      <input type="submit" style="width: 6em" value="Add">
     </td>
   </tr>
 </table>
+</form>
 
 {% endblock %}

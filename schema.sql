@@ -87,6 +87,13 @@ CREATE TABLE clients (
   UNIQUE KEY id (id)
 ) CHARSET=utf8;
 
+DROP TABLE IF EXISTS groups;
+CREATE TABLE groups (
+  group_id VARCHAR(40) NOT NULL DEFAULT '',
+  vendor_ids VARCHAR(40) NOT NULL DEFAULT '',
+  UNIQUE KEY id (group_id)
+) CHARSET=utf8;
+
 DROP TABLE IF EXISTS analytics;
 CREATE TABLE analytics (
   datestr INT DEFAULT 0,

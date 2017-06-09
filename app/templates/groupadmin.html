@@ -1,0 +1,59 @@
+{% extends "default.html" %}
+{% block title %}User Details{% endblock %}
+
+{% block page_header %}
+{% endblock %}
+
+{% block content %}
+
+{% if users|length == 0 %}
+<h1>Empty group ‘{{q.group_id}}’</h1>
+{% else %}
+<h1>Members of group ‘{{q.group_id}}’</h1>
+<table>
+  <tr>
+    <th>Username</th>
+    <th>Vendor Name</th>
+    <th>Contact Email</th>
+  </tr>
+{% for u in users %}
+  <tr>
+    <td><a href="/lvfs/user/{{u.username}}/admin"><code>{{u.username}}</code></a></td>
+    <td>{{u.display_name}}</td>
+    <td><code>{{u.email}}</code></td>
+  </tr>
+{% endfor %}
+</table>
+{% endif %}
+
+<h2>Group restrictions</h2>
+<p>
+  Due to the sensitive nature of providing firmware only vendors can install
+  firmware on their own devices.
+  This restriction is optional and can be separated with comma:
+</p>
+<form method="post" action="/lvfs/group/{{q.group_id}}/modify_by_admin">
+  <input type="text" size="80" name="vendor_ids" value="{{','.join(q.vendor_ids)}}">
+  <input type="submit" value="Modify">
+</form>
+
+
+<h2>Delete Group</h2>
+<p>
+  Unless you are required to delete a group for legal or compliance reasons,
+  removing a group is not recommended for the following reasons:
+</p>
+<ul>
+  <li class="confirm">
+    Any users in this QA group will be disabled.
+  </li>
+  <li class="confirm">
+    Any statistics and logs for this group are also deleted.
+  </li>
+</ul>
+
+<form method="get" action="/lvfs/group/{{q.group_id}}/delete">
+  <button class="fixedwidth">Delete</button>
+</form>
+
+{% endblock %}

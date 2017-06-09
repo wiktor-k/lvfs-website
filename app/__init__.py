@@ -21,6 +21,7 @@ lm = LoginManager()
 lm.init_app(app)
 
 db = Database(app)
+db.verify()
 
 @lm.user_loader
 def load_user(user_id):
@@ -34,3 +35,5 @@ def error_page_not_found(msg=None):
     return render_template('error.html'), 404
 
 from app import views
+from app import views_user
+from app import views_group

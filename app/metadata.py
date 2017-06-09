@@ -15,7 +15,7 @@ from .util import _upload_to_cdn, _create_affidavit
 
 def _generate_metadata_kind(filename, targets=None, qa_group=None, affidavit=None):
     """ Generates AppStream metadata of a specific kind """
-    items = db.firmware.get_items()
+    items = db.firmware.get_all()
     store = appstream.Store('lvfs')
     for item in items:
 
@@ -88,6 +88,19 @@ def _generate_metadata_kind(filename, targets=None, qa_group=None, affidavit=Non
                     ss.add_image(im)
                 component.add_screenshot(ss)
 
+            # add requires for each allowed vendor_ids
+            qa_group_item = db.qa_groups.get_item(item.qa_group)
+            if qa_group_item.vendor_ids:
+                req = appstream.Require()
+                req.kind = 'firmware'
+                req.value = 'vendor-id'
+                if len(qa_group_item.vendor_ids) == 1:
+                    req.compare = 'eq'
+                else:
+                    req.compare = 'regex'
+                req.version = '|'.join(qa_group_item.vendor_ids)
+                component.add_require(req)
+
             # add component
             store.add(component)
 
@@ -120,7 +133,7 @@ def metadata_update_qa_group(qa_group):
         return
 
     # do for all
-    qa_groups = db.firmware.get_qa_groups()
+    qa_groups = db.users.get_qa_groups()
     for qa_group in qa_groups:
         filename_qa = 'firmware-%s.xml.gz' % _qa_hash(qa_group)
         _generate_metadata_kind(filename_qa,
@@ -149,7 +162,7 @@ def _hashfile(afile, hasher, blocksize=65536):
 
 def metadata_update_pulp():
     """ updates metadata for Pulp """
-    items = db.firmware.get_items()
+    items = db.firmware.get_all()
     files_to_scan = []
     files_to_scan.append('firmware.xml.gz')
     files_to_scan.append('firmware.xml.gz.asc')

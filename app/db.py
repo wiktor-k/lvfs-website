@@ -9,7 +9,7 @@ import hashlib
 import datetime
 import MySQLdb as mdb
 
-from .models import User, FirmwareMd, Firmware, EventLogItem
+from .models import User, FirmwareMd, Firmware, EventLogItem, Group
 from .hash import _addr_hash, _password_hash
 
 def _create_user_item(e):
@@ -77,6 +77,13 @@ def _create_eventlog_item(e):
     item.is_important = e[5]
     return item
 
+def _create_group_id(e):
+    item = Group()
+    item.group_id = e[0]
+    if e[1]:
+        item.vendor_ids = e[1].split(',')
+    return item
+
 def _get_datestr_from_datetime(when):
     return int("%04i%02i%02i" % (when.year, when.month, when.day))
 
@@ -103,9 +110,26 @@ class Database(object):
             print "Error %d: %s" % (e.args[0], e.args[1])
         assert self._db
         self.users = DatabaseUsers(self._db)
+        self.groups = DatabaseGroups(self._db)
         self.eventlog = DatabaseEventlog(self._db)
         self.clients = DatabaseClients(self._db)
         self.firmware = DatabaseFirmware(self._db)
+
+    def verify(self):
+        """ repairs database when required """
+        try:
+            cur = self._db.cursor()
+            cur.execute("SELECT vendor_ids FROM groups LIMIT 1;")
+        except mdb.Error as e:
+            cur.execute("""
+                        CREATE TABLE groups (
+                          group_id VARCHAR(40) NOT NULL DEFAULT '',
+                          vendor_ids VARCHAR(40) NOT NULL DEFAULT '',
+                          UNIQUE KEY id (group_id)
+                        ) CHARSET=utf8;""");
+            for user in self.users.get_all():
+                if not self.groups.get_item(user.qa_group):
+                    self.groups.add(user.qa_group)
 
     def __del__(self):
         """ Clean up the database """
@@ -114,6 +138,73 @@ class Database(object):
 
     def cursor(self):
         return self._db.cursor()
+
+class DatabaseGroups(object):
+
+    def __init__(self, db):
+        """ Constructor for object """
+        self._db = db
+
+    def add(self, group_id, vendor_ids=''):
+        """ Adds the user to the userlist """
+        assert group_id
+        try:
+            cur = self._db.cursor()
+            cur.execute("INSERT INTO groups (group_id, vendor_ids) "
+                        "VALUES (%s, %s);",
+                        (group_id, ','.join(vendor_ids),))
+        except mdb.Error as e:
+            raise CursorError(cur, e)
+
+    def remove(self, group_id):
+        """ Removes the user from the userlist """
+        assert group_id
+        try:
+            cur = self._db.cursor()
+            cur.execute("DELETE FROM groups WHERE group_id=%s;", (group_id,))
+        except mdb.Error as e:
+            raise CursorError(cur, e)
+
+    def set_property(self, group_id, key, value):
+        """ Sets some properties on the user """
+        assert group_id
+        assert key
+        cur = self._db.cursor()
+        try:
+            query = "UPDATE groups SET %s=%%s WHERE group_id=%%s;" % key
+            cur.execute(query, (value, group_id,))
+        except mdb.Error as e:
+            raise CursorError(cur, e)
+
+    def get_all(self):
+        """ Get all the users """
+        try:
+            cur = self._db.cursor()
+            cur.execute("SELECT group_id, vendor_ids FROM groups;")
+        except mdb.Error as e:
+            raise CursorError(cur, e)
+        res = cur.fetchall()
+        if not res:
+            return []
+        items = []
+        for e in res:
+            items.append(_create_group_id(e))
+        return items
+
+    def get_item(self, group_id, password=None):
+        """ Gets information about a specific user """
+        assert group_id
+        try:
+            cur = self._db.cursor()
+            cur.execute("SELECT group_id, vendor_ids FROM groups "
+                        "WHERE group_id = %s LIMIT 1;",
+                        (group_id,))
+        except mdb.Error as e:
+            raise CursorError(cur, e)
+        res = cur.fetchone()
+        if not res:
+            return None
+        return _create_group_id(res)
 
 class DatabaseUsers(object):
 
@@ -214,7 +305,7 @@ class DatabaseUsers(object):
         except mdb.Error as e:
             raise CursorError(cur, e)
 
-    def get_items(self):
+    def get_all(self):
         """ Get all the users """
         try:
             cur = self._db.cursor()
@@ -282,21 +373,6 @@ class DatabaseFirmware(object):
             cur.execute("UPDATE firmware SET target=%s WHERE fwid=%s;", (target, fwid,))
         except mdb.Error as e:
             raise CursorError(cur, e)
-
-    def get_qa_groups(self):
-        """ Get the different QA groups """
-        try:
-            cur = self._db.cursor()
-            cur.execute("SELECT DISTINCT qa_group FROM firmware;")
-        except mdb.Error as e:
-            raise CursorError(cur, e)
-        res = cur.fetchall()
-        if not res:
-            return []
-        qa_groups = []
-        for r in res:
-            qa_groups.append(r[0])
-        return qa_groups
 
     def update(self, fwobj):
         """ Update firmware details """
@@ -403,7 +479,7 @@ class DatabaseFirmware(object):
             md = _create_firmware_md(e)
             item.mds.append(md)
 
-    def get_items(self):
+    def get_all(self):
         """ Returns all firmware objects """
         try:
             cur = self._db.cursor()
@@ -424,7 +500,7 @@ class DatabaseFirmware(object):
 
     def get_item(self, fwid):
         """ Gets a specific firmware object """
-        items = self.get_items()
+        items = self.get_all()
         for item in items:
             if item.fwid == fwid:
                 return item
@@ -493,7 +569,7 @@ class DatabaseEventlog(object):
             return 0
         return res
 
-    def get_items(self, start, length):
+    def get_all(self, start, length):
         """ Gets the event log items """
         try:
             cur = self._db.cursor()
@@ -510,7 +586,7 @@ class DatabaseEventlog(object):
             items.append(_create_eventlog_item(e))
         return items
 
-    def get_items_for_qa_group(self, qa_group, start, length):
+    def get_all_for_qa_group(self, qa_group, start, length):
         """ Gets the event log items """
         try:
             cur = self._db.cursor()

@@ -37,6 +37,14 @@ class User(object):
     def __repr__(self):
         return "User object %s" % self.username
 
+class Group(object):
+    def __init__(self):
+        """ Constructor for object """
+        self.qa_group = None
+        self.vendor_ids = []
+    def __repr__(self):
+        return "Group object %s" % self.qa_group
+
 class EventLogItem(object):
     def __init__(self):
         """ Constructor for object """
