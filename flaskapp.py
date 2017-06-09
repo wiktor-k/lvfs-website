@@ -33,10 +33,10 @@ else:
     app.config.from_pyfile('flaskapp.cfg')
 app.register_blueprint(lvfs)
 
-login_manager = LoginManager()
-login_manager.init_app(app)
+lm = LoginManager()
+lm.init_app(app)
 
-@login_manager.user_loader
+@lm.user_loader
 def load_user(user_id):
     db = LvfsDatabase(os.environ)
     db_users = LvfsDatabaseUsers(db)
