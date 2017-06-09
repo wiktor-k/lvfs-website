@@ -1,11 +1,8 @@
 {% extends "default.html" %}
 {% block title %}Device{% endblock %}
 
-{% block page_header %}
-<h1>Device Details</h1>
-{% endblock %}
-
 {% block content %}
+<h1>Device Details</h1>
 <p>This page show all the firmware releases for a specific device.</p>
 <table class="aligned">
   <tr><th>Name</th><td>{{items[0].mds[0].name}}</td></tr>

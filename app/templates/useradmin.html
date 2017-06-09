@@ -1,11 +1,8 @@
 {% extends "default.html" %}
 {% block title %}User Details{% endblock %}
 
-{% block page_header %}
-<h1>Details of user ‘{{u.username}}’</h1>
-{% endblock %}
-
 {% block content %}
+<h1>Details of user ‘{{u.username}}’</h1>
 
 {% if u.username == 'admin' %}
 <p>
