@@ -6,6 +6,8 @@
 
 import os
 import sys
+import calendar
+import datetime
 import boto3
 
 from flask import session, request, flash, render_template
@@ -63,6 +65,33 @@ def _error_permission_denied(msg=None):
     _event_log("Permission denied: %s" % msg, is_important=True)
     flash("Permission denied: %s" % msg)
     return render_template('error.html'), 401
+
+def _get_chart_labels_months():
+    """ Gets the chart labels """
+    now = datetime.date.today()
+    labels = []
+    offset = 0
+    for i in range(0, 12):
+        if now.month - i == 0:
+            offset = 1
+        labels.append(calendar.month_name[now.month - i - offset])
+    return labels
+
+def _get_chart_labels_days():
+    """ Gets the chart labels """
+    now = datetime.date.today()
+    labels = []
+    for i in range(0, 30):
+        then = now - datetime.timedelta(i)
+        labels.append("%02i-%02i-%02i" % (then.year, then.month, then.day))
+    return labels
+
+def _get_chart_labels_hours():
+    """ Gets the chart labels """
+    labels = []
+    for i in range(0, 24):
+        labels.append("%02i" % i)
+    return labels
 
 def main():
     if len(sys.argv) != 2:
