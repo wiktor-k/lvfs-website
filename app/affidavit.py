@@ -4,8 +4,8 @@
 # Copyright (C) 2015 Richard Hughes <richard@hughsie.com>
 # Licensed under the GNU General Public License Version 2
 
-import gnupg
 import os
+import gnupg
 
 class NoKeyError(Exception):
     pass

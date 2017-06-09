@@ -6,19 +6,16 @@
 
 import os
 import hashlib
-
 import appstream
 
-from util import _qa_hash, _upload_to_cdn, create_affidavit
-from db import LvfsDatabase
-from db_firmware import LvfsDatabaseFirmware
-from flask import current_app as app
+from app import app, db
+
+from .hash import _qa_hash
+from .util import _upload_to_cdn, _create_affidavit
 
 def _generate_metadata_kind(filename, targets=None, qa_group=None, affidavit=None):
     """ Generates AppStream metadata of a specific kind """
-    db = LvfsDatabase(os.environ)
-    db_firmware = LvfsDatabaseFirmware(db)
-    items = db_firmware.get_items()
+    items = db.firmware.get_items()
     store = appstream.Store('lvfs')
     for item in items:
 
@@ -114,7 +111,7 @@ def metadata_update_qa_group(qa_group):
     """ updates metadata for a specific qa_group """
 
     # explicit
-    affidavit = create_affidavit()
+    affidavit = _create_affidavit()
     if qa_group:
         filename = 'firmware-%s.xml.gz' % _qa_hash(qa_group)
         _generate_metadata_kind(filename,
@@ -123,9 +120,7 @@ def metadata_update_qa_group(qa_group):
         return
 
     # do for all
-    db = LvfsDatabase(os.environ)
-    db_firmware = LvfsDatabaseFirmware(db)
-    qa_groups = db_firmware.get_qa_groups()
+    qa_groups = db.firmware.get_qa_groups()
     for qa_group in qa_groups:
         filename_qa = 'firmware-%s.xml.gz' % _qa_hash(qa_group)
         _generate_metadata_kind(filename_qa,
@@ -134,7 +129,7 @@ def metadata_update_qa_group(qa_group):
 
 def metadata_update_targets(targets):
     """ updates metadata for a specific target """
-    affidavit = create_affidavit()
+    affidavit = _create_affidavit()
     for target in targets:
         if target == 'stable':
             _generate_metadata_kind('firmware.xml.gz',
@@ -154,9 +149,7 @@ def _hashfile(afile, hasher, blocksize=65536):
 
 def metadata_update_pulp():
     """ updates metadata for Pulp """
-    db = LvfsDatabase(os.environ)
-    db_firmware = LvfsDatabaseFirmware(db)
-    items = db_firmware.get_items()
+    items = db.firmware.get_items()
     files_to_scan = []
     files_to_scan.append('firmware.xml.gz')
     files_to_scan.append('firmware.xml.gz.asc')

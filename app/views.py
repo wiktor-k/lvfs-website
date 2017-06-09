@@ -1,33 +1,39 @@
 #!/usr/bin/python2
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2015 Richard Hughes <richard@hughsie.com>
+# Copyright (C) 2015-2017 Richard Hughes <richard@hughsie.com>
 # Licensed under the GNU General Public License Version 2
 
 import os
+import datetime
 import hashlib
 import math
 import calendar
-import datetime
 import ConfigParser
 from StringIO import StringIO
 
-from flask import Blueprint, session, request, flash, url_for, redirect, \
-     render_template
-from flask.ext.login import login_required, login_user, logout_user
-from flask import current_app as app
-
 import cabarchive
 import appstream
-from affidavit import NoKeyError
-from db import LvfsDatabase, CursorError
-from db_clients import LvfsDatabaseClients, LvfsDownloadKind
-from db_eventlog import LvfsDatabaseEventlog
-from db_firmware import LvfsDatabaseFirmware, LvfsFirmware, LvfsFirmwareMd
-from db_users import LvfsDatabaseUsers, _password_hash
-from inf_parser import InfParser
-from util import _qa_hash, _upload_to_cdn, create_affidavit
-from metadata import metadata_update_qa_group, metadata_update_targets, metadata_update_pulp
+
+from flask import session, request, flash, url_for, redirect, render_template
+from flask import send_from_directory, abort
+from flask.ext.login import login_required, login_user, logout_user
+
+from app import app, db
+
+from .db import CursorError
+from .models import Firmware, FirmwareMd, DownloadKind
+from .affidavit import NoKeyError
+from .inf_parser import InfParser
+from .hash import _qa_hash, _password_hash
+from .util import _upload_to_cdn, _create_affidavit
+from .metadata import metadata_update_qa_group, metadata_update_targets, metadata_update_pulp
+
+def _get_client_address():
+    """ Gets user IP address """
+    if request.headers.getlist("X-Forwarded-For"):
+        return request.headers.getlist("X-Forwarded-For")[0]
+    return request.remote_addr
 
 def _password_check(value):
     """ Check the password for suitability """
@@ -94,12 +100,6 @@ def _to_javascript_array(arr):
     tmp += ']'
     return tmp
 
-def _get_client_address():
-    """ Gets user IP address """
-    if request.headers.getlist("X-Forwarded-For"):
-        return request.headers.getlist("X-Forwarded-For")[0]
-    return request.remote_addr
-
 def _event_log(msg, is_important=False):
     """ Adds an item to the event log """
     username = None
@@ -112,9 +112,7 @@ def _event_log(msg, is_important=False):
         qa_group = session['qa_group']
     if not qa_group:
         qa_group = 'admin'
-    db = LvfsDatabase(os.environ)
-    db_eventlog = LvfsDatabaseEventlog(db)
-    db_eventlog.add(msg, username, qa_group,
+    db.eventlog.add(msg, username, qa_group,
                     _get_client_address(), is_important)
 
 def _check_session():
@@ -130,9 +128,35 @@ def _check_session():
 
 ################################################################################
 
-lvfs = Blueprint('lvfs', __name__, url_prefix='/lvfs', template_folder='templates/lvfs')
+@app.route('/<path:resource>')
+def serveStaticResource(resource):
+    """ Return a static image or resource """
 
-@lvfs.context_processor
+    # ban MJ12BOT, it ignores robots.txt
+    user_agent = request.headers.get('User-Agent')
+    if user_agent and user_agent.find('MJ12BOT') != -1:
+        abort(403)
+
+    # log certain kinds of files
+    if resource.endswith('.cab'):
+        try:
+            db.clients.add(datetime.date.today(), DownloadKind.FIRMWARE)
+            db.clients.increment(_get_client_address(),
+                                 os.path.basename(resource),
+                                 user_agent)
+        except CursorError as e:
+            print str(e)
+
+    # firmware blobs can be stored on a CDN
+    if resource.startswith('downloads/'):
+        if app.config['CDN_URI']:
+            return redirect(os.path.join(app.config['CDN_URI'], resource), 301)
+        return send_from_directory(app.config['DOWNLOAD_DIR'], os.path.basename(resource))
+
+    # static files served locally
+    return send_from_directory('static/', resource)
+
+@app.context_processor
 def utility_processor():
 
     def format_truncate(tmp, length):
@@ -162,7 +186,7 @@ def utility_processor():
                 format_qa_hash=format_qa_hash,
                 format_timestamp=format_timestamp)
 
-@lvfs.errorhandler(401)
+@app.errorhandler(401)
 def error_permission_denied(msg=None):
     """ Error handler: Permission Denied """
     _event_log("Permission denied: %s" % msg, is_important=True)
@@ -175,7 +199,8 @@ def error_internal(msg=None, errcode=402):
     flash("Internal error: %s" % msg)
     return render_template('error.html'), errcode
 
-@lvfs.route('/')
+@app.route('/')
+@app.route('/lvfs/')
 def index():
     """
     The main page that shows existing firmware and also allows the
@@ -186,12 +211,12 @@ def index():
 
     return render_template('index.html')
 
-@lvfs.route('/newaccount')
+@app.route('/lvfs/newaccount')
 def new_account():
     """ New account page for prospective vendors """
     return render_template('new-account.html')
 
-@lvfs.route('/metadata')
+@app.route('/lvfs/metadata')
 @login_required
 def metadata():
     """
@@ -201,10 +226,8 @@ def metadata():
     # show all embargo metadata URLs when admin user
     qa_groups = []
     if session['qa_group'] == 'admin':
-        db = LvfsDatabase(os.environ)
-        db_users = LvfsDatabaseUsers(db)
         try:
-            qa_groups = db_users.get_qa_groups()
+            qa_groups = db.users.get_qa_groups()
         except CursorError as e:
             return error_internal(str(e))
     else:
@@ -213,13 +236,11 @@ def metadata():
                            qa_group=session['qa_group'],
                            qa_groups=qa_groups)
 
-@lvfs.route('/devicelist')
+@app.route('/lvfs/devicelist')
 def device_list():
     # add devices in stable or testing
     try:
-        db = LvfsDatabase(os.environ)
-        db_firmware = LvfsDatabaseFirmware(db)
-        items = db_firmware.get_items()
+        items = db.firmware.get_items()
     except CursorError as e:
         return error_internal(str(e))
 
@@ -263,7 +284,7 @@ def device_list():
                            vendors=sorted(vendors),
                            mds_by_vendor=mds_by_vendor)
 
-@lvfs.route('/upload', methods=['GET', 'POST'])
+@app.route('/lvfs/upload', methods=['GET', 'POST'])
 @login_required
 def upload():
     """ Upload a .cab file to the LVFS service """
@@ -296,11 +317,9 @@ def upload():
         return error_internal('File too small, mimimum is 1k')
 
     # check the file does not already exist
-    db = LvfsDatabase(os.environ)
-    db_firmware = LvfsDatabaseFirmware(db)
     fwid = hashlib.sha1(data).hexdigest()
     try:
-        item = db_firmware.get_item(fwid)
+        item = db.firmware.get_item(fwid)
     except CursorError as e:
         return error_internal(str(e))
     if item:
@@ -400,7 +419,7 @@ def upload():
 
         # check the guid and version does not already exist
         try:
-            items = db_firmware.get_items()
+            items = db.firmware.get_items()
         except CursorError as e:
             return error_internal(str(e))
         for item in items:
@@ -459,7 +478,7 @@ def upload():
         if not sig_data:
             if csum.filename not in asc_files:
                 try:
-                    affidavit = create_affidavit()
+                    affidavit = _create_affidavit()
                 except NoKeyError as e:
                     return error_internal('Failed to sign archive: ' + str(e))
                 cff = cabarchive.CabFile(fw_data.filename + '.asc',
@@ -468,7 +487,7 @@ def upload():
         else:
             # check this file is signed by something we trust
             try:
-                affidavit = create_affidavit()
+                affidavit = _create_affidavit()
                 affidavit.verify(fw_data.contents)
             except NoKeyError as e:
                 return error_internal('Failed to verify archive: ' + str(e))
@@ -493,7 +512,7 @@ def upload():
 
     # create parent firmware object
     target = request.form['target']
-    fwobj = LvfsFirmware()
+    fwobj = Firmware()
     fwobj.qa_group = session['qa_group']
     fwobj.addr = _get_client_address()
     fwobj.filename = new_filename
@@ -504,7 +523,7 @@ def upload():
 
     # create child metadata object for the component
     for component in apps:
-        md = LvfsFirmwareMd()
+        md = FirmwareMd()
         md.fwid = fwid
         md.metainfo_id = component.custom['metainfo_id']
         md.cid = component.id
@@ -549,7 +568,7 @@ def upload():
 
     # add to database
     try:
-        db_firmware.add(fwobj)
+        db.firmware.add(fwobj)
     except CursorError as e:
         return error_internal(str(e))
     # set correct response code
@@ -571,15 +590,13 @@ def upload():
 
     return redirect(url_for('.firmware_id', fwid=fwid))
 
-@lvfs.route('/dbmigrate')
+@app.route('/lvfs/dbmigrate')
 @login_required
 def dbmigrate():
-    db = LvfsDatabase(os.environ)
-    db_firmware = LvfsDatabaseFirmware(db)
-    db_firmware.migrate()
+    db.firmware.migrate()
     return redirect(url_for('.index'))
 
-@lvfs.route('/device')
+@app.route('/lvfs/device')
 @login_required
 def device():
     """
@@ -592,9 +609,7 @@ def device():
 
     # get all firmware
     try:
-        db = LvfsDatabase(os.environ)
-        db_firmware = LvfsDatabaseFirmware(db)
-        items = db_firmware.get_items()
+        items = db.firmware.get_items()
     except CursorError as e:
         return error_internal(str(e))
 
@@ -610,7 +625,7 @@ def device():
 
     return render_template('devices.html', devices=devices)
 
-@lvfs.route('/device/<guid>')
+@app.route('/lvfs/device/<guid>')
 def device_guid(guid):
     """
     Show information for one device, which can be seen without a valid login
@@ -618,9 +633,7 @@ def device_guid(guid):
 
     # get all firmware
     try:
-        db = LvfsDatabase(os.environ)
-        db_firmware = LvfsDatabaseFirmware(db)
-        items = db_firmware.get_items()
+        items = db.firmware.get_items()
     except CursorError as e:
         return error_internal(str(e))
 
@@ -635,7 +648,7 @@ def device_guid(guid):
 
     return render_template('device.html', items=firmware_items)
 
-@lvfs.route('/firmware')
+@app.route('/lvfs/firmware')
 def firmware(show_all=False):
     """
     Show all previsouly uploaded firmware for this user.
@@ -643,9 +656,7 @@ def firmware(show_all=False):
 
     # get all firmware
     try:
-        db = LvfsDatabase(os.environ)
-        db_firmware = LvfsDatabaseFirmware(db)
-        items = db_firmware.get_items()
+        items = db.firmware.get_items()
     except CursorError as e:
         return error_internal(str(e))
 
@@ -685,16 +696,16 @@ def firmware(show_all=False):
                            qa_group=session_qa_group,
                            show_all=show_all)
 
-@lvfs.route('/firmware_all')
+@app.route('/lvfs/firmware_all')
 def firmware_all():
     return firmware(True)
 
-@lvfs.route('/firmware/<fwid>/delete')
+@app.route('/lvfs/firmware/<fwid>/delete')
 def firmware_delete(fwid):
     """ Confirms deletion of firmware """
     return render_template('firmware-delete.html', fwid=fwid), 406
 
-@lvfs.route('/firmware/<fwid>/modify', methods=['GET', 'POST'])
+@app.route('/lvfs/firmware/<fwid>/modify', methods=['GET', 'POST'])
 @login_required
 def firmware_modify(fwid):
     """ Modifies the update urgency and release notes for the update """
@@ -704,9 +715,7 @@ def firmware_modify(fwid):
 
     # find firmware
     try:
-        db = LvfsDatabase(os.environ)
-        db_firmware = LvfsDatabaseFirmware(db)
-        fwobj = db_firmware.get_item(fwid)
+        fwobj = db.firmware.get_item(fwid)
     except CursorError as e:
         return error_internal(str(e))
     if not fwobj:
@@ -728,7 +737,7 @@ def firmware_modify(fwid):
 
     # modify
     try:
-        db_firmware.update(fwobj)
+        db.firmware.update(fwobj)
     except CursorError as e:
         return error_internal(str(e))
 
@@ -737,16 +746,14 @@ def firmware_modify(fwid):
 
     return redirect(url_for('.firmware_id', fwid=fwid))
 
-@lvfs.route('/firmware/<fwid>/delete_force')
+@app.route('/lvfs/firmware/<fwid>/delete_force')
 @login_required
 def firmware_delete_force(fwid):
     """ Delete a firmware entry and also delete the file from disk """
 
     # check firmware exists in database
-    db = LvfsDatabase(os.environ)
-    db_firmware = LvfsDatabaseFirmware(db)
     try:
-        item = db_firmware.get_item(fwid)
+        item = db.firmware.get_item(fwid)
     except CursorError as e:
         return error_internal(str(e))
     if not item:
@@ -760,7 +767,7 @@ def firmware_delete_force(fwid):
 
     # delete id from database
     try:
-        db_firmware.remove(fwid)
+        db.firmware.remove(fwid)
     except CursorError as e:
         return error_internal(str(e))
 
@@ -784,7 +791,7 @@ def firmware_delete_force(fwid):
     _event_log("Deleted firmware %s" % fwid)
     return redirect(url_for('.firmware'))
 
-@lvfs.route('/firmware/<fwid>/promote/<target>')
+@app.route('/lvfs/firmware/<fwid>/promote/<target>')
 @login_required
 def firmware_promote(fwid, target):
     """
@@ -801,16 +808,14 @@ def firmware_promote(fwid, target):
         return error_internal("Target %s invalid" % target)
 
     # check firmware exists in database
-    db = LvfsDatabase(os.environ)
-    db_firmware = LvfsDatabaseFirmware(db)
     try:
-        item = db_firmware.get_item(fwid)
+        item = db.firmware.get_item(fwid)
     except CursorError as e:
         return error_internal(str(e))
     if session['username'] != 'admin' and item.qa_group != session['qa_group']:
         return error_permission_denied("No QA access to %s" % fwid)
     try:
-        db_firmware.set_target(fwid, target)
+        db.firmware.set_target(fwid, target)
     except CursorError as e:
         return error_internal(str(e))
     # set correct response code
@@ -829,16 +834,14 @@ def firmware_promote(fwid, target):
         return error_internal('Failed to generate metadata: ' + str(e))
     return redirect(url_for('.firmware_id', fwid=fwid))
 
-@lvfs.route('/firmware/<fwid>')
+@app.route('/lvfs/firmware/<fwid>')
 @login_required
 def firmware_id(fwid):
     """ Show firmware information """
 
     # get details about the firmware
-    db = LvfsDatabase(os.environ)
-    db_firmware = LvfsDatabaseFirmware(db)
     try:
-        item = db_firmware.get_item(fwid)
+        item = db.firmware.get_item(fwid)
     except CursorError as e:
         return error_internal(str(e))
     if not item:
@@ -854,10 +857,8 @@ def firmware_id(fwid):
     else:
         embargo_url = '/downloads/firmware-%s.xml.gz' % _qa_hash(qa_group)
 
-    db = LvfsDatabase(os.environ)
-    db_clients = LvfsDatabaseClients(db)
-    cnt_fn = db_clients.get_firmware_count_filename(item.filename)
-    data_fw = db_clients.get_stats_for_fn(12, 30, item.filename)
+    cnt_fn = db.clients.get_firmware_count_filename(item.filename)
+    data_fw = db.clients.get_stats_for_fn(12, 30, item.filename)
     return render_template('firmware-details.html',
                            fw=item,
                            qa_capability=session['qa_capability'],
@@ -869,7 +870,7 @@ def firmware_id(fwid):
                            graph_labels=_get_chart_labels_months()[::-1],
                            graph_data=data_fw[::-1])
 
-@lvfs.route('/analytics')
+@app.route('/lvfs/analytics')
 @login_required
 def analytics():
     """ A analytics screen to show information about users """
@@ -877,13 +878,11 @@ def analytics():
     # security check
     if session['username'] != 'admin':
         return error_permission_denied('Unable to view analytics')
-    db = LvfsDatabase(os.environ)
-    db_clients = LvfsDatabaseClients(db)
     labels_days = _get_chart_labels_days()[::-1]
-    data_days = db_clients.get_stats_for_month(LvfsDownloadKind.FIRMWARE)[::-1]
+    data_days = db.clients.get_stats_for_month(DownloadKind.FIRMWARE)[::-1]
     labels_months = _get_chart_labels_months()[::-1]
-    data_months = db_clients.get_stats_for_year(LvfsDownloadKind.FIRMWARE)[::-1]
-    labels_user_agent, data_user_agent = db_clients.get_user_agent_stats()
+    data_months = db.clients.get_stats_for_year(DownloadKind.FIRMWARE)[::-1]
+    labels_user_agent, data_user_agent = db.clients.get_user_agent_stats()
     return render_template('analytics.html',
                            labels_days=labels_days,
                            data_days=data_days,
@@ -892,7 +891,7 @@ def analytics():
                            labels_user_agent=labels_user_agent,
                            data_user_agent=data_user_agent)
 
-@lvfs.route('/login', methods=['GET', 'POST'])
+@app.route('/lvfs/login', methods=['GET', 'POST'])
 def login():
     """ A login screen to allow access to the LVFS main page """
     if request.method != 'POST':
@@ -902,9 +901,7 @@ def login():
     user = None
     password = _password_hash(request.form['password'])
     try:
-        db = LvfsDatabase(os.environ)
-        db_users = LvfsDatabaseUsers(db)
-        user = db_users.get_item(request.form['username'],
+        user = db.users.get_item(request.form['username'],
                                  password)
     except CursorError as e:
         return error_internal(str(e))
@@ -930,16 +927,16 @@ def login():
     _event_log('Logged on')
     return redirect(url_for('.index'))
 
-@lvfs.route('/logout')
+@app.route('/lvfs/logout')
 def logout():
     # remove the username from the session
     session.pop('username', None)
     logout_user()
     return redirect(url_for('.index'))
 
-@lvfs.route('/eventlog')
-@lvfs.route('/eventlog/<start>')
-@lvfs.route('/eventlog/<start>/<length>')
+@app.route('/lvfs/eventlog')
+@app.route('/lvfs/eventlog/<start>')
+@app.route('/lvfs/eventlog/<start>/<length>')
 @login_required
 def eventlog(start=0, length=20):
     """
@@ -950,20 +947,18 @@ def eventlog(start=0, length=20):
         return error_permission_denied('Unable to show event log for non-QA user')
 
     # get the page selection correct
-    db = LvfsDatabase(os.environ)
-    db_eventlog = LvfsDatabaseEventlog(db)
     if session['username'] == 'admin':
-        eventlog_len = db_eventlog.size()
+        eventlog_len = db.eventlog.size()
     else:
-        eventlog_len = db_eventlog.size_for_qa_group(session['qa_group'])
+        eventlog_len = db.eventlog.size_for_qa_group(session['qa_group'])
     nr_pages = int(math.ceil(eventlog_len / float(length)))
 
     # table contents
     try:
         if session['username'] == 'admin':
-            items = db_eventlog.get_items(int(start), int(length))
+            items = db.eventlog.get_items(int(start), int(length))
         else:
-            items = db_eventlog.get_items_for_qa_group(session['qa_group'], int(start), int(length))
+            items = db.eventlog.get_items_for_qa_group(session['qa_group'], int(start), int(length))
     except CursorError as e:
         return error_internal(str(e))
     if len(items) == 0:
@@ -1038,12 +1033,10 @@ def _update_metadata_from_fn(fwobj, fn):
     fwobj.mds[0].description = component.description
     if driver_ver:
         fwobj.version_display = driver_ver[1]
-    db = LvfsDatabase(os.environ)
-    db_firmware = LvfsDatabaseFirmware(db)
-    db_firmware.update(fwobj)
+    db.firmware.update(fwobj)
     return None
 
-@lvfs.route('/user/<username>/modify', methods=['GET', 'POST'])
+@app.route('/lvfs/user/<username>/modify', methods=['GET', 'POST'])
 @login_required
 def user_modify(username):
     """ Change details about the current user """
@@ -1067,10 +1060,8 @@ def user_modify(username):
         return error_permission_denied('Unable to change user as no data')
     if not 'email' in request.form:
         return error_permission_denied('Unable to change user as no data')
-    db = LvfsDatabase(os.environ)
-    db_users = LvfsDatabaseUsers(db)
     try:
-        auth = db_users.verify(session['username'], request.form['password_old'])
+        auth = db.users.verify(session['username'], request.form['password_old'])
     except CursorError as e:
         return error_internal(str(e))
     if not auth:
@@ -1102,7 +1093,7 @@ def user_modify(username):
         flash('Name invalid')
         return redirect(url_for('.profile')), 400
     try:
-        db_users.update(session['username'], password, name, email, pubkey)
+        db.users.update(session['username'], password, name, email, pubkey)
     except CursorError as e:
         return error_internal(str(e))
     #session['password'] = _password_hash(password)
@@ -1110,7 +1101,7 @@ def user_modify(username):
     flash('Updated profile')
     return redirect(url_for('.profile'))
 
-@lvfs.route('/user/<username>/modify_by_admin', methods=['POST'])
+@app.route('/lvfs/user/<username>/modify_by_admin', methods=['POST'])
 @login_required
 def user_modify_by_admin(username):
     """ Change details about the any user """
@@ -1134,19 +1125,17 @@ def user_modify_by_admin(username):
         else:
             tmp = '0'
         try:
-            db = LvfsDatabase(os.environ)
-            db_users = LvfsDatabaseUsers(db)
             # don't set the optional password
             if key == 'password' and len(tmp) == 0:
                 continue
-            db_users.set_property(username, key, tmp)
+            db.users.set_property(username, key, tmp)
         except CursorError as e:
             return error_internal(str(e))
     _event_log('Changed user %s properties' % username)
     flash('Updated profile')
     return redirect(url_for('.user_admin', user_name=username))
 
-@lvfs.route('/user/add', methods=['GET', 'POST'])
+@app.route('/lvfs/user/add', methods=['GET', 'POST'])
 @login_required
 def useradd():
     """ Add a user [ADMIN ONLY] """
@@ -1159,8 +1148,6 @@ def useradd():
     if session['username'] != 'admin':
         return error_permission_denied('Unable to add user as non-admin')
 
-    db = LvfsDatabase(os.environ)
-    db_users = LvfsDatabaseUsers(db)
     if not 'password_new' in request.form:
         return error_permission_denied('Unable to add user an no data')
     if not 'username_new' in request.form:
@@ -1172,7 +1159,7 @@ def useradd():
     if not 'email' in request.form:
         return error_permission_denied('Unable to add user an no data')
     try:
-        auth = db_users.is_enabled(request.form['username_new'])
+        auth = db.users.is_enabled(request.form['username_new'])
     except CursorError as e:
         return error_internal(str(e))
     if auth:
@@ -1206,14 +1193,14 @@ def useradd():
         flash('Username invalid')
         return redirect(url_for('.userlist')), 302
     try:
-        db_users.add(username_new, password, name, email, qa_group)
+        db.users.add(username_new, password, name, email, qa_group)
     except CursorError as e:
         return error_internal(str(e))
     _event_log("Created user %s" % username_new)
     flash('Added user')
     return redirect(url_for('.userlist')), 201
 
-@lvfs.route('/user/<username>/delete')
+@app.route('/lvfs/user/<username>/delete')
 @login_required
 def user_delete(username):
     """ Delete a user """
@@ -1223,24 +1210,22 @@ def user_delete(username):
         return error_permission_denied('Unable to remove user as not admin')
 
     # check whether exists in database
-    db = LvfsDatabase(os.environ)
-    db_users = LvfsDatabaseUsers(db)
     try:
-        exists = db_users.is_enabled(username)
+        exists = db.users.is_enabled(username)
     except CursorError as e:
         return error_internal(str(e))
     if not exists:
         flash("No entry with username %s" % username)
         return redirect(url_for('.userlist')), 400
     try:
-        db_users.remove(username)
+        db.users.remove(username)
     except CursorError as e:
         return error_internal(str(e))
     _event_log("Deleted user %s" % username)
     flash('Deleted user')
     return redirect(url_for('.userlist')), 201
 
-@lvfs.route('/userlist')
+@app.route('/lvfs/userlist')
 @login_required
 def userlist():
     """
@@ -1249,14 +1234,12 @@ def userlist():
     if session['username'] != 'admin':
         return error_permission_denied('Unable to show userlist for non-admin user')
     try:
-        db = LvfsDatabase(os.environ)
-        db_users = LvfsDatabaseUsers(db)
-        items = db_users.get_items()
+        items = db.users.get_items()
     except CursorError as e:
         return error_internal(str(e))
     return render_template('userlist.html', users=items)
 
-@lvfs.route('/user/<user_name>/admin')
+@app.route('/lvfs/user/<user_name>/admin')
 @login_required
 def user_admin(user_name):
     """
@@ -1265,14 +1248,12 @@ def user_admin(user_name):
     if session['username'] != 'admin':
         return error_permission_denied('Unable to modify user for non-admin user')
     try:
-        db = LvfsDatabase(os.environ)
-        db_users = LvfsDatabaseUsers(db)
-        item = db_users.get_item(user_name)
+        item = db.users.get_item(user_name)
     except CursorError as e:
         return error_internal(str(e))
     return render_template('useradmin.html', u=item)
 
-@lvfs.route('/profile')
+@app.route('/lvfs/profile')
 @login_required
 def profile():
     """
@@ -1285,9 +1266,7 @@ def profile():
 
     # auth check
     try:
-        db = LvfsDatabase(os.environ)
-        db_users = LvfsDatabaseUsers(db)
-        item = db_users.get_item(session['username'])
+        item = db.users.get_item(session['username'])
     except CursorError as e:
         return error_internal(str(e))
     if not item:
@@ -1303,7 +1282,7 @@ def profile():
                            contact_email=item.email,
                            pubkey=item.pubkey)
 
-@lvfs.route('/metadata_rebuild')
+@app.route('/lvfs/metadata_rebuild')
 @login_required
 def metadata_rebuild():
     """
