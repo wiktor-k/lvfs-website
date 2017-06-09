@@ -532,12 +532,6 @@ def upload():
 
     return redirect(url_for('.firmware_id', fwid=fwid))
 
-@app.route('/lvfs/dbmigrate')
-@login_required
-def dbmigrate():
-    db.firmware.migrate()
-    return redirect(url_for('.index'))
-
 @app.route('/lvfs/device')
 @login_required
 def device():

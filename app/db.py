@@ -506,24 +506,6 @@ class DatabaseFirmware(object):
                 return item
         return None
 
-    def migrate(self):
-        """ Migrates databases to latest schema """
-        try:
-            cur = self._db.cursor()
-            cur.execute("SELECT fwid, id FROM firmware_md WHERE metainfo_id IS NULL;")
-            res = cur.fetchall()
-            if not res:
-                return
-            for e in res:
-                fake_id = list(hashlib.sha1(e[0]+e[1]).hexdigest())
-                for idx in range(0, 8):
-                    fake_id[idx] = '0'
-                cur.execute("UPDATE firmware_md SET metainfo_id=%s "
-                            "WHERE fwid=%s AND id=%s;",
-                            (''.join(fake_id), e[0], e[1],))
-        except mdb.Error as e:
-            raise CursorError(cur, e)
-
 class DatabaseEventlog(object):
 
     def __init__(self, db):
