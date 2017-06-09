@@ -28,7 +28,7 @@ from .inf_parser import InfParser
 from .hash import _qa_hash, _password_hash
 from .util import _upload_to_cdn, _create_affidavit, _event_log, _get_client_address
 from .util import _error_internal, _error_permission_denied
-from .metadata import metadata_update_qa_group, metadata_update_targets, metadata_update_pulp
+from .metadata import metadata_update_group_id, metadata_update_targets, metadata_update_pulp
 
 def _get_chart_labels_months():
     """ Gets the chart labels """
@@ -60,7 +60,7 @@ def _get_chart_labels_hours():
 def _check_session():
     if 'username' not in session:
         return False
-    if 'qa_group' not in session:
+    if 'group_id' not in session:
         return False
     if 'qa_capability' not in session:
         return False
@@ -142,7 +142,7 @@ def index():
     if 'username' not in session:
         return redirect(url_for('.login'))
     try:
-        item = db.groups.get_item(session['qa_group'])
+        item = db.groups.get_item(session['group_id'])
     except CursorError as e:
         return _error_internal(str(e))
     return render_template('index.html', vendor_ids=item.vendor_ids)
@@ -160,17 +160,17 @@ def metadata():
     """
 
     # show all embargo metadata URLs when admin user
-    qa_groups = []
-    if session['qa_group'] == 'admin':
+    group_ids = []
+    if session['group_id'] == 'admin':
         try:
-            qa_groups = db.users.get_qa_groups()
+            group_ids = db.users.get_group_ids()
         except CursorError as e:
             return _error_internal(str(e))
     else:
-        qa_groups.append(session['qa_group'])
+        group_ids.append(session['group_id'])
     return render_template('metadata.html',
-                           qa_group=session['qa_group'],
-                           qa_groups=qa_groups)
+                           group_id=session['group_id'],
+                           group_ids=group_ids)
 
 @app.route('/lvfs/devicelist')
 def device_list():
@@ -455,7 +455,7 @@ def upload():
     # create parent firmware object
     target = request.form['target']
     fwobj = Firmware()
-    fwobj.qa_group = session['qa_group']
+    fwobj.group_id = session['group_id']
     fwobj.addr = _get_client_address()
     fwobj.filename = new_filename
     fwobj.fwid = fwid
@@ -519,7 +519,7 @@ def upload():
     # ensure up to date
     try:
         if target != 'private':
-            metadata_update_qa_group(fwobj.qa_group)
+            metadata_update_group_id(fwobj.group_id)
         if target == 'stable':
             metadata_update_targets(['stable', 'testing'])
         elif target == 'testing':
@@ -596,9 +596,9 @@ def firmware(show_all=False):
     except CursorError as e:
         return _error_internal(str(e))
 
-    session_qa_group = None
-    if 'qa_group' in session:
-        session_qa_group = session['qa_group']
+    session_group_id = None
+    if 'group_id' in session:
+        session_group_id = session['group_id']
     session_username = None
     if 'username' in session:
         session_username = session['username']
@@ -608,7 +608,7 @@ def firmware(show_all=False):
     for item in items:
         # admin can see everything
         if session_username != 'admin':
-            if item.qa_group != session_qa_group:
+            if item.group_id != session_group_id:
                 continue
         name = item.mds[0].developer_name + ' ' + item.mds[0].name
         if not name in names:
@@ -629,7 +629,7 @@ def firmware(show_all=False):
     return render_template('firmware.html',
                            fw_by_name=names,
                            names_sorted=sorted(names),
-                           qa_group=session_qa_group,
+                           group_id=session_group_id,
                            show_all=show_all)
 
 @app.route('/lvfs/firmware_all')
@@ -694,7 +694,7 @@ def firmware_delete_force(fwid):
         return _error_internal(str(e))
     if not item:
         return _error_internal("No firmware file with hash %s exists" % fwid)
-    if session['username'] != 'admin' and item.qa_group != session['qa_group']:
+    if session['username'] != 'admin' and item.group_id != session['group_id']:
         return _error_permission_denied("No QA access to %s" % fwid)
 
     # only QA users can delete once the firmware has gone stable
@@ -714,7 +714,7 @@ def firmware_delete_force(fwid):
 
     # update everything
     try:
-        metadata_update_qa_group(item.qa_group)
+        metadata_update_group_id(item.group_id)
         if item.target == 'stable':
             metadata_update_targets(targets=['stable', 'testing'])
         elif item.target == 'testing':
@@ -748,7 +748,7 @@ def firmware_promote(fwid, target):
         item = db.firmware.get_item(fwid)
     except CursorError as e:
         return _error_internal(str(e))
-    if session['username'] != 'admin' and item.qa_group != session['qa_group']:
+    if session['username'] != 'admin' and item.group_id != session['group_id']:
         return _error_permission_denied("No QA access to %s" % fwid)
     try:
         db.firmware.set_target(fwid, target)
@@ -759,7 +759,7 @@ def firmware_promote(fwid, target):
 
     # update everything
     try:
-        metadata_update_qa_group(item.qa_group)
+        metadata_update_group_id(item.group_id)
         if target == 'stable':
             metadata_update_targets(['stable', 'testing'])
         elif target == 'testing':
@@ -784,14 +784,14 @@ def firmware_id(fwid):
         return _error_internal('No firmware matched!')
 
     # we can only view our own firmware, unless admin
-    qa_group = item.qa_group
-    if qa_group != session['qa_group'] and session['username'] != 'admin':
+    group_id = item.group_id
+    if group_id != session['group_id'] and session['username'] != 'admin':
         return _error_permission_denied('Unable to view other vendor firmware')
-    if not qa_group:
+    if not group_id:
         embargo_url = '/downloads/firmware.xml.gz'
-        qa_group = 'None'
+        group_id = 'None'
     else:
-        embargo_url = '/downloads/firmware-%s.xml.gz' % _qa_hash(qa_group)
+        embargo_url = '/downloads/firmware-%s.xml.gz' % _qa_hash(group_id)
 
     cnt_fn = db.clients.get_firmware_count_filename(item.filename)
     data_fw = db.clients.get_stats_for_fn(12, 30, item.filename)
@@ -800,7 +800,7 @@ def firmware_id(fwid):
                            qa_capability=session['qa_capability'],
                            orig_filename='-'.join(item.filename.split('-')[1:]),
                            embargo_url=embargo_url,
-                           qa_group=qa_group,
+                           group_id=group_id,
                            cnt_fn=cnt_fn,
                            fwid=fwid,
                            graph_labels=_get_chart_labels_months()[::-1],
@@ -855,7 +855,7 @@ def login():
     # this is signed, not encrypted
     session['username'] = user.username
     session['qa_capability'] = user.is_qa
-    session['qa_group'] = user.qa_group
+    session['group_id'] = user.group_id
     session['is_locked'] = user.is_locked
     login_user(user, remember=False)
 
@@ -886,7 +886,7 @@ def eventlog(start=0, length=20):
     if session['username'] == 'admin':
         eventlog_len = db.eventlog.size()
     else:
-        eventlog_len = db.eventlog.size_for_qa_group(session['qa_group'])
+        eventlog_len = db.eventlog.size_for_group_id(session['group_id'])
     nr_pages = int(math.ceil(eventlog_len / float(length)))
 
     # table contents
@@ -894,7 +894,7 @@ def eventlog(start=0, length=20):
         if session['username'] == 'admin':
             items = db.eventlog.get_all(int(start), int(length))
         else:
-            items = db.eventlog.get_all_for_qa_group(session['qa_group'], int(start), int(length))
+            items = db.eventlog.get_all_for_group_id(session['group_id'], int(start), int(length))
     except CursorError as e:
         return _error_internal(str(e))
     if len(items) == 0:
@@ -1014,7 +1014,7 @@ def metadata_rebuild():
 
     # update metadata
     try:
-        metadata_update_qa_group(None)
+        metadata_update_group_id(None)
         metadata_update_targets(['stable', 'testing'])
         metadata_update_pulp()
     except NoKeyError as e:

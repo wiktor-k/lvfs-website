@@ -7,11 +7,11 @@ CREATE TABLE users (
   pubkey VARCHAR(4096) DEFAULT NULL,
   is_enabled TINYINT DEFAULT 0,
   is_qa TINYINT DEFAULT 0,
-  qa_group VARCHAR(40) NOT NULL DEFAULT '',
+  group_id VARCHAR(40) DEFAULT NULL,
   is_locked TINYINT DEFAULT 0,
   UNIQUE KEY id (username)
 ) CHARSET=utf8;
-INSERT INTO users (username, password, display_name, email, is_enabled, is_qa, is_locked, qa_group)
+INSERT INTO users (username, password, display_name, email, is_enabled, is_qa, is_locked, group_id)
     VALUES ('admin', '5459dbe5e9aa80e077bfa40f3fb2ca8368ed09b4', 'Admin User', 'sign-test@fwupd.org', 1, 1, 0, 'admin');
 
 -- the cab file
@@ -19,7 +19,7 @@ DROP TABLE IF EXISTS firmware;
 CREATE TABLE firmware (
 
   -- information about the upload
-  qa_group VARCHAR(40) NOT NULL DEFAULT '',     -- QA group of uploader
+  group_id VARCHAR(40) DEFAULT NULL,     -- QA group of uploader
   addr VARCHAR(40) DEFAULT NULL,                -- IP address of uploader
   timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, -- upload date/time
   filename VARCHAR(255) DEFAULT NULL,           -- filename of the original .cab file
@@ -70,7 +70,7 @@ CREATE TABLE event_log (
   id INT NOT NULL AUTO_INCREMENT,
   timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   username VARCHAR(40) NOT NULL DEFAULT '',
-  qa_group VARCHAR(40) DEFAULT NULL,
+  group_id VARCHAR(40) DEFAULT NULL,
   addr VARCHAR(40) DEFAULT NULL,
   message TEXT DEFAULT NULL,
   is_important TINYINT DEFAULT 0,
@@ -89,7 +89,7 @@ CREATE TABLE clients (
 
 DROP TABLE IF EXISTS groups;
 CREATE TABLE groups (
-  group_id VARCHAR(40) NOT NULL DEFAULT '',
+  group_id VARCHAR(40) DEFAULT NULL,
   vendor_ids VARCHAR(40) NOT NULL DEFAULT '',
   UNIQUE KEY id (group_id)
 ) CHARSET=utf8;

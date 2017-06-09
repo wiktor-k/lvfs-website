@@ -21,7 +21,7 @@ def _create_user_item(e):
     item.password = e[3]
     item.is_enabled = bool(e[4])
     item.is_qa = bool(e[5])
-    item.qa_group = e[6]
+    item.group_id = e[6]
     item.is_locked = bool(e[7])
     item.pubkey = e[8]
     if item.username == 'admin':
@@ -58,7 +58,7 @@ def _create_firmware_md(e):
 
 def _create_firmware_item(e):
     item = Firmware()
-    item.qa_group = e[0]
+    item.group_id = e[0]
     item.addr = e[1]
     item.timestamp = e[2]
     item.filename = e[3]
@@ -71,7 +71,7 @@ def _create_eventlog_item(e):
     item = EventLogItem()
     item.timestamp = e[0]
     item.username = e[1]
-    item.qa_group = e[2]
+    item.group_id = e[2]
     item.address = e[3]
     item.message = e[4]
     item.is_important = e[5]
@@ -123,13 +123,20 @@ class Database(object):
         except mdb.Error as e:
             cur.execute("""
                         CREATE TABLE groups (
-                          group_id VARCHAR(40) NOT NULL DEFAULT '',
+                          group_id VARCHAR(40) DEFAULT NULL,
                           vendor_ids VARCHAR(40) NOT NULL DEFAULT '',
                           UNIQUE KEY id (group_id)
                         ) CHARSET=utf8;""");
             for user in self.users.get_all():
-                if not self.groups.get_item(user.qa_group):
-                    self.groups.add(user.qa_group)
+                if not self.groups.get_item(user.group_id):
+                    self.groups.add(user.group_id)
+        try:
+            cur = self._db.cursor()
+            cur.execute("SELECT group_id FROM users LIMIT 1;")
+        except mdb.Error as e:
+            cur.execute('ALTER TABLE firmware CHANGE COLUMN qa_group group_id VARCHAR(40) DEFAULT NULL;')
+            cur.execute('ALTER TABLE event_log CHANGE COLUMN qa_group group_id VARCHAR(40) DEFAULT NULL;')
+            cur.execute('ALTER TABLE users CHANGE COLUMN qa_group group_id VARCHAR(40) DEFAULT NULL;')
 
     def __del__(self):
         """ Clean up the database """
@@ -222,20 +229,20 @@ class DatabaseUsers(object):
         key_uid = cur.fetchone()
         return key_uid[0]
 
-    def add(self, username, password, name, email, qa_group):
+    def add(self, username, password, name, email, group_id):
         """ Adds the user to the userlist """
         assert username
         assert password
         assert name
         assert email
-        assert qa_group
+        assert group_id
         pw_hash = _password_hash(password)
         try:
             cur = self._db.cursor()
             cur.execute("INSERT INTO users (username, password, display_name, "
-                        "email, is_enabled, qa_group) "
+                        "email, is_enabled, group_id) "
                         "VALUES (%s, %s, %s, %s, 1, %s);",
-                        (username, pw_hash, name, email, qa_group,))
+                        (username, pw_hash, name, email, group_id,))
         except mdb.Error as e:
             raise CursorError(cur, e)
 
@@ -310,7 +317,7 @@ class DatabaseUsers(object):
         try:
             cur = self._db.cursor()
             cur.execute("SELECT username, display_name, email, password, "
-                        "is_enabled, is_qa, qa_group, is_locked, pubkey FROM users;")
+                        "is_enabled, is_qa, group_id, is_locked, pubkey FROM users;")
         except mdb.Error as e:
             raise CursorError(cur, e)
         res = cur.fetchall()
@@ -328,12 +335,12 @@ class DatabaseUsers(object):
             cur = self._db.cursor()
             if password:
                 cur.execute("SELECT username, display_name, email, password, "
-                            "is_enabled, is_qa, qa_group, is_locked, pubkey FROM users "
+                            "is_enabled, is_qa, group_id, is_locked, pubkey FROM users "
                             "WHERE username = %s AND password = %s LIMIT 1;",
                             (username, password,))
             else:
                 cur.execute("SELECT username, display_name, email, password, "
-                            "is_enabled, is_qa, qa_group, is_locked, pubkey FROM users "
+                            "is_enabled, is_qa, group_id, is_locked, pubkey FROM users "
                             "WHERE username = %s LIMIT 1;",
                             (username,))
         except mdb.Error as e:
@@ -343,20 +350,20 @@ class DatabaseUsers(object):
             return None
         return _create_user_item(res)
 
-    def get_qa_groups(self):
+    def get_group_ids(self):
         """ Gets the list of QA groups """
         try:
             cur = self._db.cursor()
-            cur.execute("SELECT DISTINCT qa_group FROM users;")
+            cur.execute("SELECT DISTINCT group_id FROM users;")
         except mdb.Error as e:
             raise CursorError(cur, e)
-        qa_groups = []
+        group_ids = []
         res = cur.fetchall()
         if not res:
-            return qa_groups
+            return group_ids
         for e in res:
-            qa_groups.append(e[0])
-        return qa_groups
+            group_ids.append(e[0])
+        return group_ids
 
 class DatabaseFirmware(object):
 
@@ -403,10 +410,10 @@ class DatabaseFirmware(object):
         """ Add a firmware object to the database """
         try:
             cur = self._db.cursor()
-            cur.execute("INSERT INTO firmware (qa_group, addr, timestamp, "
+            cur.execute("INSERT INTO firmware (group_id, addr, timestamp, "
                         "filename, fwid, target, version_display) "
                         "VALUES (%s, %s, CURRENT_TIMESTAMP, %s, %s, %s, %s);",
-                        (fwobj.qa_group,
+                        (fwobj.group_id,
                          fwobj.addr,
                          fwobj.filename,
                          fwobj.fwid,
@@ -483,7 +490,7 @@ class DatabaseFirmware(object):
         """ Returns all firmware objects """
         try:
             cur = self._db.cursor()
-            cur.execute("SELECT qa_group, addr, timestamp, "
+            cur.execute("SELECT group_id, addr, timestamp, "
                         "filename, fwid, target, version_display "
                         "FROM firmware ORDER BY timestamp DESC;")
         except mdb.Error as e:
@@ -512,17 +519,17 @@ class DatabaseEventlog(object):
         """ Constructor for object """
         self._db = db
 
-    def add(self, msg, username, qa_group, addr, is_important):
+    def add(self, msg, username, group_id, addr, is_important):
         """ Adds an item to the event log """
         assert msg
         assert username
-        assert qa_group
+        assert group_id
         assert addr
         try:
             cur = self._db.cursor()
-            cur.execute("INSERT INTO event_log (username, qa_group, addr, message, is_important) "
+            cur.execute("INSERT INTO event_log (username, group_id, addr, message, is_important) "
                         "VALUES (%s, %s, %s, %s, %s);",
-                        (username, qa_group, addr, msg, is_important,))
+                        (username, group_id, addr, msg, is_important,))
         except mdb.Error as e:
             raise CursorError(cur, e)
 
@@ -538,12 +545,12 @@ class DatabaseEventlog(object):
             return 0
         return res
 
-    def size_for_qa_group(self, qa_group):
+    def size_for_group_id(self, group_id):
         """ Gets the length of the event log """
         try:
             cur = self._db.cursor()
             cur.execute("SELECT COUNT(timestamp) FROM event_log "
-                        "WHERE qa_group = %s", (qa_group,))
+                        "WHERE group_id = %s", (group_id,))
         except mdb.Error as e:
             raise CursorError(cur, e)
         res = cur.fetchone()[0]
@@ -555,7 +562,7 @@ class DatabaseEventlog(object):
         """ Gets the event log items """
         try:
             cur = self._db.cursor()
-            cur.execute("SELECT timestamp, username, qa_group, addr, message, is_important "
+            cur.execute("SELECT timestamp, username, group_id, addr, message, is_important "
                         "FROM event_log ORDER BY id DESC LIMIT %s,%s;",
                         (start, length,))
         except mdb.Error as e:
@@ -568,13 +575,13 @@ class DatabaseEventlog(object):
             items.append(_create_eventlog_item(e))
         return items
 
-    def get_all_for_qa_group(self, qa_group, start, length):
+    def get_all_for_group_id(self, group_id, start, length):
         """ Gets the event log items """
         try:
             cur = self._db.cursor()
-            cur.execute("SELECT timestamp, username, qa_group, addr, message, is_important "
-                        "FROM event_log WHERE qa_group = %s ORDER BY id DESC LIMIT %s,%s;",
-                        (qa_group, start, length,))
+            cur.execute("SELECT timestamp, username, group_id, addr, message, is_important "
+                        "FROM event_log WHERE group_id = %s ORDER BY id DESC LIMIT %s,%s;",
+                        (group_id, start, length,))
         except mdb.Error as e:
             raise CursorError(cur, e)
         res = cur.fetchall()

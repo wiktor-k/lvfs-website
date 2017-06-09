@@ -9,7 +9,7 @@
 {% if session['username'] == 'admin' %}
 <p>This list shows all events for all users.</p>
 {% else %}
-<p>This list shows all events for the {{session['qa_group']}} QA group.</p>
+<p>This list shows all events for the {{session['group_id']}} QA group.</p>
 {% endif %}
 
 <table class="history">

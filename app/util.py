@@ -40,16 +40,16 @@ def _get_client_address():
 def _event_log(msg, is_important=False):
     """ Adds an item to the event log """
     username = None
-    qa_group = None
+    group_id = None
     if 'username' in session:
         username = session['username']
     if not username:
         username = 'anonymous'
-    if 'qa_group' in session:
-        qa_group = session['qa_group']
-    if not qa_group:
-        qa_group = 'admin'
-    db.eventlog.add(msg, username, qa_group,
+    if 'group_id' in session:
+        group_id = session['group_id']
+    if not group_id:
+        group_id = 'admin'
+    db.eventlog.add(msg, username, group_id,
                     _get_client_address(), is_important)
 
 def _error_internal(msg=None, errcode=402):

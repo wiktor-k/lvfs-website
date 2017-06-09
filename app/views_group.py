@@ -102,7 +102,7 @@ def group_admin(group_id):
         group = db.groups.get_item(group_id)
         users = db.users.get_all()
         for user in users:
-            if user.qa_group != group_id:
+            if user.group_id != group_id:
                 continue
             users_filtered.append(user)
     except CursorError as e:

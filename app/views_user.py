@@ -111,7 +111,7 @@ def user_modify_by_admin(username):
         return _error_permission_denied('Unable to modify user as non-admin')
 
     # set each thing in turn
-    for key in ['qa_group',
+    for key in ['group_id',
                 'display_name',
                 'email',
                 'password',
@@ -152,7 +152,7 @@ def user_add():
         return _error_permission_denied('Unable to add user an no data')
     if not 'username_new' in request.form:
         return _error_permission_denied('Unable to add user an no data')
-    if not 'qa_group' in request.form:
+    if not 'group_id' in request.form:
         return _error_permission_denied('Unable to add user an no data')
     if not 'name' in request.form:
         return _error_permission_denied('Unable to add user an no data')
@@ -175,9 +175,9 @@ def user_add():
     if not _email_check(email):
         return redirect(url_for('.user_list')), 302
 
-    # verify qa_group
-    qa_group = request.form['qa_group']
-    if len(qa_group) < 3:
+    # verify group_id
+    group_id = request.form['group_id']
+    if len(group_id) < 3:
         flash('QA group invalid')
         return redirect(url_for('.user_list')), 302
 
@@ -193,9 +193,9 @@ def user_add():
         flash('Username invalid')
         return redirect(url_for('.user_list')), 302
     try:
-        db.users.add(username_new, password, name, email, qa_group)
-        if not db.groups.get_item(qa_group):
-            db.groups.add(qa_group)
+        db.users.add(username_new, password, name, email, group_id)
+        if not db.groups.get_item(group_id):
+            db.groups.add(group_id)
     except CursorError as e:
         return _error_internal(str(e))
 

@@ -2,7 +2,7 @@
 {% block title %}User Details{% endblock %}
 
 {% block page_header %}
-<h1>User Details</h1>
+<h1>Details of user ‘{{u.username}}’</h1>
 {% endblock %}
 
 {% block content %}
@@ -17,12 +17,8 @@
 <form method="post" action="/lvfs/user/{{u.username}}/modify_by_admin">
 <table class="upload">
   <tr>
-    <th class="upload">Username:</th>
-    <td><code>{{u.username}}</code></td>
-  </tr>
-  <tr>
-    <th class="upload">QA Group:</th>
-    <td><input type="text" name="qa_group" value="{{u.qa_group}}" required></td>
+    <th class="upload">Group:</th>
+    <td><input type="text" name="group_id" value="{{u.group_id}}" required></td>
   </tr>
   <tr>
     <th class="upload">Vendor Name:</th>

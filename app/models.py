@@ -15,7 +15,7 @@ class User(object):
         self.email = None
         self.is_enabled = False
         self.is_qa = False
-        self.qa_group = None
+        self.group_id = None
         self.is_locked = False
         self.pubkey = None
 
@@ -40,17 +40,17 @@ class User(object):
 class Group(object):
     def __init__(self):
         """ Constructor for object """
-        self.qa_group = None
+        self.group_id = None
         self.vendor_ids = []
     def __repr__(self):
-        return "Group object %s" % self.qa_group
+        return "Group object %s" % self.group_id
 
 class EventLogItem(object):
     def __init__(self):
         """ Constructor for object """
         self.timestamp = None
         self.username = None
-        self.qa_group = None
+        self.group_id = None
         self.address = None
         self.message = None
         self.is_important = False
@@ -88,7 +88,7 @@ class FirmwareMd(object):
 class Firmware(object):
     def __init__(self):
         """ Constructor for object """
-        self.qa_group = None
+        self.group_id = None
         self.addr = None
         self.timestamp = None
         self.filename = None

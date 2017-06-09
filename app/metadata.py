@@ -13,7 +13,7 @@ from app import app, db
 from .hash import _qa_hash
 from .util import _upload_to_cdn, _create_affidavit
 
-def _generate_metadata_kind(filename, targets=None, qa_group=None, affidavit=None):
+def _generate_metadata_kind(filename, targets=None, group_id=None, affidavit=None):
     """ Generates AppStream metadata of a specific kind """
     items = db.firmware.get_all()
     store = appstream.Store('lvfs')
@@ -24,7 +24,7 @@ def _generate_metadata_kind(filename, targets=None, qa_group=None, affidavit=Non
             continue
         if targets and item.target not in targets:
             continue
-        if qa_group and qa_group != item.qa_group:
+        if group_id and group_id != item.group_id:
             continue
 
         # add each component
@@ -89,16 +89,16 @@ def _generate_metadata_kind(filename, targets=None, qa_group=None, affidavit=Non
                 component.add_screenshot(ss)
 
             # add requires for each allowed vendor_ids
-            qa_group_item = db.qa_groups.get_item(item.qa_group)
-            if qa_group_item.vendor_ids:
+            group = db.groups.get_item(item.group_id)
+            if group.vendor_ids:
                 req = appstream.Require()
                 req.kind = 'firmware'
                 req.value = 'vendor-id'
-                if len(qa_group_item.vendor_ids) == 1:
+                if len(group.vendor_ids) == 1:
                     req.compare = 'eq'
                 else:
                     req.compare = 'regex'
-                req.version = '|'.join(qa_group_item.vendor_ids)
+                req.version = '|'.join(group.vendor_ids)
                 component.add_require(req)
 
             # add component
@@ -120,24 +120,24 @@ def _generate_metadata_kind(filename, targets=None, qa_group=None, affidavit=Non
         blob_asc = affidavit.create(blob)
         _upload_to_cdn(filename + '.asc', blob_asc)
 
-def metadata_update_qa_group(qa_group):
-    """ updates metadata for a specific qa_group """
+def metadata_update_group_id(group_id):
+    """ updates metadata for a specific group_id """
 
     # explicit
     affidavit = _create_affidavit()
-    if qa_group:
-        filename = 'firmware-%s.xml.gz' % _qa_hash(qa_group)
+    if group_id:
+        filename = 'firmware-%s.xml.gz' % _qa_hash(group_id)
         _generate_metadata_kind(filename,
-                                qa_group=qa_group,
+                                group_id=group_id,
                                 affidavit=affidavit)
         return
 
     # do for all
-    qa_groups = db.users.get_qa_groups()
-    for qa_group in qa_groups:
-        filename_qa = 'firmware-%s.xml.gz' % _qa_hash(qa_group)
+    group_ids = db.users.get_group_ids()
+    for group_id in group_ids:
+        filename_qa = 'firmware-%s.xml.gz' % _qa_hash(group_id)
         _generate_metadata_kind(filename_qa,
-                                qa_group=qa_group,
+                                group_id=group_id,
                                 affidavit=affidavit)
 
 def metadata_update_targets(targets):
