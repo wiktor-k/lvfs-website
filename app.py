@@ -27,16 +27,17 @@ except IOError:
 # line, it's possible required libraries won't be in your searchable path
 #
 
+from app import app
 
 #
 #  main():
 #
 if __name__ == '__main__':
-  application = imp.load_source('app', 'flaskapp.py')
-  port = application.app.config['PORT']
-  ip = application.app.config['IP']
-  app_name = application.app.config['APP_NAME']
-  host_name = application.app.config['HOST_NAME']
+
+  port = app.config['PORT']
+  ip = app.config['IP']
+  app_name = app.config['APP_NAME']
+  host_name = app.config['HOST_NAME']
 
   fwtype="wsgiref"
   for fw in ("gevent", "cherrypy", "flask"):
@@ -49,20 +50,20 @@ if __name__ == '__main__':
   print('Starting WSGIServer type %s on %s:%d ... ' % (fwtype, ip, port))
   if fwtype == "gevent":
     from gevent.pywsgi import WSGIServer
-    WSGIServer((ip, port), application.app).serve_forever()
+    WSGIServer((ip, port), app).serve_forever()
 
   elif fwtype == "cherrypy":
     from cherrypy import wsgiserver
     server = wsgiserver.CherryPyWSGIServer(
-      (ip, port), application.app, server_name=host_name)
+      (ip, port), app, server_name=host_name)
     server.start()
 
   elif fwtype == "flask":
     from flask import Flask
     server = Flask(__name__)
-    server.wsgi_app = application.app
+    server.wsgi_app = app
     server.run(host=ip, port=port)
 
   else:
     from wsgiref.simple_server import make_server
-    make_server(ip, port, application.app).serve_forever()
+    make_server(ip, port, app).serve_forever()
