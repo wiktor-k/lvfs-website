@@ -13,57 +13,61 @@
 {% endif %}
 
 <form method="post" action="/lvfs/user/{{u.username}}/modify_by_admin">
-<table class="table table-bordered table-hover">
-  <tr>
-    <th>Group:</th>
-    <td><input type="text" name="group_id" value="{{u.group_id}}" required></td>
-  </tr>
-  <tr>
-    <th>Vendor Name:</th>
-    <td><input type="text" name="display_name" value="{{u.display_name}}" required></td>
-  </tr>
-  <tr>
-    <th>Contact Email:</th>
-    <td><input type="text" name="email" value="{{u.email}}" required></td>
-  </tr>
+  <div class="form-control">
+    <label for="group_id">Group:</label>
+    <input type="text" class="form-control" name="group_id" value="{{u.group_id}}" required>
+  </div>
+  <div class="form-control">
+    <label for="display_name">Vendor Name:</label>
+    <input type="text" class="form-control" name="display_name" value="{{u.display_name}}" required>
+  </div>
+  <div class="form-control">
+    <label for="email">Contact Email:</label>
+    <input type="text" class="form-control" name="email" value="{{u.email}}" required>
+  </div>
 {% if u.username != 'admin' %}
-  <tr>
-    <th>GPG Public Key<br/>(optional):</th>
-    <td><textarea name="pubkey" cols="64" rows="5">{{u.pubkey}}</textarea></td>
-  </tr>
+  <div class="form-control">
+    <label for="pubkey">GPG Public Key (optional):</label>
+    <textarea name="pubkey" cols="64" rows="5">{{u.pubkey}}</textarea>
+  </div>
 {% endif %}
-  <tr>
-    <th>New Password:</th>
-    <td><input type="password" name="password"></td>
-  </tr>
+  <div class="form-control">
+    <label for="password">New Password:</label>
+    <input type="password" class="form-control" name="password">
+  </div>
 {% if u.username != 'admin' %}
-  <tr>
-    <th>Account enabled:</th>
+  <div class="form-control">
+    <label for="is_enabled">
 {% if u.is_enabled %}
-    <td><input type="checkbox" name="is_enabled" value="1" checked /></td>
+      <input class="checkbox" type="checkbox" name="is_enabled" value="1" checked />
 {% else %}
-    <td><input type="checkbox" name="is_enabled" value="1"/></td>
+      <input class="checkbox" type="checkbox" name="is_enabled" value="1"/>
 {% endif %}
-  </tr>
-  <tr>
-    <th>Prevent password change:</th>
+      Account enabled:
+    </label>
+  </div>
+  <div class="form-control">
+    <label for="is_locked">
 {% if u.is_locked %}
-    <td><input type="checkbox" name="is_locked" value="1" checked /></td>
+      <input class="checkbox" type="checkbox" name="is_locked" value="1" checked />
 {% else %}
-    <td><input type="checkbox" name="is_locked" value="1"/></td>
+      <input class="checkbox" type="checkbox" name="is_locked" value="1"/>
 {% endif %}
-  </tr>
-  <tr>
-    <th>Allow moving to testing and stable:</th>
+      Prevent password change:
+    </label>
+  </div>
+  <div class="form-control">
+    <label for="is_qa">
 {% if u.is_qa %}
-    <td><input type="checkbox" name="is_qa" value="1" checked /></td>
+      <input class="checkbox" type="checkbox" name="is_qa" value="1" checked />
 {% else %}
-    <td><input type="checkbox" name="is_qa" value="1"/></td>
+      <input class="checkbox" type="checkbox" name="is_qa" value="1"/>
 {% endif %}
-  </tr>
+      Allow moving to testing and stable:
+    </label>
+  </div>
 {% endif %}
-</table>
-<input type="submit" class="btn btn-primary btn-large" class="submit" value="Modify">
+  <input type="submit" class="btn btn-primary btn-large" class="submit" value="Modify">
 </form>
 
 {% if u.username != 'admin' %}

@@ -8,7 +8,7 @@
 <h1>Empty group ‘{{q.group_id}}’</h1>
 {% else %}
 <h1>Members of group ‘{{q.group_id}}’</h1>
-<table>
+<table class="table table-striped table-bordered table-hover">
   <tr>
     <th>Username</th>
     <th>Vendor Name</th>
@@ -30,12 +30,12 @@
   firmware on their own devices.
   This restriction is optional and can be separated with comma:
 </p>
-<form method="post" action="/lvfs/group/{{q.group_id}}/modify_by_admin">
+<form method="post" action="/lvfs/group/{{q.group_id}}/modify_by_admin" class="form-horizontal">
   <input type="text" size="80" name="vendor_ids" value="{{','.join(q.vendor_ids)}}">
   <input type="submit" class="btn btn-primary" value="Modify">
 </form>
 
-
+{% if session['username'] != 'admin' %}
 <h2>Delete Group</h2>
 <p>
   Unless you are required to delete a group for legal or compliance reasons,
@@ -53,6 +53,7 @@
 <form method="get" action="/lvfs/group/{{q.group_id}}/delete">
   <button class="btn btn-danger">Delete</button>
 </form>
+{% endif %}
 
 </div> <!-- container -->
 {% endblock %}

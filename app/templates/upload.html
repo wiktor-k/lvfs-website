@@ -34,45 +34,31 @@
 </ul>
 
 <form action="/lvfs/upload" method="post" enctype="multipart/form-data">
-<table class="table">
 
+  <div class="form-control">
+    <label for="target">Target:</label>
 <!-- can the user upload directly to stable -->
 {% if session['qa_capability'] %}
-  <tr>
-    <th>
-      <label for="target">Target:</label>
-    </th>
-    <td>
-      <select name="target" class="fixedwidth" required>
-        <option value="private">Private</option>
-        <option value="embargo">Embargoed</option>
-        <option value="testing">Testing</option>
-        <option value="stable">Stable</option>
-      </select>
-    </td>
-  </tr>
+    <select name="target" required>
+      <option value="private">Private</option>
+      <option value="embargo">Embargoed</option>
+      <option value="testing">Testing</option>
+      <option value="stable">Stable</option>
+    </select>
 {% else %}
-  <tr>
-    <th>
-      <label for="target">Target:</label>
-    </th>
-    <td>
-      <select name="target" class="fixedwidth" required>
-        <option value="private">Private</option>
-        <option value="embargo">Embargoed</option>
-      </select>
-    </td>
-  </tr>
+    <select name="target" required>
+      <option value="private">Private</option>
+      <option value="embargo">Embargoed</option>
+    </select>
 {% endif %}
+  </div>
 
   <!-- all enabled users can upload -->
-  <tr>
-    <th><label for="file">Cab Archive:</label></th>
-    <td><input type="file" name="file" required/></td>
-  </tr>
-</table>
-
-<input type="submit" class="btn btn-primary btn-large" class="btn btn-primary btn-large" value="Upload"/>
+  <div class="form-control">
+    <label for="file">Cab Archive:</label>
+    <input type="file" name="file" required/>
+  </div>
+  <input type="submit" class="btn btn-primary btn-large" class="btn btn-primary btn-large" value="Upload"/>
 </form>
 
 <div class="well">

@@ -19,35 +19,28 @@
   <div class="span9">
     <div class="">
       <h2>Create a new user</h2>
-      <form method="post" action="/lvfs/user/add">
-      <table class="table">
-        <tr>
-          <td>Username</td>
-          <td><input type="text" size="20" name="username_new" placeholder="username" required></td>
-        </tr>
-        <tr>
-          <td>Password</td>
-          <td><input type="password" size="20" name="password_new" placeholder="password" required></td>
-        </tr>
-        <tr>
-          <td>Name</td>
-          <td><input type="text" size="20" name="name" placeholder="Example Name" required></td>
-        </tr>
-        <tr>
-          <td>Email</td>
-          <td><input type="text" size="20" name="email" placeholder="info@example.com" required></td>
-        </tr>
-        <tr>
-          <td>Group</td>
-          <td><input type="text" size="20" name="group_id" placeholder="example" required></td>
-        </tr>
-        <tr>
-          <td>&nbsp;</td>
-          <td>
-            <input class="btn btn-primary btn-large" type="submit" value="Add">
-          </td>
-        </tr>
-      </table>
+      <form method="post" action="/lvfs/user/add" class="form">
+        <div class="form-control">
+          <label for="username_new">Username:</label>
+          <input type="text" class="form-control" name="username_new" required>
+        </div>
+        <div class="form-control">
+          <label for="password_new">Password:</label>
+          <input type="password" class="form-control" name="password_new" required>
+        </div>
+        <div class="form-control">
+          <label for="name">Vendor Name:</label>
+          <input type="text" class="form-control" name="name" required>
+        </div>
+        <div class="form-control">
+          <label for="email">Contact Email:</label>
+          <input type="text" class="form-control" name="email" required>
+        </div>
+        <div class="form-control">
+          <label for="group_id">Group:</label>
+          <input type="text" class="form-control" name="group_id" required>
+        </div>
+        <input class="btn btn-primary btn-large" type="submit" value="Add">
       </form>
     </div>
   </div><!--/span-->

@@ -62,7 +62,7 @@ def group_add():
 
     _event_log("Created group %s" % request.form['group_id'])
     flash('Added group')
-    return redirect(url_for('.group_list')), 201
+    return redirect(url_for('.group_list'), 302)
 
 @app.route('/lvfs/group/<group_id>/delete')
 @login_required
@@ -80,14 +80,14 @@ def group_delete(group_id):
         return _error_internal(str(e))
     if not group:
         flash("No entry with group_id %s" % group_id)
-        return redirect(url_for('.group_list')), 400
+        return redirect(url_for('.group_list'), 422)
     try:
         db.groups.remove(group_id)
     except CursorError as e:
         return _error_internal(str(e))
     _event_log("Deleted group %s" % group_id)
     flash('Deleted group')
-    return redirect(url_for('.group_list')), 201
+    return redirect(url_for('.group_list'), 302)
 
 @app.route('/lvfs/group/<group_id>/admin')
 @login_required

@@ -9,43 +9,41 @@
 </p>
 <form method="post" action="/lvfs/user/{{session['username']}}/modify">
 <table class="table">
-  <tr>
-    <th>Current Password:</th>
-    <td><input type="password" name="password_old" required></td>
-  </tr>
-  <tr>
-    <th>New Password:</th>
-    <td><input type="password" name="password_new" required></td>
-  </tr>
-  <tr>
-    <th>Vendor Name:</th>
-    <td><input type="text" name="name" value="{{vendor_name}}" required></td>
-  </tr>
-  <tr>
-    <th>Contact Email:</th>
-    <td><input type="text" name="email" value="{{contact_email}}" required></td>
-  </tr>
-  <tr>
-    <th>GPG Public Key<br/>(optional):</th>
-    <td><textarea name="pubkey" cols="64" rows="5">{{pubkey}}</textarea></td>
-  </tr>
+  <div class="form-control">
+    <label for="password_old">Current Password:</label>
+    <input type="password" name="password_old" required>
+  </div>
+  <div class="form-control">
+    <label for="password_new">New Password:</label>
+    <input type="password" name="password_new" required>
+  </div>
+  <div class="form-control">
+    <label for="name">Vendor Name:</label>
+    <input type="text" name="name" value="{{vendor_name}}" required>
+  </div>
+  <div class="form-control">
+    <label for="contact_email">Contact Email:</label>
+    <input type="text" name="email" value="{{contact_email}}" required>
+  </div>
+  <div class="form-control">
+    <label for="pubkey">GPG Public Key (optional):</label>
+    <textarea name="pubkey" cols="64" rows="5">{{pubkey}}</textarea>
+  </div>
+  <div class="well">
+    Setting a public key would mean you are responsible for signing the firmware
+    payload prior to file upload.
+  </div>
 </table>
 <input type="submit" class="btn btn-primary btn-large" class="submit" value="Modify">
 </form>
 
 {% if session['username'] == 'admin' %}
-<p>
+<div class="well">
   The email address set here will be used as the signing key for all firmware
   and metadata.
-</p>
+</div>
 {% endif %}
 
-<p>
-  Setting a public key would mean you are responsible for signing the firmware
-  payload prior to file upload.
-  Vendors only need to do this if they do not want the LVFS to automatically
-  sign their firmware.
-</p>
 
 </div> <!-- container -->
 {% endblock %}

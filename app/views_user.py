@@ -17,24 +17,28 @@ def _password_check(value):
     success = True
     if len(value) < 8:
         success = False
-        flash('The password is too short, the minimum is 8 characters')
+        flash('The password is too short, the minimum is 8 characters', 'warning')
     if len(value) > 40:
         success = False
-        flash('The password is too long, the maximum is 40 characters')
+        flash('The password is too long, the maximum is 40 characters', 'warning')
     if value.lower() == value:
         success = False
-        flash('The password requires at least one uppercase character')
+        flash('The password requires at least one uppercase character', 'warning')
     if value.isalnum():
         success = False
-        flash('The password requires at least one non-alphanumeric character')
+        flash('The password requires at least one non-alphanumeric character', 'warning')
     return success
 
 def _email_check(value):
     """ Do a quick and dirty check on the email address """
     if len(value) < 5 or value.find('@') == -1 or value.find('.') == -1:
-        flash('Invalid email address')
         return False
     return True
+
+def _pubkey_check(pubkey):
+    if not pubkey:
+        return True
+    return pubkey.startswith("-----BEGIN PGP PUBLIC KEY BLOCK-----")
 
 @app.route('/lvfs/user/<username>/modify', methods=['GET', 'POST'])
 @login_required
@@ -65,33 +69,33 @@ def user_modify(username):
     except CursorError as e:
         return _error_internal(str(e))
     if not auth:
-        return _error_internal('Incorrect existing password')
+        flash('Incorrect existing password', 'error')
+        return redirect(url_for('.profile'), 302)
 
     # check password
     password = request.form['password_new']
     if not _password_check(password):
-        return redirect(url_for('.profile')), 400
+        return redirect(url_for('.profile'), 302)
 
     # check email
     email = request.form['email']
     if not _email_check(email):
+        flash('Invalid email address', 'warning')
         return redirect(url_for('.profile'))
 
     # check pubkey
     pubkey = ''
     if 'pubkey' in request.form:
         pubkey = request.form['pubkey']
-        if pubkey:
-            if len(pubkey) > 0:
-                if not pubkey.startswith("-----BEGIN PGP PUBLIC KEY BLOCK-----"):
-                    flash('Invalid GPG public key')
-                    return redirect(url_for('.profile')), 400
+        if not _pubkey_check(pubkey):
+            flash('Invalid GPG public key', 'warning')
+            return redirect(url_for('.profile'), 302)
 
     # verify name
     name = request.form['name']
     if len(name) < 3:
-        flash('Name invalid')
-        return redirect(url_for('.profile')), 400
+        flash('Name invalid', 'warning')
+        return redirect(url_for('.profile'), 302)
     try:
         db.users.update(session['username'], password, name, email, pubkey)
     except CursorError as e:
@@ -128,12 +132,17 @@ def user_modify_by_admin(username):
             # don't set the optional password
             if key == 'password' and len(tmp) == 0:
                 continue
+            if key == 'pubkey':
+                if not _pubkey_check(tmp):
+                    flash('Invalid GPG public key', 'warning')
+                    return redirect(url_for('.user_admin',
+                                            username=username), 303)
             db.users.set_property(username, key, tmp)
         except CursorError as e:
             return _error_internal(str(e))
     _event_log('Changed user %s properties' % username)
     flash('Updated profile')
-    return redirect(url_for('.user_admin', user_name=username))
+    return redirect(url_for('.user_admin', username=username))
 
 @app.route('/lvfs/user/add', methods=['GET', 'POST'])
 @login_required
@@ -149,15 +158,15 @@ def user_add():
         return _error_permission_denied('Unable to add user as non-admin')
 
     if not 'password_new' in request.form:
-        return _error_permission_denied('Unable to add user an no data')
+        return _error_permission_denied('Unable to add user as no password_new')
     if not 'username_new' in request.form:
-        return _error_permission_denied('Unable to add user an no data')
+        return _error_permission_denied('Unable to add user as no username_new')
     if not 'group_id' in request.form:
-        return _error_permission_denied('Unable to add user an no data')
+        return _error_permission_denied('Unable to add user as no group_id')
     if not 'name' in request.form:
-        return _error_permission_denied('Unable to add user an no data')
+        return _error_permission_denied('Unable to add user as no name')
     if not 'email' in request.form:
-        return _error_permission_denied('Unable to add user an no data')
+        return _error_permission_denied('Unable to add user as no email')
     try:
         auth = db.users.is_enabled(request.form['username_new'])
     except CursorError as e:
@@ -168,30 +177,31 @@ def user_add():
     # verify password
     password = request.form['password_new']
     if not _password_check(password):
-        return redirect(url_for('.user_list')), 302
+        return redirect(url_for('.user_list'), 422)
 
     # verify email
     email = request.form['email']
     if not _email_check(email):
-        return redirect(url_for('.user_list')), 302
+        flash('Invalid email address', 'warning')
+        return redirect(url_for('.user_list'), 422)
 
     # verify group_id
     group_id = request.form['group_id']
     if len(group_id) < 3:
-        flash('QA group invalid')
-        return redirect(url_for('.user_list')), 302
+        flash('QA group invalid', 'warning')
+        return redirect(url_for('.user_list'), 422)
 
     # verify name
     name = request.form['name']
     if len(name) < 3:
-        flash('Name invalid')
-        return redirect(url_for('.user_list')), 302
+        flash('Name invalid', 'warning')
+        return redirect(url_for('.user_list'), 422)
 
     # verify username
     username_new = request.form['username_new']
     if len(username_new) < 3:
-        flash('Username invalid')
-        return redirect(url_for('.user_list')), 302
+        flash('Username invalid', 'warning')
+        return redirect(url_for('.user_list'), 422)
     try:
         db.users.add(username_new, password, name, email, group_id)
         if not db.groups.get_item(group_id):
@@ -201,7 +211,7 @@ def user_add():
 
     _event_log("Created user %s" % username_new)
     flash('Added user')
-    return redirect(url_for('.user_list')), 201
+    return redirect(url_for('.user_list'), 302)
 
 @app.route('/lvfs/user/<username>/delete')
 @login_required
@@ -218,15 +228,15 @@ def user_delete(username):
     except CursorError as e:
         return _error_internal(str(e))
     if not exists:
-        flash("No entry with username %s" % username)
-        return redirect(url_for('.user_list')), 400
+        flash("No entry with username %s" % username, 'error')
+        return redirect(url_for('.user_list'), 422)
     try:
         db.users.remove(username)
     except CursorError as e:
         return _error_internal(str(e))
     _event_log("Deleted user %s" % username)
     flash('Deleted user')
-    return redirect(url_for('.user_list')), 201
+    return redirect(url_for('.user_list'), 302)
 
 @app.route('/lvfs/userlist')
 @login_required
@@ -242,16 +252,16 @@ def user_list():
         return _error_internal(str(e))
     return render_template('userlist.html', users=items)
 
-@app.route('/lvfs/user/<user_name>/admin')
+@app.route('/lvfs/user/<username>/admin')
 @login_required
-def user_admin(user_name):
+def user_admin(username):
     """
     Shows an admin panel for a user
     """
     if session['username'] != 'admin':
         return _error_permission_denied('Unable to modify user for non-admin user')
     try:
-        item = db.users.get_item(user_name)
+        item = db.users.get_item(username)
     except CursorError as e:
         return _error_internal(str(e))
     return render_template('useradmin.html', u=item)
