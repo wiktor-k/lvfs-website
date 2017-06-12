@@ -2,6 +2,7 @@
 {% block title %}Event Log{% endblock %}
 
 {% block content %}
+<div class="container">
 <h1>Event Log</h1>
 {% if session['username'] == 'admin' %}
 <p>This list shows all events for all users.</p>
@@ -9,7 +10,7 @@
 <p>This list shows all events for the {{session['group_id']}} QA group.</p>
 {% endif %}
 
-<table class="history">
+<table class="table table-striped table-bordered table-hover">
   <tr>
     <th>Timestamp</th>
     <th>Address</th>
@@ -19,19 +20,20 @@
   </tr>
 {% for e in events %}
   <tr>
-    <td class="history">{{e.timestamp}}</td>
-    <td class="history">{{e.address}}</td>
-    <td class="history">{{e.username}}</td>
+    <td>{{e.timestamp}}</td>
+    <td>{{e.address}}</td>
+    <td>{{e.username}}</td>
 {% if e.is_important %}
-    <td class="history">&#x272a;</td>
+    <td>&#x272a;</td>
 {% else %}
-    <td class="history"></td>
+    <td></td>
 {% endif %}
-    <td class="history">{{e.message}}</td>
+    <td>{{e.message}}</td>
   </tr>
 {% endfor %}
 </table>
 
 {{pagination_footer|safe}}
 
+</div> <!-- container -->
 {% endblock %}

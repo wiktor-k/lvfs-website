@@ -108,20 +108,12 @@ def errorhandler_401(msg=None):
 @app.route('/')
 @app.route('/lvfs/')
 def index():
-    """
-    The main page that shows existing firmware and also allows the
-    user to add new firmware.
-    """
-    if 'username' not in session:
-        return redirect(url_for('.login'))
-    try:
-        item = db.groups.get_item(session['group_id'])
-    except CursorError as e:
-        return _error_internal(str(e))
-    vendor_ids = item.vendor_ids
-    if not vendor_ids:
-        vendor_ids = []
-    return render_template('index.html', vendor_ids=vendor_ids)
+    user = db.users.get_item('admin')
+    default_admin_password = False
+    if user.password == '5459dbe5e9aa80e077bfa40f3fb2ca8368ed09b4':
+        default_admin_password = True
+    return render_template('index.html',
+                           default_admin_password=default_admin_password)
 
 @app.route('/lvfs/newaccount')
 def new_account():
@@ -157,7 +149,16 @@ def upload():
 
     # only accept form data
     if request.method != 'POST':
-        return redirect(url_for('.index'))
+        if 'username' not in session:
+            return redirect(url_for('.index'))
+        try:
+            item = db.groups.get_item(session['group_id'])
+        except CursorError as e:
+            return _error_internal(str(e))
+        vendor_ids = item.vendor_ids
+        if not vendor_ids:
+            vendor_ids = []
+        return render_template('upload.html', vendor_ids=vendor_ids)
 
     # not correct parameters
     if not 'target' in request.form:
@@ -483,12 +484,9 @@ def analytics():
                            labels_user_agent=labels_user_agent,
                            data_user_agent=data_user_agent)
 
-@app.route('/lvfs/login', methods=['GET', 'POST'])
+@app.route('/lvfs/login', methods=['POST'])
 def login():
     """ A login screen to allow access to the LVFS main page """
-    if request.method != 'POST':
-        return render_template('login.html')
-
     # auth check
     user = None
     password = _password_hash(request.form['password'])
@@ -501,12 +499,12 @@ def login():
         # log failure
         _event_log('Failed login attempt for %s' % request.form['username'])
         flash('Incorrect username or password')
-        return render_template('login.html')
+        return redirect(url_for('.index'))
     if not user.is_enabled:
         # log failure
         _event_log('Failed login attempt for %s (user disabled)' % request.form['username'])
         flash('User account is disabled')
-        return render_template('login.html')
+        return redirect(url_for('.index'))
 
     # this is signed, not encrypted
     session['username'] = user.username

@@ -2,6 +2,8 @@
 {% block title %}Analytics{% endblock %}
 
 {% block content %}
+<div class="container">
+
 <h1>Analytics</h1>
 <script src="/static/Chart.js"></script>
 <script>
@@ -74,4 +76,5 @@ var data = {
 var myLineChartUserAgent = new Chart(ctx).Bar(data, null);
 </script>
 
+</div> <!-- container -->
 {% endblock %}

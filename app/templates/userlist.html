@@ -2,49 +2,56 @@
 {% block title %}User List{% endblock %}
 
 {% block content %}
-<h1>Existing Users</h1>
-<table>
+<div class="container-fluid">
+
+<div class="row-fluid">
+  <div class="span3">
+    <div class="well sidebar-nav">
+      <ul class="nav nav-list">
+        <li class="nav-header">Existing Users</li>
+        <!--<li class="active"><a href="#">Link</a></li>-->
 {% for u in users %}
-<tr class="history">
-  <td>
-    <a href="/lvfs/user/{{u.username}}/admin"><img width="32px" src="/user-info-symbolic.svg"/></a>
-  </td>
-  <td>{{u.display_name}} (<code>{{u.username}}</code>)</td>
-</tr>
+        <li><a href="/lvfs/user/{{u.username}}/admin">{{u.username}}</a></li>
 {% endfor %}
+      </ul>
+    </div><!--/.well -->
+  </div><!--/span-->
+  <div class="span9">
+    <div class="">
+      <h2>Create a new user</h2>
+      <form method="post" action="/lvfs/user/add">
+      <table class="table">
+        <tr>
+          <td>Username</td>
+          <td><input type="text" size="20" name="username_new" placeholder="username" required></td>
+        </tr>
+        <tr>
+          <td>Password</td>
+          <td><input type="password" size="20" name="password_new" placeholder="password" required></td>
+        </tr>
+        <tr>
+          <td>Name</td>
+          <td><input type="text" size="20" name="name" placeholder="Example Name" required></td>
+        </tr>
+        <tr>
+          <td>Email</td>
+          <td><input type="text" size="20" name="email" placeholder="info@example.com" required></td>
+        </tr>
+        <tr>
+          <td>Group</td>
+          <td><input type="text" size="20" name="group_id" placeholder="example" required></td>
+        </tr>
+        <tr>
+          <td>&nbsp;</td>
+          <td>
+            <input class="btn btn-primary btn-large" type="submit" value="Add">
+          </td>
+        </tr>
+      </table>
+      </form>
+    </div>
+  </div><!--/span-->
+</div><!--/row-->
 
-</table>
-
-<h2>Create a new user</h2>
-<form method="post" action="/lvfs/user/add">
-<table class="history">
-  <tr>
-    <td>Username</td>
-    <td><input type="text" size="20" name="username_new" placeholder="username" required></td>
-  </tr>
-  <tr>
-    <td>Password</td>
-    <td><input type="password" size="20" name="password_new" placeholder="password" required></td>
-  </tr>
-  <tr>
-    <td>Name</td>
-    <td><input type="text" size="20" name="name" placeholder="Example Name" required></td>
-  </tr>
-  <tr>
-    <td>Email</td>
-    <td><input type="text" size="20" name="email" placeholder="info@example.com" required></td>
-  </tr>
-  <tr>
-    <td>Group</td>
-    <td><input type="text" size="20" name="group_id" placeholder="example" required></td>
-  </tr>
-  <tr>
-    <td>&nbsp;</td>
-    <td>
-      <input type="submit" style="width: 6em" value="Add">
-    </td>
-  </tr>
-</table>
-</form>
-
+</div> <!-- container -->
 {% endblock %}

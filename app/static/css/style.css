@@ -1,0 +1,9 @@
+h1.banner {
+  display: block;
+  width: 290px;
+  padding: 230px 0 0 240px;
+  margin: 0 auto;
+  height: 150px;
+  background: url('/static/banner.svg') no-repeat 0 0;
+  line-height: 100%;
+}

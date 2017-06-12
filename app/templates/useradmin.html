@@ -2,6 +2,7 @@
 {% block title %}User Details{% endblock %}
 
 {% block content %}
+<div class="container">
 <h1>Details of user ‘{{u.username}}’</h1>
 
 {% if u.username == 'admin' %}
@@ -12,32 +13,32 @@
 {% endif %}
 
 <form method="post" action="/lvfs/user/{{u.username}}/modify_by_admin">
-<table class="upload">
+<table class="table table-bordered table-hover">
   <tr>
-    <th class="upload">Group:</th>
+    <th>Group:</th>
     <td><input type="text" name="group_id" value="{{u.group_id}}" required></td>
   </tr>
   <tr>
-    <th class="upload">Vendor Name:</th>
+    <th>Vendor Name:</th>
     <td><input type="text" name="display_name" value="{{u.display_name}}" required></td>
   </tr>
   <tr>
-    <th class="upload">Contact Email:</th>
+    <th>Contact Email:</th>
     <td><input type="text" name="email" value="{{u.email}}" required></td>
   </tr>
 {% if u.username != 'admin' %}
   <tr>
-    <th class="upload">GPG Public Key<br/>(optional):</th>
+    <th>GPG Public Key<br/>(optional):</th>
     <td><textarea name="pubkey" cols="64" rows="5">{{u.pubkey}}</textarea></td>
   </tr>
 {% endif %}
   <tr>
-    <th class="upload">New Password:</th>
+    <th>New Password:</th>
     <td><input type="password" name="password"></td>
   </tr>
 {% if u.username != 'admin' %}
   <tr>
-    <th class="upload">Account enabled:</th>
+    <th>Account enabled:</th>
 {% if u.is_enabled %}
     <td><input type="checkbox" name="is_enabled" value="1" checked /></td>
 {% else %}
@@ -45,7 +46,7 @@
 {% endif %}
   </tr>
   <tr>
-    <th class="upload">Prevent password change:</th>
+    <th>Prevent password change:</th>
 {% if u.is_locked %}
     <td><input type="checkbox" name="is_locked" value="1" checked /></td>
 {% else %}
@@ -53,7 +54,7 @@
 {% endif %}
   </tr>
   <tr>
-    <th class="upload">Allow moving to testing and stable:</th>
+    <th>Allow moving to testing and stable:</th>
 {% if u.is_qa %}
     <td><input type="checkbox" name="is_qa" value="1" checked /></td>
 {% else %}
@@ -62,7 +63,7 @@
   </tr>
 {% endif %}
 </table>
-<input type="submit" class="submit" value="Modify">
+<input type="submit" class="btn btn-primary btn-large" class="submit" value="Modify">
 </form>
 
 {% if u.username != 'admin' %}
@@ -84,8 +85,9 @@
 </ul>
 
 <form method="get" action="/lvfs/user/{{u.username}}/delete">
-  <button class="fixedwidth">Delete</button>
+  <button class="btn btn-danger btn-large">Delete</button>
 </form>
 {% endif %}
 
+</div> <!-- container -->
 {% endblock %}

@@ -1,29 +1,42 @@
 {% extends "default.html" %}
 {% block title %}Device List{% endblock %}
 
-<!-- no navigation -->
-{% block navigation %}{% endblock %}
-
 {% block content %}
-<h1>Devices using LVFS for firmware updates</h1>
-<p>
-  This list shows all the updates that have been pushed to the stable metadata.
-  This is a very incomplete list as a lot of the devices in the LVFS
-  have not yet been released publicly and the firmware updates are in a
-  secret embargoed state.
-</p>
-<p>
-  This list is automatically generated and will be updated when new firmware
-  is added or devices are released to the public.
-</p>
+<div class="container-fluid">
 
+
+
+<div class="row-fluid">
+  <div class="span3">
+    <div class="well sidebar-nav">
+      <ul class="nav nav-list">
 {% for vendor in vendors %}
-<h2>{{vendor}}</h2>
-<ul>
+        <li class="nav-header">{{vendor}}</li>
 {% for md in mds_by_vendor[vendor] %}
-  <li><a href="/lvfs/device/{{md.guids[0]}}">{{md.name}}</a></li>
+        <li><a href="/lvfs/device/{{md.guids[0]}}">{{md.name}}</a></li>
 {% endfor %}
-</ul>
 {% endfor %}
+      </ul>
+    </div><!--/.well -->
+  </div><!--/span-->
+  <div class="span9">
+    <div class="">
+      <h1>Devices using LVFS for firmware updates</h1>
+      <p>
+        This list shows all the updates that have been pushed to the stable metadata.
+        This is a very incomplete list as a lot of the devices in the LVFS
+        have not yet been released publicly and the firmware updates are in a
+        secret embargoed state.
+      </p>
+      <p>
+        This list is automatically generated and will be updated when new firmware
+        is added or devices are released to the public.
+      </p>
+    </div>
+  </div><!--/span-->
+</div><!--/row-->
 
+
+
+</div> <!-- container -->
 {% endblock %}

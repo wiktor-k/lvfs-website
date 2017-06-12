@@ -2,13 +2,14 @@
 {% block title %}Firmware Details{% endblock %}
 
 {% block content %}
+<div class="container">
 <h1>Firmware Details</h1>
 <script src="/static/Chart.js"></script>
 <script>
 Chart.defaults.global.animation = false;
 </script>
 
-<table class="aligned">
+<table class="table table-bordered">
   <tr><th>Filename</th><td><a href="/downloads/{{fw.filename}}">{{orig_filename}}</a></td></tr>
   <tr><th>Current Target</th><td>{{fw.target}}</td></tr>
   <tr><th>Submitted</th><td>{{fw.timestamp}}</td></tr>
@@ -23,23 +24,23 @@ Chart.defaults.global.animation = false;
     <td>
 {% if fw.target != 'stable' or qa_capability %}
       <form method="get" action="/lvfs/firmware/{{firmware_id}}/delete">
-      <button class="fixedwidth">Delete</button>
+      <button class="btn btn-danger btn-large">Delete</button>
       </form>
 {% endif %}
 {% if qa_capability %}
 {% if fw.target == 'private' %}
       <form method="get" action="/lvfs/firmware/{{firmware_id}}/promote/embargo">
-      <button class="fixedwidth">&#8594; Embargo</button>
+      <button class="btn btn-primary btn-large">&#8594; Embargo</button>
       </form>
 {% endif %}
 {% if fw.target == 'embargo' %}
       <form method="get" action="/lvfs/firmware/{{firmware_id}}/promote/testing">
-      <button class="fixedwidth">&#8594; Testing</button>
+      <button class="btn btn-primary btn-large">&#8594; Testing</button>
       </form>
 {% endif %}
 {% if fw.target == 'testing' %}
       <form method="get" action="/lvfs/firmware/{{firmware_id}}/promote/stable">
-      <button class="fixedwidth">&#8594; Stable</button>
+      <button class="btn btn-primary btn-large">&#8594; Stable</button>
       </form>
 {% endif %}
 {% endif %}
@@ -50,7 +51,7 @@ Chart.defaults.global.animation = false;
 {% for md in fw.mds %}
 <h2>{{md.name}}</h2>
 <p>{{md.summary}}</p>
-<table class="aligned">
+<table class="table table-bordered table-hover">
   <tr><th>ID</th><td>{{md.cid}}</td></tr>
 {% for guid in md.guids %}
   <tr><th>Device GUID</th><td><code>{{guid}}</code></td></tr>
@@ -69,7 +70,7 @@ Chart.defaults.global.animation = false;
 <h2>Update Details</h2>
 
 {% if fw.target == 'stable' or not qa_capability %}
-<table class="history">
+<table class="table table-bordered table-hover">
 {% if md.release_urgency %}
   <tr><th>Release Urgency</th><td>{{md.release_urgency}}</td></tr>
 {% endif %}
@@ -77,7 +78,7 @@ Chart.defaults.global.animation = false;
 </table>
 {% else %}
 
-<table class="history">
+<table class="table table-bordered table-hover">
   <form method="post" action="/lvfs/firmware/{{firmware_id}}/modify">
   <tr>
     <th>Release Urgency</th>
@@ -156,4 +157,5 @@ var data = {
 var myLineChartMonths = new Chart(ctx).Line(data, null);
 </script>
 
+</div> <!-- container -->
 {% endblock %}

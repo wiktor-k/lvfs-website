@@ -2,34 +2,35 @@
 {% block title %}Home{% endblock %}
 
 {% block content %}
+<div class="container">
 <h1>Modify User</h1>
 <p>
   A good password consists of upper and lower case with numbers.
 </p>
 <form method="post" action="/lvfs/user/{{session['username']}}/modify">
-<table class="upload">
+<table class="table">
   <tr>
-    <th class="upload">Current Password:</th>
+    <th>Current Password:</th>
     <td><input type="password" name="password_old" required></td>
   </tr>
   <tr>
-    <th class="upload">New Password:</th>
+    <th>New Password:</th>
     <td><input type="password" name="password_new" required></td>
   </tr>
   <tr>
-    <th class="upload">Vendor Name:</th>
+    <th>Vendor Name:</th>
     <td><input type="text" name="name" value="{{vendor_name}}" required></td>
   </tr>
   <tr>
-    <th class="upload">Contact Email:</th>
+    <th>Contact Email:</th>
     <td><input type="text" name="email" value="{{contact_email}}" required></td>
   </tr>
   <tr>
-    <th class="upload">GPG Public Key<br/>(optional):</th>
+    <th>GPG Public Key<br/>(optional):</th>
     <td><textarea name="pubkey" cols="64" rows="5">{{pubkey}}</textarea></td>
   </tr>
 </table>
-<input type="submit" class="submit" value="Modify">
+<input type="submit" class="btn btn-primary btn-large" class="submit" value="Modify">
 </form>
 
 {% if session['username'] == 'admin' %}
@@ -46,4 +47,5 @@
   sign their firmware.
 </p>
 
+</div> <!-- container -->
 {% endblock %}

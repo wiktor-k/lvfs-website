@@ -2,30 +2,30 @@
 {% block title %}User List{% endblock %}
 
 {% block content %}
-<h1>Existing Groups</h1>
-<table>
+<div class="container-fluid">
+
+<div class="row-fluid">
+  <div class="span3">
+    <div class="well sidebar-nav">
+      <ul class="nav nav-list">
+        <li class="nav-header">Existing Groups</li>
+        <!--<li class="active"><a href="#">Link</a></li>-->
 {% for q in groups %}
-<tr class="history">
-  <td>
-    <a href="/lvfs/group/{{q.group_id}}/admin"><img width="32px" src="/system-users-symbolic.svg"/></a>
-  </td>
-  <td>{{q.group_id}}</td>
-</tr>
+        <li><a href="/lvfs/group/{{q.group_id}}/admin">{{q.group_id}}</a></li>
 {% endfor %}
+      </ul>
+    </div><!--/.well -->
+  </div><!--/span-->
+  <div class="span9">
+    <div class="">
+      <h2>Create a new group</h2>
+      <form method="post" action="/lvfs/group/add" class="form-horizontal">
+        <input type="text" size="20" name="group_id" placeholder="Group ID" required>
+        <input class="btn btn-primary" type="submit" value="Add">
+      </form>
+    </div>
+  </div><!--/span-->
+</div><!--/row-->
 
-</table>
-
-<h2>Create a new group</h2>
-<form method="post" action="/lvfs/group/add">
-<table class="history">
-  <tr>
-    <td>Group ID</td>
-    <td><input type="text" size="20" name="group_id" placeholder="example" required></td>
-    <td>
-      <input type="submit" style="width: 6em" value="Add">
-    </td>
-  </tr>
-</table>
-</form>
-
+</div> <!-- container -->
 {% endblock %}

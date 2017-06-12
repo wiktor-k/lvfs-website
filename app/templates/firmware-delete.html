@@ -2,6 +2,7 @@
 {% block title %}Confirm Removal?{% endblock %}
 
 {% block content %}
+<div class="container">
 <h1>Confirm Removal?</h1>
 <p>
   Unless you are required to delete this file for legal or compliance reasons,
@@ -35,7 +36,8 @@
 </ul>
 <center>
 <form method="get" action="/lvfs/firmware/{{firmware_id}}/delete_force">
-<button class="fixedwidth">Irrevocably Remove Firmware</button>
+<button class="btn btn-danger btn-large">Irrevocably Remove Firmware</button>
 </form>
 </center>
+</div> <!-- container -->
 {% endblock %}

@@ -2,92 +2,27 @@
 {% block title %}Home{% endblock %}
 
 {% block content %}
-<h1>Introduction</h1>
+<div class="container">
+
+<h1 class="banner">Linux Vendor<br/>Firmware Service</h1>
+
 <p>
-  LVFS provides functionality for hardware vendors to submit packaged firmware updates.
+  The Linux Vendor Firmware Service is a secure portal which allows
+  hardware vendors to upload <a href="/lvfs/devicelist">firmware updates</a>.
+  Files can be uploaded privately and optionally embargoed until a specific date.
+</p>
+<p>
+  This site is used by all major Linux distributions to provide metadata
+  for clients such as fwupdmgr and GNOME Software.
+  To upload firmware please login, or <a href="/lvfs/newaccount">request a new account</a>.
   There is no charge to vendors for the hosting or distribution of content.
 </p>
 
-{% if vendor_ids|length > 0 %}
-<h2>Restrictions</h2>
+{% if default_admin_password %}
 <p>
-  Due to the sensitive nature of providing firmware files we ensure that only
-  vendors can install firmware on their own devices.
-  You are currently limited to providing firmware with the vendor IDs of:
-</p>
-<ul>
-{% for vendor_id in vendor_ids %}
-<li><code>{{vendor_id}}</code></li>
-{% endfor %}
-</ul>
-<p>
-  If you need to add another vendor ID then please
-  <a href="https://github.com/hughsie/lvfs-website/issues">file an issue</a>
-  with further information.
+  <b>WARNING</b> the default admin password <code>Pa$$w0rd</code> is still in use!
 </p>
 {% endif %}
 
-<h2>Add New Firmware</h2>
-<p>By uploading a firmware file you must agree that:</p>
-<ul>
-  <li>You are legally permitted to submit the firmware</li>
-  <li>The submitted firmware file is permitted to be mirrored by our site</li>
-  <li>We can extract and repackage the information inside the metainfo file</li>
-  <li>The firmware installation must complete without requiring user input</li>
-  <li>The update must not be malicious e.g. be a virus or to exploit security issues</li>
-</ul>
-
-<form action="/lvfs/upload" method="post" enctype="multipart/form-data">
-<table class="upload">
-
-<!-- can the user upload directly to stable -->
-{% if session['qa_capability'] %}
-<tr>
-<th width="150px" class="upload"><label for="target">Target:</label></th>
-<td>
-<select name="target" class="fixedwidth" required>
-<option value="private">Private</option>
-<option value="embargo">Embargoed</option>
-<option value="testing">Testing</option>
-<option value="stable">Stable</option>
-</select>
-</td>
-</tr>
-{% else %}
-<tr>
-<th width="150px" class="upload"><label for="target">Target:</label></th>
-<td>
-<select name="target" class="fixedwidth" required>
-<option value="private">Private</option>
-<option value="embargo">Embargoed</option>
-</select>
-</td>
-</tr>
-{% endif %}
-
-<!-- all enabled users can upload -->
-<tr>
-<th width="150px" class="upload"><label for="file">Cab Archive:</label></th>
-<td><input type="file" name="file" required/></td>
-</tr>
-</table>
-
-<input type="submit" class="submit" value="Upload"/>
-</form>
-<p>
-  Updates normally go through these stages:
-  <a href="#" title="The private target keeps the firmware secret and is
-  only downloadable from this admin console. An admin or QA user can move
-  the firmware to either embargo, testing or stable.">Private</a> &#8594;
-  <a href="#" title="The embargo target makes the firmware available to
-  users knowing a secret metdata URL. An admin or QA user can move the
-  firmware to testing when the hardware has been released.">Embargoed</a> &#8594;
-  <a href="#" title="The testing target makes the firmware available to
-  some users. An admin or QA user can move the firmware to stable when
-  testing is complete.">Testing</a> &#8594;
-  <a href="#" title="The stable target makes the firmware available to all
-  users. Make sure the firmware has been carefully tested before using
-  this target.">Stable</a>
-</p>
-
+</div> <!-- container -->
 {% endblock %}
