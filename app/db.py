@@ -5,7 +5,6 @@
 # Licensed under the GNU General Public License Version 2
 
 import cgi
-import hashlib
 import datetime
 import MySQLdb as mdb
 
@@ -137,7 +136,7 @@ class Database(object):
                           group_id VARCHAR(40) DEFAULT NULL,
                           vendor_ids VARCHAR(40) NOT NULL DEFAULT '',
                           UNIQUE KEY id (group_id)
-                        ) CHARSET=utf8;""");
+                        ) CHARSET=utf8;""")
             for user in self.users.get_all():
                 if not self.groups.get_item(user.group_id):
                     self.groups.add(user.group_id)
@@ -202,7 +201,7 @@ class DatabaseGroups(object):
             items.append(_create_group_id(e))
         return items
 
-    def get_item(self, group_id, password=None):
+    def get_item(self, group_id):
         """ Gets information about a specific user """
         assert group_id
         try:
