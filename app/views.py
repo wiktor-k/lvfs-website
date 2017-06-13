@@ -18,7 +18,7 @@ from flask import session, request, flash, url_for, redirect, render_template
 from flask import send_from_directory, abort
 from flask.ext.login import login_required, login_user, logout_user
 
-from app import app, db
+from app import app, db, lm
 
 from .db import CursorError
 from .models import Firmware, FirmwareMd, DownloadKind
@@ -101,8 +101,18 @@ def utility_processor():
                 format_qa_hash=format_qa_hash,
                 format_timestamp=format_timestamp)
 
+@lm.unauthorized_handler
+def unauthorized():
+    msg = ''
+    if request.url:
+        msg += 'Tried to request %s' % request.url
+    if request.user_agent:
+        msg += ' from %s' % request.user_agent
+    return _error_permission_denied(msg)
+
 @app.errorhandler(401)
 def errorhandler_401(msg=None):
+    print "generic error handler"
     return _error_permission_denied(msg)
 
 @app.route('/')
