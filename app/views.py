@@ -459,7 +459,7 @@ def upload():
 
     # ensure up to date
     try:
-        if target != 'private':
+        if target == 'embargo':
             _metadata_update_group(fwobj.group_id)
         if target == 'stable':
             _metadata_update_targets(['stable', 'testing'])
