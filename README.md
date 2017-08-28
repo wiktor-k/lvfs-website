@@ -25,6 +25,11 @@ Use the test GPG key (with the initial password of `fwupd`).
     gpg> passwd
     gpg> quit
 
+If passwd cannot be run due to being in a sudo session you can do:
+
+    script /dev/null
+    gpg2...
+
 ## How do I install the production key on Openshift? ##
 
 Use the secure GPG key (with the long secret password).
