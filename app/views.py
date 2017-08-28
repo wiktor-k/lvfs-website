@@ -173,13 +173,13 @@ def upload():
     if request.method != 'POST':
         if 'username' not in session:
             return redirect(url_for('.index'))
+        vendor_ids = []
         try:
             item = db.groups.get_item(session['group_id'])
         except CursorError as e:
             return _error_internal(str(e))
-        vendor_ids = item.vendor_ids
-        if not vendor_ids:
-            vendor_ids = []
+        if item:
+            vendor_ids.extend(item.vendor_ids)
         return render_template('upload.html', vendor_ids=vendor_ids)
 
     # not correct parameters
