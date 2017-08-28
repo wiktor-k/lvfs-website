@@ -115,6 +115,18 @@ def errorhandler_401(msg=None):
     print "generic error handler"
     return _error_permission_denied(msg)
 
+@app.route('/developers')
+def developers():
+    return render_template('developers.html')
+
+@app.route('/users')
+def users():
+    return render_template('users.html')
+
+@app.route('/vendors')
+def vendors():
+    return render_template('vendors.html')
+
 @app.route('/')
 @app.route('/lvfs/')
 def index():
