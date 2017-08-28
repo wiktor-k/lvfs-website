@@ -8,6 +8,7 @@
 
 <div class="row-fluid">
   <div class="span3">
+{% if vendors|length > 0 %}
     <div class="well sidebar-nav">
       <ul class="nav nav-list">
 {% for vendor in vendors %}
@@ -18,6 +19,7 @@
 {% endfor %}
       </ul>
     </div><!--/.well -->
+{% endif %}
   </div><!--/span-->
   <div class="span9">
     <div class="">

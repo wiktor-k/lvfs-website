@@ -6,6 +6,7 @@
 
 <div class="row-fluid">
   <div class="span3">
+{% if users|length > 0 %}
     <div class="well sidebar-nav">
       <ul class="nav nav-list">
         <li class="nav-header">Existing Users</li>
@@ -15,6 +16,7 @@
 {% endfor %}
       </ul>
     </div><!--/.well -->
+{% endif %}
   </div><!--/span-->
   <div class="span9">
     <div class="">
