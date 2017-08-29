@@ -12,8 +12,8 @@ from flask.ext.login import LoginManager
 from .db import Database
 
 app = Flask(__name__)
-if 'HOSTNAME' in os.environ and os.environ['HOSTNAME'] == 'lvfs':
-    app.config.from_pyfile('lvfs.cfg')
+if os.path.exists('custom.cfg'):
+    app.config.from_pyfile('custom.cfg')
 else:
     app.config.from_pyfile('flaskapp.cfg')
 
