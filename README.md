@@ -5,23 +5,104 @@ This is the website for the Linux Vendor Firmware Service
 
 IMPORTANT: This needs to be hosted over SSL, i.e. with a `https://` prefix.
 
-## How do I set up the database ##
+## How to I use distro packages ##
 
-    CREATE DATABASE secure;
-    CREATE USER 'test'@'localhost' IDENTIFIED BY 'test';
-    USE secure;
-    GRANT ALL ON secure.* TO 'test'@'localhost';
-    SOURCE schema.sql
+    yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+    yum install \
+      cabextract \
+      certbot-apache \
+      git \
+      httpd \
+      mariadb-server \
+      mod_wsgi \
+      MySQL-python \
+      python2-boto3 \
+      python2-gnupg \
+      python2-mysql \
+      python-flask \
+      python-flask-login \
+      python-flask-wtf
 
-The default admin password is `Pa$$w0rd`
+If using RHEL-7 you can get python-flask-login using:
 
-## How do I install the test key on Openshift? ##
+    yum install ftp://fr2.rpmfind.net/linux/fedora/linux/releases/26/Everything/x86_64/os/Packages/p/python-flask-login-0.3.0-6.fc26.noarch.rpm
+
+## How do I start apache server? ##
+
+Save into `/etc/httpd/conf.modules.d/fwupd.org.conf`
+
+    <VirtualHost *>
+        ServerName fwupd.org
+        WSGIDaemonProcess lvfs user=lvfs group=lvfs threads=5
+        WSGIScriptAlias / /home/lvfs/lvfs-website/app.wsgi
+
+        RewriteEngine on
+        RewriteCond %{SERVER_NAME} =fwupd.org
+        RewriteRule ^ https://%{SERVER_NAME}%{REQUEST_URI} [END,NE,R=permanent]
+
+        <Directory /home/lvfs/lvfs-website>
+            WSGIProcessGroup lvfs
+            WSGIApplicationGroup %{GLOBAL}
+            Require all granted
+        </Directory>
+    </VirtualHost>
+
+then `service httpd restart` and `chkconfig httpd on`
+
+## How do I generate a SSL certificate ##
+
+If you want to use LetsEncrypt you can just do `certbot --apache` -- you may
+have to comment out `WSGIScriptAlias` in the `fwupd.org.conf` file to avoid
+a warning during install.
+
+## How do I create the hosting user? ##
+
+    useradd --create-home lvfs
+    passwd lvfs
+    usermod -G apache lvfs
+    mkdir /home/lvfs/downloads
+    mkdir /home/lvfs/.aws
+    chown lvfs:apache /home/lvfs/ -R
+    su -l lvfs
+    git clone git@github.com:hughsie/lvfs-website.git
+
+Then add something like this to `lvfs-website/app/lvfs.cfg`:
+
+    import os
+    DEBUG = True
+    PROPAGATE_EXCEPTIONS = False
+    SECRET_KEY = 'FIXME'
+    HOST_NAME = 'localhost'
+    APP_NAME = 'lvfs'
+    IP = 'FIXME'
+    PORT = 80
+    DOWNLOAD_DIR = '/home/lvfs/downloads'
+    KEYRING_DIR = '/home/lvfs/.gnupg'
+    CABEXTRACT_CMD = '/usr/bin/cabextract'
+    CDN_URI = 'https://s3.amazonaws.com/lvfsbucket'
+    CDN_BUCKET = 'lvfsbucket'
+    DATABASE_HOST = 'localhost'
+    DATABASE_USERNAME = 'dbusername'
+    DATABASE_PASSWORD = 'dpassword'
+    DATABASE_DB = 'lvfs'
+    DATABASE_PORT = 3306
+
+## How do I use the CDN ##
+
+Create a `.aws/credentials` file like:
+
+    [default]
+    region=us-east-1
+    aws_access_key_id=foo
+    aws_secret_access_key=bar
+
+## How do I install the test key? ##
 
 Use the test GPG key (with the initial password of `fwupd`).
 
-    gpg2 --homedir=./gnupg/ --allow-secret-key-import --import contrib/fwupd-test-private.key
-    gpg2 --homedir=./gnupg/ --list-secret-keys
-    gpg2 --homedir=./gnupg/ --edit-key D64F5C21
+    gpg2 --homedir=~/.gnupg --allow-secret-key-import --import contrib/fwupd-test-private.key
+    gpg2 --homedir=~/.gnupg --list-secret-keys
+    gpg2 --homedir=~/.gnupg --edit-key D64F5C21
     gpg> passwd
     gpg> quit
 
@@ -30,103 +111,47 @@ If passwd cannot be run due to being in a sudo session you can do:
     script /dev/null
     gpg2...
 
-## How do I install the production key on Openshift? ##
+## How do I install the production key? ##
 
 Use the secure GPG key (with the long secret password).
 
-    export OPENSHIFT_NAMESPACE=lvfs
-    export OPENSHIFT_APP=secure
-    rhc scp --app ${OPENSHIFT_APP} --namespace ${OPENSHIFT_NAMESPACE} \
-        upload backup/app-root/data/gnupg/fwupd-secret-signing-key.key \
-        app-root/data
-    rhc ssh --app ${OPENSHIFT_APP} --namespace ${OPENSHIFT_NAMESPACE}
-      cd app-root/data/
-      mkdir -p app-root/data/gnupg
-      gpg2 --homedir=app-root/data/gnupg --allow-secret-key-import --import contrib/fwupd-test-private.key
-      gpg2 --homedir=app-root/data/gnupg --list-secret-keys
-      gpg2 --homedir=app-root/data/gnupg --edit-key 4538BAC2
-        gpg> passwd
-        gpg> quit
+    cd
+    mkdir -p gnupg
+    gpg2 --homedir=gnupg --allow-secret-key-import --import contrib/fwupd-secret-signing-key.key
+    gpg2 --homedir=gnupg --list-secret-keys
+    gpg2 --homedir=gnupg --edit-key 4538BAC2
+      gpg> passwd
+      gpg> quit
+
+## How do I set up the database ##
+
+    service mariadb start
+    chkconfig mariadb on
+
+    CREATE DATABASE lvfs;
+    CREATE USER 'dbusername'@'localhost' IDENTIFIED BY 'dbpassword';
+    USE lvfs;
+    GRANT ALL ON lvfs.* TO 'dbusername'@'localhost';
+    SOURCE schema.sql
+
+The default admin password is `Pa$$w0rd`
 
 ## How do I backup the data ##
 
 To get just the database you can do:
 
-    export OPENSHIFT_NAMESPACE=lvfs
-    export OPENSHIFT_APP=secure
-    rhc ssh --app ${OPENSHIFT_APP} --namespace ${OPENSHIFT_NAMESPACE}
-    mysqldump -h $OPENSHIFT_MYSQL_DB_HOST \
-              -P ${OPENSHIFT_MYSQL_DB_PORT:-3306} \
-              -u ${OPENSHIFT_MYSQL_DB_USERNAME:-'admin'} \
-              --password="$OPENSHIFT_MYSQL_DB_PASSWORD" \
-              secure > app-root/data/backup-`date +%Y%m%d`.sql
-    rhc scp --app ${OPENSHIFT_APP} \
-            --namespace ${OPENSHIFT_NAMESPACE} \
-            download . app-root/data/backup-`date +%Y%m%d`.sql
-
-Or, to get a complete backup you can do:
-
-    rhc snapshot save \
-            --app ${OPENSHIFT_APP} --namespace ${OPENSHIFT_NAMESPACE}
-            --filepath=backup.tar.gz
+    mysqldump lvfs > backup-`date +%Y%m%d`.sql
 
 ## How do I restore from a backup ##
 
-If this is a fresh instance you want to set up using:
-
-    export OPENSHIFT_NAMESPACE=lvfs
-    export OPENSHIFT_APP=testing
-    rhc delete-app --app ${OPENSHIFT_APP} --namespace ${OPENSHIFT_NAMESPACE}
-    rhc create-app --type python-2.7 \
-        --app ${OPENSHIFT_APP} --namespace ${OPENSHIFT_NAMESPACE} \
-        --from-code https://github.com/hughsie/lvfs-website.git
-    rhc cartridge add --app ${OPENSHIFT_APP} \
-        --namespace ${OPENSHIFT_NAMESPACE} \
-        mysql-5.5
-    rhc cartridge add --app ${OPENSHIFT_APP} \
-        --namespace ${OPENSHIFT_NAMESPACE} \
-        phpmyadmin-4
-    rhc env set --app ${OPENSHIFT_APP} \
-        --namespace ${OPENSHIFT_NAMESPACE} \
-        LVFS_CDN_URI=https://s3.amazonaws.com/lvfsbucket
-    # you can generate a new key with os.urandom(24).encode('hex')
-    rhc env set --app ${OPENSHIFT_APP} \
-        --namespace ${OPENSHIFT_NAMESPACE} \
-        LVFS_SECRET_KEY=deadbeef
-    rhc show-app --app ${OPENSHIFT_APP} --namespace ${OPENSHIFT_NAMESPACE}
-
 To just restore the database, do:
 
-    rhc scp --app ${OPENSHIFT_APP} --namespace ${OPENSHIFT_NAMESPACE} \
-        upload backup.sql app-root/data
-    rhc ssh --app ${OPENSHIFT_APP} --namespace ${OPENSHIFT_NAMESPACE}
     mysql
-      CREATE DATABASE secure;
-      use secure;
-      source app-root/data/backup.sql;
+      CREATE DATABASE lvfs;
+      use lvfs;
+      source backup.sql;
 
-Or, for a full restore do:
+## How do I enable backups using cron ##
 
-    rhc app snapshot restore \
-            --app ${OPENSHIFT_APP} --namespace ${OPENSHIFT_NAMESPACE} \
-            --filepath=backup.tar.gz
+FIXME
 
-If you're using new-format cab files, cabextract needs to be setup using:
-
-    rhc ssh --app ${OPENSHIFT_APP} --namespace ${OPENSHIFT_NAMESPACE}
-      cd app-root/data/
-      wget http://www.cabextract.org.uk/cabextract-1.6.tar.gz
-      tar xvfz cabextract-1.6.tar.gz
-      cd cabextract-1.6 && ./configure --prefix=/tmp && make && cd ..
-      rm cabextract-1.6.tar.gz
-
-## How to I use distro packages ##
-
-    pkcon install \
-      python2-boto3 \
-      python2-gnupg \
-      python2-PyMySQL \
-      python2-mysql \
-      python-flask \
-      python-flask-login \
-      python-flask-wtf

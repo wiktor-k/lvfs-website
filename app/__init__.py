@@ -12,8 +12,8 @@ from flask.ext.login import LoginManager
 from .db import Database
 
 app = Flask(__name__)
-if 'OPENSHIFT_PYTHON_DIR' in os.environ:
-    app.config.from_pyfile('openshift.cfg')
+if 'HOSTNAME' in os.environ and os.environ['HOSTNAME'] == 'lvfs':
+    app.config.from_pyfile('lvfs.cfg')
 else:
     app.config.from_pyfile('flaskapp.cfg')
 
