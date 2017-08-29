@@ -33,7 +33,7 @@ Save into `/etc/httpd/conf.modules.d/fwupd.org.conf`
 
     <VirtualHost *>
         ServerName fwupd.org
-        WSGIDaemonProcess lvfs user=lvfs group=lvfs threads=5
+        WSGIDaemonProcess lvfs user=lvfs group=lvfs threads=5 python-path=/home/lvfs/lvfs-website
         WSGIScriptAlias / /home/lvfs/lvfs-website/app.wsgi
 
         RewriteEngine on
