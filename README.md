@@ -62,6 +62,7 @@ a warning during install.
     usermod -G apache lvfs
     mkdir /home/lvfs/downloads
     mkdir /home/lvfs/.aws
+    mkdir /home/lvfs/backup
     chown lvfs:apache /home/lvfs/ -R
     su -l lvfs
     git clone git@github.com:hughsie/lvfs-website.git
@@ -153,5 +154,5 @@ To just restore the database, do:
 
 ## How do I enable backups using cron ##
 
-FIXME
-
+    crontab -e
+    0 0 * * Sun /usr/bin/mysqldump ... > /home/lvfs/backup/lvfs_$( date +"%Y_%m_%d" ).sql
