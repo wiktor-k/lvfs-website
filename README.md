@@ -5,12 +5,11 @@ This is the website for the Linux Vendor Firmware Service
 
 IMPORTANT: This needs to be hosted over SSL, i.e. with a `https://` prefix.
 
-## How to I use distro packages ##
+## Using distro packages ##
 
     yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
     yum install \
       cabextract \
-      certbot-apache \
       git \
       httpd \
       mariadb-server \
@@ -23,18 +22,28 @@ IMPORTANT: This needs to be hosted over SSL, i.e. with a `https://` prefix.
       python-flask-login \
       python-flask-wtf
 
+Other useful packages might be:
+    yum install \
+      apachetop \
+      certbot-apache \
+      iftop \
+      mytop
+
 If using RHEL-7 you can get python-flask-login using:
 
     yum install ftp://fr2.rpmfind.net/linux/fedora/linux/releases/26/Everything/x86_64/os/Packages/p/python-flask-login-0.3.0-6.fc26.noarch.rpm
 
-## How do I start apache server? ##
+## Configuring apache ##
 
 Save into `/etc/httpd/conf.modules.d/fwupd.org.conf`
 
     <VirtualHost *>
         ServerName fwupd.org
+        ServerAlias www.fwupd.org
+        ServerAdmin foo@bar.com
         WSGIDaemonProcess lvfs user=lvfs group=lvfs threads=5 python-path=/home/lvfs/lvfs-website
         WSGIScriptAlias / /home/lvfs/lvfs-website/app.wsgi
+        WSGIApplicationGroup %{GLOBAL}
 
         RewriteEngine on
         RewriteCond %{SERVER_NAME} =fwupd.org
@@ -49,13 +58,23 @@ Save into `/etc/httpd/conf.modules.d/fwupd.org.conf`
 
 then `service httpd restart` and `chkconfig httpd on`
 
-## How do I generate a SSL certificate ##
+## Generating a SSL certificate ##
 
 If you want to use LetsEncrypt you can just do `certbot --apache` -- you may
 have to comment out `WSGIScriptAlias` in the `fwupd.org.conf` file to avoid
 a warning during install.
 
-## How do I create the hosting user? ##
+## Setting up MariaDB ##
+
+Edit `/etc/my.cnf.d/server.cnf` and add:
+
+    [mysqld]
+    max_allowed_packet=60M
+    wait_timeout = 6000000
+    skip-name-resolve
+    max_connect_errors = 1000
+
+## Creating the hosting user? ##
 
     useradd --create-home lvfs
     passwd lvfs
@@ -89,7 +108,7 @@ Then add something like this to `lvfs-website/app/lvfs.cfg`:
     DATABASE_PORT = 3306
     FIRMWARE_BASEURL = 'https://foo.bar/downloads/'
 
-## How do I use the CDN ##
+## Using the CDN ##
 
 Create a `.aws/credentials` file like:
 
@@ -98,7 +117,7 @@ Create a `.aws/credentials` file like:
     aws_access_key_id=foo
     aws_secret_access_key=bar
 
-## How do I install the test key? ##
+## Installing the test key ##
 
 Use the test GPG key (with the initial password of `fwupd`).
 
@@ -113,7 +132,7 @@ If passwd cannot be run due to being in a sudo session you can do:
     script /dev/null
     gpg2...
 
-## How do I install the production key? ##
+## Using the production key ##
 
 Use the secure GPG key (with the long secret password).
 
@@ -124,7 +143,7 @@ Use the secure GPG key (with the long secret password).
       gpg> passwd
       gpg> quit
 
-## How do I set up the database ##
+## Setting up the database ##
 
     service mariadb start
     chkconfig mariadb on
@@ -137,13 +156,13 @@ Use the secure GPG key (with the long secret password).
 
 The default admin password is `Pa$$w0rd`
 
-## How do I backup the data ##
+## Backing up the database ##
 
 To get just the database you can do:
 
     mysqldump lvfs > backup-`date +%Y%m%d`.sql
 
-## How do I restore from a backup ##
+## Restoring the database from a backup ##
 
 To just restore the database, do:
 
@@ -152,7 +171,27 @@ To just restore the database, do:
       use lvfs;
       source backup.sql;
 
-## How do I enable backups using cron ##
+## Enabling backups using cron ##
 
     crontab -e
     0 0 * * Sun /usr/bin/mysqldump ... > /home/lvfs/backup/lvfs_$( date +"%Y_%m_%d" ).sql
+
+## Debugging crashes ##
+
+    yum install abrt-cli
+    service abrtd start
+
+## Installing extra swap space ##
+
+    fallocate -l 4G /swapfile
+    ls -lh /swapfile
+    chmod 600 /swapfile
+    mkswap /swapfile
+    swapon /swapfile
+    free -h
+
+## Setting the system hostname ##
+
+Add this to `/etc/hosts/`
+    127.0.0.1       fwupd.org
+    127.0.0.1       www.fwupd.org
