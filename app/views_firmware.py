@@ -45,6 +45,8 @@ def firmware(show_all=False):
         if session_username != 'admin':
             if item.group_id != session_group_id:
                 continue
+        if len(item.mds) == 0:
+            continue
         name = item.mds[0].developer_name + ' ' + item.mds[0].name
         if not name in names:
             names[name] = []
@@ -54,6 +56,8 @@ def firmware(show_all=False):
     for name in sorted(names):
         targets_seen = {}
         for item in names[name]:
+            if len(item.mds) == 0:
+                continue
             key = item.target + item.mds[0].cid
             if key in targets_seen:
                 item.is_newest_in_state = False

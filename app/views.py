@@ -132,7 +132,7 @@ def vendors():
 def index():
     user = db.users.get_item('admin')
     default_admin_password = False
-    if user.password == '5459dbe5e9aa80e077bfa40f3fb2ca8368ed09b4':
+    if user and user.password == '5459dbe5e9aa80e077bfa40f3fb2ca8368ed09b4':
         default_admin_password = True
     return render_template('index.html',
                            default_admin_password=default_admin_password)
