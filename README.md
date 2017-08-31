@@ -87,6 +87,7 @@ Then add something like this to `lvfs-website/app/lvfs.cfg`:
     DATABASE_PASSWORD = 'dpassword'
     DATABASE_DB = 'lvfs'
     DATABASE_PORT = 3306
+    FIRMWARE_BASEURL = 'https://foo.bar/downloads/'
 
 ## How do I use the CDN ##
 

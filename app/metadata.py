@@ -47,7 +47,7 @@ def _generate_metadata_kind(filename, items, affidavit=None):
                 if md.release_timestamp:
                     rel.timestamp = md.release_timestamp
                 rel.checksums = []
-                rel.location = 'https://secure-lvfs.rhcloud.com/downloads/' + item.filename
+                rel.location = app.config['FIRMWARE_BASEURL'] + item.filename
                 rel.size_installed = md.release_installed_size
                 rel.size_download = md.release_download_size
                 rel.urgency = md.release_urgency
