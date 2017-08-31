@@ -6,8 +6,9 @@
 
 import os
 
-from flask import Flask, flash, render_template
+from flask import Flask, flash, render_template, g
 from flask.ext.login import LoginManager
+from werkzeug.local import LocalProxy
 
 from .db import Database
 
@@ -20,8 +21,19 @@ else:
 lm = LoginManager()
 lm.init_app(app)
 
-db = Database(app)
-db.verify()
+# only load once per app context
+def get_db():
+    if not hasattr(g, 'db'):
+        g.db = Database(app)
+        g.db.verify()
+    return g.db
+db = LocalProxy(get_db)
+
+@app.teardown_appcontext
+def close_db(error):
+    """Closes the database again at the end of the request."""
+    if hasattr(g, 'db'):
+        g.db.close()
 
 @lm.user_loader
 def load_user(user_id):

@@ -141,10 +141,14 @@ class Database(object):
                 if not self.groups.get_item(user.group_id):
                     self.groups.add(user.group_id)
 
-    def __del__(self):
+    def close(self):
         """ Clean up the database """
         if self._db:
             self._db.close()
+            self._db = None
+
+    def __del__(self):
+        self.close()
 
     def cursor(self):
         return self._db.cursor()
