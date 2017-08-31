@@ -133,7 +133,7 @@ def firmware_delete_force(firmware_id):
         return _error_internal(str(e))
     if not item:
         return _error_internal("No firmware file with hash %s exists" % firmware_id)
-    if session['username'] != 'admin' and item.group_id != session['group_id']:
+    if session['group_id'] != 'admin' and item.group_id != session['group_id']:
         return _error_permission_denied("No QA access to %s" % firmware_id)
 
     # only QA users can delete once the firmware has gone stable
@@ -187,7 +187,7 @@ def firmware_promote(firmware_id, target):
         item = db.firmware.get_item(firmware_id)
     except CursorError as e:
         return _error_internal(str(e))
-    if session['username'] != 'admin' and item.group_id != session['group_id']:
+    if session['group_id'] != 'admin' and item.group_id != session['group_id']:
         return _error_permission_denied("No QA access to %s" % firmware_id)
     try:
         db.firmware.set_target(firmware_id, target)
@@ -224,7 +224,7 @@ def firmware_show(firmware_id):
 
     # we can only view our own firmware, unless admin
     group_id = item.group_id
-    if group_id != session['group_id'] and session['username'] != 'admin':
+    if group_id != session['group_id'] and session['group_id'] != 'admin':
         return _error_permission_denied('Unable to view other vendor firmware')
     if not group_id:
         embargo_url = '/downloads/firmware.xml.gz'

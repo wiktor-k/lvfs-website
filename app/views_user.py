@@ -111,7 +111,7 @@ def user_modify_by_admin(username):
     """ Change details about the any user """
 
     # security check
-    if session['username'] != 'admin':
+    if session['group_id'] != 'admin':
         return _error_permission_denied('Unable to modify user as non-admin')
 
     # set each thing in turn
@@ -154,7 +154,7 @@ def user_add():
         return redirect(url_for('.profile'))
 
     # security check
-    if session['username'] != 'admin':
+    if session['group_id'] != 'admin':
         return _error_permission_denied('Unable to add user as non-admin')
 
     if not 'password_new' in request.form:
@@ -219,7 +219,7 @@ def user_delete(username):
     """ Delete a user """
 
     # security check
-    if session['username'] != 'admin':
+    if session['group_id'] != 'admin':
         return _error_permission_denied('Unable to remove user as not admin')
 
     # check whether exists in database
@@ -244,7 +244,7 @@ def user_list():
     """
     Show a list of all users
     """
-    if session['username'] != 'admin':
+    if session['group_id'] != 'admin':
         return _error_permission_denied('Unable to show userlist for non-admin user')
     try:
         items = db.users.get_all()
@@ -258,7 +258,7 @@ def user_admin(username):
     """
     Shows an admin panel for a user
     """
-    if session['username'] != 'admin':
+    if session['group_id'] != 'admin':
         return _error_permission_denied('Unable to modify user for non-admin user')
     try:
         item = db.users.get_item(username)

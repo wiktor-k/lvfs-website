@@ -20,7 +20,7 @@ def device():
     """
 
     # security check
-    if session['username'] != 'admin':
+    if session['group_id'] != 'admin':
         return _error_permission_denied('Unable to view devices')
 
     # get all firmware

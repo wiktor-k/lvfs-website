@@ -18,7 +18,7 @@ def group_modify_by_admin(group_id):
     """ Change details about the any group """
 
     # security check
-    if session['username'] != 'admin':
+    if session['group_id'] != 'admin':
         return _error_permission_denied('Unable to modify group as non-admin')
 
     # set each thing in turn
@@ -47,7 +47,7 @@ def group_add():
         return redirect(url_for('.group_list'))
 
     # security check
-    if session['username'] != 'admin':
+    if session['group_id'] != 'admin':
         return _error_permission_denied('Unable to add group as non-admin')
 
     if not 'group_id' in request.form:
@@ -70,7 +70,7 @@ def group_delete(group_id):
     """ Delete a user """
 
     # security check
-    if session['username'] != 'admin':
+    if session['group_id'] != 'admin':
         return _error_permission_denied('Unable to remove user as not admin')
 
     # check whether exists in database
@@ -95,7 +95,7 @@ def group_admin(group_id):
     """
     Shows an admin panel for a group
     """
-    if session['username'] != 'admin':
+    if session['group_id'] != 'admin':
         return _error_permission_denied('Unable to modify group for non-admin user')
     users_filtered = []
     try:
@@ -115,7 +115,7 @@ def group_list():
     """
     Show a list of all groups
     """
-    if session['username'] != 'admin':
+    if session['group_id'] != 'admin':
         return _error_permission_denied('Unable to show grouplist for non-admin user')
     try:
         groups = db.groups.get_all()

@@ -491,7 +491,7 @@ def analytics():
     """ A analytics screen to show information about users """
 
     # security check
-    if session['username'] != 'admin':
+    if session['group_id'] != 'admin':
         return _error_permission_denied('Unable to view analytics')
     labels_days = _get_chart_labels_days()[::-1]
     data_days = db.clients.get_stats_for_month(DownloadKind.FIRMWARE)[::-1]
@@ -559,7 +559,7 @@ def eventlog(start=0, length=20):
         return _error_permission_denied('Unable to show event log for non-QA user')
 
     # get the page selection correct
-    if session['username'] == 'admin':
+    if session['group_id'] == 'admin':
         eventlog_len = db.eventlog.size()
     else:
         eventlog_len = db.eventlog.size_for_group_id(session['group_id'])
@@ -567,7 +567,7 @@ def eventlog(start=0, length=20):
 
     # table contents
     try:
-        if session['username'] == 'admin':
+        if session['group_id'] == 'admin':
             items = db.eventlog.get_all(int(start), int(length))
         else:
             items = db.eventlog.get_all_for_group_id(session['group_id'], int(start), int(length))
@@ -685,7 +685,7 @@ def metadata_rebuild():
     """
 
     # security check
-    if session['username'] != 'admin':
+    if session['group_id'] != 'admin':
         return _error_permission_denied('Only admin is allowed to force-rebuild metadata')
 
     # update metadata
