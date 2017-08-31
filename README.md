@@ -101,9 +101,9 @@ Create a `.aws/credentials` file like:
 
 Use the test GPG key (with the initial password of `fwupd`).
 
-    gpg2 --homedir=~/.gnupg --allow-secret-key-import --import contrib/fwupd-test-private.key
-    gpg2 --homedir=~/.gnupg --list-secret-keys
-    gpg2 --homedir=~/.gnupg --edit-key D64F5C21
+    gpg2 --allow-secret-key-import --import fwupd-test-private.key
+    gpg2 --list-secret-keys
+    gpg2 --edit-key D64F5C21
     gpg> passwd
     gpg> quit
 
@@ -117,10 +117,9 @@ If passwd cannot be run due to being in a sudo session you can do:
 Use the secure GPG key (with the long secret password).
 
     cd
-    mkdir -p gnupg
-    gpg2 --homedir=gnupg --allow-secret-key-import --import contrib/fwupd-secret-signing-key.key
-    gpg2 --homedir=gnupg --list-secret-keys
-    gpg2 --homedir=gnupg --edit-key 4538BAC2
+    gpg2 --allow-secret-key-import --import fwupd-secret-signing-key.key
+    gpg2 --list-secret-keys
+    gpg2 --edit-key 4538BAC2
       gpg> passwd
       gpg> quit
 
