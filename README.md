@@ -37,17 +37,18 @@ If using RHEL-7 you can get python-flask-login using:
 
 Save into `/etc/httpd/conf.modules.d/fwupd.org.conf`
 
-    <VirtualHost *>
+    <VirtualHost *:80>
+        ServerName fwupd.org
+        Redirect permanent / https://fwupd.org/
+    </VirtualHost>
+
+    <VirtualHost _default_:443>
         ServerName fwupd.org
         ServerAlias www.fwupd.org
         ServerAdmin foo@bar.com
         WSGIDaemonProcess lvfs user=lvfs group=lvfs threads=5 python-path=/home/lvfs/lvfs-website
         WSGIScriptAlias / /home/lvfs/lvfs-website/app.wsgi
         WSGIApplicationGroup %{GLOBAL}
-
-        RewriteEngine on
-        RewriteCond %{SERVER_NAME} =fwupd.org
-        RewriteRule ^ https://%{SERVER_NAME}%{REQUEST_URI} [END,NE,R=permanent]
 
         <Directory /home/lvfs/lvfs-website>
             WSGIProcessGroup lvfs
