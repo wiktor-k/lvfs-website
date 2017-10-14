@@ -123,6 +123,10 @@ def developers():
 def users():
     return render_template('users.html')
 
+@app.route('/donations')
+def donations():
+    return render_template('donations.html')
+
 @app.route('/vendors')
 def vendors():
     return render_template('vendors.html')

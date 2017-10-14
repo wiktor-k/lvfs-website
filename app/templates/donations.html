@@ -1,0 +1,91 @@
+{% extends "default.html" %}
+
+{% block title %}Donating to the LVFS{% endblock %}
+
+{% block content %}
+<div class="container">
+
+<h1>Donating to the LVFS</h1>
+<p>
+  The Linux Vendor Firmware Service is a cross-distribution collaborative
+  initiative to install firmware securely on many different device types using
+  shared infrastructure.
+  On Linux the <a href="https://github.com/hughsie/fwupd">fwupd daemon</a>
+  reads the LVFS metadata, downloads the vendor firmware and applies the updates.
+  Most of the people developing the LVFS and testing fwupd are volunteers.
+</p>
+<p>
+  In the two years since we've started we now support
+  <a href="/lvfs/devicelist">72 different kinds</a> of hardware, with support
+  for another dozen-or-so currently being worked on.
+  Lots of vendors are now either using the LVFS to distribute firmware, or are
+  testing with one or two devices in secret waiting on legal approval.
+  Although we have <a href="https://github.com/hughsie/fwupd/tree/master/plugins">10</a>
+  (<i>!</i>) different ways of applying firmware already,
+  vendors are slowly either switching to a more standard mechanism for new
+  products (<a href="https://github.com/rhboot/fwupdate">UpdateCapsule</a>,
+  <a href="www.usb.org/developers/docs/devclass_docs/DFU_1.1.pdf">DFU</a> or
+  <a href="https://www.dmtf.org/standards/redfish">Redfish</a>) or building
+  custom plugins for fwupd to update existing hardware.
+</p>
+<p>
+  <b>Every month 165,000+ devices get updated</b> by fwupd using the firmware
+  on the LVFS.
+  Since we started this project there are now at least 600,000 items of
+  hardware with new firmware.
+  Most people have updated firmware (fixing bugs <i>and</i> solving security issues)
+  without having to understand all the horrible implementation details involved.
+</p>
+<p>
+  <a href="https://www.redhat.com/">Red Hat</a> has generously given me the
+  time that I need to build fwupd and the LVFS.
+  I'm fundraising here for several things:
+</p>
+<ul>
+  <li>Ability to buy hardware to add the the various updating mechanisms to our release-time CI</li>
+  <li>Paying the monthly Scaleway hosting bill (&euro;23.99) for www.fwupd.org</li>
+  <li>Paying the monthly Amazon S3<sup>[1]</sup> bill (~100USD) for the metadata downloads</li>
+</ul>
+
+<center>
+<form action="https://liberapay.com/LVFS/donate">
+  <input type="submit" class="btn btn-primary btn-large" value="Donate Now" />
+</form>
+</center>
+
+<p>
+  <sup>[1]</sup> I've received a 2000 USD grant several months ago from Amazon
+  towards the S3 bandwidth bill, but this will only last until June 2019.
+</p>
+
+<h2>Future Roadmap</h2>
+<p>
+  My aim is to get every vendor with upgradable hardware uploading firmware to
+  the LVFS, be they huge giants like Dell or just one person building Open Hardware.
+  This is an uphill battle, with most vendors needing help with licencing, legal,
+  and usually some kind of education about what it means to work together on a
+  shared codebase.
+  The fwupd daemon should continue to provide a secure, audited and modern
+  firmware update implementation on all Linux distributions.
+  This includes keeping stable branches up to date for long term support releases.
+</p>
+
+<p>
+  The Liberapay platform has been chosen because it is run by a non-profit
+  organization that is built on open source code.
+  It has very low fees and donations are recurrent, so it's something we can
+  rely on without having to bed for donations every month to pay the bills.
+</ul>
+
+<h2>About Me</h2>
+<p>
+  I'm a senior developer for Red Hat, maintaining desktop technologies like fwupd,
+  colord, PackageKit, upower, gnome-software and gnome-color-manager.
+  I'm also the person behind the <a href="http://www.hughski.com/">ColorHug</a>
+  project building OpenHardware from my home in London in my spare time.
+  Thanks for your support!
+</p>
+<p>
+
+</div> <!-- container -->
+{% endblock %}
