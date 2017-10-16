@@ -128,8 +128,9 @@ def donations():
     return render_template('donations.html')
 
 @app.route('/status')
+@app.route('/vendorlist')
 def status():
-    return render_template('status.html')
+    return render_template('vendorlist.html')
 
 @app.route('/vendors')
 def vendors():
