@@ -35,7 +35,7 @@
     <label for="password">New Password:</label>
     <input type="password" class="form-control" name="password">
   </div>
-{% if u.group_id == 'admin' %}
+{% if session['group_id'] == 'admin' %}
   <div class="form-control">
     <label for="is_enabled">
 {% if u.is_enabled %}
