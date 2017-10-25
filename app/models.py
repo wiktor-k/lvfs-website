@@ -81,6 +81,7 @@ class FirmwareMd(object):
         self.release_urgency = None
         self.screenshot_url = None
         self.screenshot_caption = None
+        self.requirements = []
         self.metainfo_id = None
     def __repr__(self):
         return "FirmwareMd object %s" % self.firmware_id

@@ -62,6 +62,7 @@ CREATE TABLE firmware_md (
   release_urgency VARCHAR(16) DEFAULT NULL,
   screenshot_url TEXT DEFAULT NULL,
   screenshot_caption TEXT DEFAULT NULL,
+  requirements TEXT DEFAULT NULL,               -- requirements, e.g. "id/fwupd/ge/0.8.2"
   UNIQUE KEY id (firmware_id,metainfo_id)
 ) CHARSET=utf8;
 

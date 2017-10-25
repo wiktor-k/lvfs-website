@@ -453,6 +453,11 @@ def upload():
         md.release_download_size = rel.size_download
         md.release_urgency = rel.urgency
 
+        # from requires
+        for req in component.requires:
+            req_txt = "%s/%s/%s/%s" % (req.kind, req.value, req.compare, req.version)
+            md.requirements.append(req_txt)
+
         # from the first screenshot
         if len(component.screenshots) > 0:
             ss = component.screenshots[0]

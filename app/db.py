@@ -53,6 +53,8 @@ def _create_firmware_md(e):
     md.screenshot_url = e[19]
     md.screenshot_caption = e[20]
     md.metainfo_id = e[21]
+    if e[22]:
+        md.requirements = e[22].split(',')
     return md
 
 def _create_firmware_item(e):
@@ -387,13 +389,15 @@ class DatabaseFirmware(object):
                             "release_description=%s, "
                             "release_urgency=%s, "
                             "release_installed_size=%s, "
-                            "release_download_size=%s "
+                            "release_download_size=%s, "
+                            "requirements=%s "
                             "WHERE firmware_id=%s;",
                             (md.description,
                              md.release_description,
                              md.release_urgency,
                              md.release_installed_size,
                              md.release_download_size,
+                             ','.join(md.requirements),
                              fwobj.firmware_id,))
         except mdb.Error as e:
             raise CursorError(cur, e)
@@ -419,9 +423,10 @@ class DatabaseFirmware(object):
                             "checksum_container, filename_contents, "
                             "release_installed_size, "
                             "release_download_size, release_urgency, "
-                            "screenshot_url, screenshot_caption, metainfo_id) "
+                            "screenshot_url, screenshot_caption, metainfo_id, "
+                            "requirements) "
                             "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, "
-                            "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);",
+                            "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);",
                             (fwobj.firmware_id,
                              md.cid,
                              ','.join(md.guids),
@@ -443,7 +448,8 @@ class DatabaseFirmware(object):
                              md.release_urgency,
                              md.screenshot_url,
                              md.screenshot_caption,
-                             md.metainfo_id,))
+                             md.metainfo_id,
+                             ','.join(md.requirements),))
         except mdb.Error as e:
             raise CursorError(cur, e)
 
@@ -466,7 +472,7 @@ class DatabaseFirmware(object):
                         "checksum_container, filename_contents, "
                         "release_installed_size, release_download_size, "
                         "release_urgency, screenshot_url, screenshot_caption, "
-                        "metainfo_id "
+                        "metainfo_id, requirements "
                         "FROM firmware_md WHERE firmware_id = %s ORDER BY guid DESC;",
                         (item.firmware_id,))
         except mdb.Error as e:

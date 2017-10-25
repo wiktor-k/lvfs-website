@@ -100,6 +100,18 @@ def firmware_modify(firmware_id):
     for md in fwobj.mds:
         if 'urgency' in request.form:
             md.release_urgency = request.form['urgency']
+        if 'requirements' in request.form:
+            req_txt = request.form['requirements']
+            req_txt = req_txt.replace('\n', ',')
+            req_txt = req_txt.replace('\r', '')
+            md.requirements = []
+            for req in req_txt.split(','):
+                req = req.strip()
+                if len(req) == 0:
+                    continue
+                if len(req.split('/')) != 4:
+                    return _error_internal("Failed to parse %s" % req)
+                md.requirements.append(req)
         if 'description' in request.form:
             txt = request.form['description']
             if txt.find('<p>') == -1:

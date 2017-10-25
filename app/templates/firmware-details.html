@@ -69,12 +69,13 @@ Chart.defaults.global.animation = false;
 
 <h2>Update Details</h2>
 
-{% if fw.target == 'stable' or not qa_capability %}
+{% if not qa_capability %}
 <table class="table table-bordered table-hover">
 {% if md.release_urgency %}
   <tr><th>Release Urgency</th><td>{{md.release_urgency}}</td></tr>
 {% endif %}
   <tr><th>Update Description</th><td>{{md.release_description|safe}}</td></tr>
+  <tr><th>Update Requirements</th><td>{{md.requirements|join(',')}}</td></tr>
 </table>
 {% else %}
 
@@ -120,11 +121,25 @@ Chart.defaults.global.animation = false;
   <tr>
     <th>Update Description</th>
     <td>
-      <textarea name="description" cols="64" rows="5">{{md.release_description|safe}}</textarea>
+      <textarea name="description" cols="100" rows="5">{{md.release_description|safe}}</textarea>
       <p>Unformatted text will be automatically converted to
         <a href="http://www.freedesktop.org/software/appstream/docs/chap-Metadata.html#tag-description">
         AppStream XML description markup</a>.
         </p>
+    </td>
+  </tr>
+  <tr>
+    <th>Update Requirements</th>
+    <td>
+      <textarea name="requirements" cols="100" rows="5">{{md.requirements|join('\n')}}</textarea>
+      <p>
+        Requirements are specified in compact notation and can chained
+        by specifying multiple entries on new lines. e.g.
+        <ul>
+          <li><code>id/org.freedesktop.fwupd/ge/0.8.2</code></li>
+          <li><code>firmware/bootloader/regex/BOT03.0[0-1]_*</code> </li>
+        </ul>
+      </p>
     </td>
   </tr>
   <tr><th>&nbsp;</th><td><input type="submit" value="Save update details"/></td></tr>
