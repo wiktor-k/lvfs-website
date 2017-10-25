@@ -126,6 +126,7 @@ Use the test GPG key (with the initial password of `fwupd`).
     gpg2 --list-secret-keys
     gpg2 --edit-key D64F5C21
     gpg> passwd
+    gpg> trust
     gpg> quit
 
 If passwd cannot be run due to being in a sudo session you can do:
