@@ -134,22 +134,12 @@ def _metadata_update_group(group_id):
             continue
         firmwares_filtered.append(f)
 
-    # explicit
+    # create metadata file for the embargoed firmware
     affidavit = _create_affidavit()
-    if group_id:
-        filename = 'firmware-%s.xml.gz' % _qa_hash(group_id)
-        _generate_metadata_kind(filename,
-                                firmwares_filtered,
-                                affidavit=affidavit)
-        return
-
-    # do for all
-    groups = db.groups.get_all()
-    for group in groups:
-        filename_qa = 'firmware-%s.xml.gz' % _qa_hash(group.group_id)
-        _generate_metadata_kind(filename_qa,
-                                firmwares_filtered,
-                                affidavit=affidavit)
+    filename = 'firmware-%s.xml.gz' % _qa_hash(group_id)
+    _generate_metadata_kind(filename,
+                            firmwares_filtered,
+                            affidavit=affidavit)
 
 def _metadata_update_targets(targets):
     """ updates metadata for a specific target """

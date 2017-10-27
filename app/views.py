@@ -704,7 +704,8 @@ def metadata_rebuild():
 
     # update metadata
     try:
-        _metadata_update_group(None)
+        for group in db.groups.get_all():
+            _metadata_update_group(group.group_id)
         _metadata_update_targets(['stable', 'testing'])
         _metadata_update_pulp()
     except NoKeyError as e:
