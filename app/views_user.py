@@ -102,7 +102,7 @@ def user_modify(username):
         return _error_internal(str(e))
     #session['password'] = _password_hash(password)
     _event_log('Changed password')
-    flash('Updated profile')
+    flash('Updated profile', 'info')
     return redirect(url_for('.profile'))
 
 @app.route('/lvfs/user/<username>/modify_by_admin', methods=['POST'])
@@ -141,7 +141,7 @@ def user_modify_by_admin(username):
         except CursorError as e:
             return _error_internal(str(e))
     _event_log('Changed user %s properties' % username)
-    flash('Updated profile')
+    flash('Updated profile', 'info')
     return redirect(url_for('.user_admin', username=username))
 
 @app.route('/lvfs/user/add', methods=['GET', 'POST'])
@@ -210,7 +210,7 @@ def user_add():
         return _error_internal(str(e))
 
     _event_log("Created user %s" % username_new)
-    flash('Added user')
+    flash('Added user', 'info')
     return redirect(url_for('.user_list'), 302)
 
 @app.route('/lvfs/user/<username>/delete')
@@ -235,7 +235,7 @@ def user_delete(username):
     except CursorError as e:
         return _error_internal(str(e))
     _event_log("Deleted user %s" % username)
-    flash('Deleted user')
+    flash('Deleted user', 'info')
     return redirect(url_for('.user_list'), 302)
 
 @app.route('/lvfs/userlist')

@@ -1,33 +1,29 @@
 {% extends "default.html" %}
-{% block title %}User List{% endblock %}
+{% block title %}Group List{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
 
-<div class="row-fluid">
-  <div class="span3">
+<div class="container-fluid">
+  <div class="row">
 {% if groups|length > 0 %}
-    <div class="well sidebar-nav">
-      <ul class="nav nav-list">
-        <li class="nav-header">Existing Groups</li>
-        <!--<li class="active"><a href="#">Link</a></li>-->
+    <nav class="col-sm-3 col-md-2 d-none d-sm-block bg-light sidebar">
+      <ul class="nav nav-pills flex-column mt-3">
 {% for q in groups %}
-        <li><a href="/lvfs/group/{{q.group_id}}/admin">{{q.group_id}}</a></li>
+        <li class="nav-item">
+          <a class="nav-link" href="/lvfs/group/{{q.group_id}}/admin">{{q.group_id}}</a>
+        </li>
 {% endfor %}
       </ul>
-    </div><!--/.well -->
+    </nav>
 {% endif %}
-  </div><!--/span-->
-  <div class="span9">
-    <div class="">
-      <h2>Create a new group</h2>
-      <form method="post" action="/lvfs/group/add" class="form-horizontal">
-        <input type="text" size="20" name="group_id" placeholder="Group ID" required>
+    <main role="main" class="col-sm-9 ml-sm-auto col-md-10 pt-3">
+      <h1>Create a new group</h1>
+      <form method="post" action="/lvfs/group/add" class="form-inline">
+        <input class="form-control" type="text" size="20" name="group_id" placeholder="Group ID" required>
         <input class="btn btn-primary" type="submit" value="Add">
       </form>
-    </div>
-  </div><!--/span-->
-</div><!--/row-->
+    </main>
+  </div>
+</div>
 
-</div> <!-- container -->
 {% endblock %}

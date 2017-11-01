@@ -1,0 +1,66 @@
+{% extends "default.html" %}
+{% block title %}Firmware Component Details{% endblock %}
+
+{% block content %}
+<div class="container mt-3">
+
+<nav>
+  <ul class="nav nav-tabs">
+    <li class="nav-item">
+      <a class="nav-link active" href="/lvfs/firmware/{{firmware_id}}/component/{{md.cid}}">Overview</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="/lvfs/firmware/{{firmware_id}}/component/{{md.cid}}/update">Update Details</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="/lvfs/firmware/{{firmware_id}}/component/{{md.cid}}/requires">Requirements</a>
+    </li>
+  </ul>
+</nav>
+
+<div class="container mt-3">
+
+<h3>{{md.name}} {{md.version}} Details</h3>
+<p>{{md.summary}}</p>
+
+<table class="table">
+  <tr class="row">
+    <th class="col-sm-3">ID</th>
+    <td class="col-sm-9"><code>{{md.cid}}</code></td>
+  </tr>
+{% for guid in md.guids %}
+  <tr class="row">
+    <th class="col-sm-3">Device GUID</th>
+    <td class="col-sm-9"><code>{{guid}}</code></td>
+  </tr>
+{% endfor %}
+  <tr class="row">
+    <th class="col-sm-3">Size</th>
+    <td class="col-sm-9">{{format_size(md.release_download_size)}} download, {{format_size(md.release_installed_size)}} installed</td>
+  </tr>
+{% if md.screenshot_url %}
+  <tr class="row">
+    <th class="col-sm-3">Screenshot</th>
+    <td class="col-sm-9">
+      <figure class="text-center">
+        <img src="{{md.screenshot_url}}" class="figure-img img-fluid rounded">
+{% if md.screenshot_caption %}
+        <figcaption class="figure-caption">{{md.screenshot_caption|safe}}</figcaption>
+{% endif %}
+      </figure>
+    </td>
+  </tr>
+{% elif md.screenshot_caption %}
+  <tr class="row">
+    <th class="col-sm-3">Screenshot</th>
+    <td class="col-sm-9">
+      <p>{{md.screenshot_caption|safe}}</p>
+    </td>
+  </tr>
+{% endif %}
+</table>
+<a class="btn btn-info" href="/lvfs/firmware/{{firmware_id}}" role="button">&laquo; Back to firmware file</a>
+</div>
+
+</div> <!-- container -->
+{% endblock %}

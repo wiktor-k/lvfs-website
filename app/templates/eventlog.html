@@ -2,7 +2,7 @@
 {% block title %}Event Log{% endblock %}
 
 {% block content %}
-<div class="container">
+<div class="container mt-3">
 <h1>Event Log</h1>
 {% if session['username'] == 'admin' %}
 <p>This list shows all events for all users.</p>
@@ -10,25 +10,24 @@
 <p>This list shows all events for the {{session['group_id']}} QA group.</p>
 {% endif %}
 
-<table class="table table-striped table-bordered table-hover">
-  <tr>
-    <th>Timestamp</th>
-    <th>Address</th>
-    <th>User</th>
-    <th></th>
-    <th>Message</th>
+<table class="table">
+  <tr class="row">
+    <th class="col-sm-2">Timestamp</th>
+    <th class="col-sm-2">Address</th>
+    <th class="col-sm-1">User</th>
+    <th class="col-sm-7">Message</th>
   </tr>
 {% for e in events %}
-  <tr>
-    <td>{{e.timestamp}}</td>
-    <td>{{e.address}}</td>
-    <td>{{e.username}}</td>
+  <tr class="row">
+    <td class="col-sm-2">{{e.timestamp}}</td>
+    <td class="col-sm-2"><code>{{e.address}}</code></td>
+    <td class="col-sm-1">{{e.username}}</td>
+    <td class="col-sm-7">
 {% if e.is_important %}
-    <td>&#x272a;</td>
-{% else %}
-    <td></td>
+      &#x272a;
 {% endif %}
-    <td>{{e.message}}</td>
+      {{e.message}}
+    </td>
   </tr>
 {% endfor %}
 </table>

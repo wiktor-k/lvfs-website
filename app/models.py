@@ -57,6 +57,26 @@ class EventLogItem(object):
     def __repr__(self):
         return "EventLogItem object %s" % self.message
 
+class FirmwareRequirement(object):
+    def __init__(self, kind=None, value=None, compare=None, version=None):
+        """ Constructor for object """
+        self.kind = kind        # e.g. 'id', 'firmware' or 'hardware'
+        self.value = value      # e.g. 'bootloader' or 'org.freedesktop.fwupd'
+        self.compare = compare
+        self.version = version
+    def to_string(self):
+        return "%s/%s/%s/%s" % (self.kind, self.value, self.compare, self.version)
+    def from_string(self, txt):
+        tmp = txt.split('/')
+        if len(tmp) != 4:
+            return
+        self.kind = tmp[0]
+        self.value = tmp[1]
+        self.compare = tmp[2]
+        self.version = tmp[3]
+    def __repr__(self):
+        return "FirmwareRequirement object %s" % self.kind
+
 class FirmwareMd(object):
     def __init__(self):
         """ Constructor for object """
@@ -83,6 +103,17 @@ class FirmwareMd(object):
         self.screenshot_caption = None
         self.requirements = []
         self.metainfo_id = None
+
+    def find_fwreq(self, kind=None, value=None):
+        """ Find a FirmwareRequirement from the kind and/or value """
+        for fwreq in self.requirements:
+            if kind and fwreq.kind != kind:
+                continue
+            if value and fwreq.value != value:
+                continue
+            return fwreq
+        return None
+
     def __repr__(self):
         return "FirmwareMd object %s" % self.firmware_id
 

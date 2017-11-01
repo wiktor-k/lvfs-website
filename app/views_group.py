@@ -34,7 +34,7 @@ def group_modify_by_admin(group_id):
         except CursorError as e:
             return _error_internal(str(e))
     _event_log('Changed group %s properties' % group_id)
-    flash('Updated group')
+    flash('Updated group', 'info')
     return redirect(url_for('.group_admin', group_id=group_id))
 
 @app.route('/lvfs/group/add', methods=['GET', 'POST'])
@@ -61,7 +61,7 @@ def group_add():
     db.groups.add(request.form['group_id'])
 
     _event_log("Created group %s" % request.form['group_id'])
-    flash('Added group')
+    flash('Added group', 'info')
     return redirect(url_for('.group_list'), 302)
 
 @app.route('/lvfs/group/<group_id>/delete')
@@ -79,14 +79,14 @@ def group_delete(group_id):
     except CursorError as e:
         return _error_internal(str(e))
     if not group:
-        flash("No entry with group_id %s" % group_id)
+        flash("No entry with group_id %s" % group_id, 'warning')
         return redirect(url_for('.group_list'), 422)
     try:
         db.groups.remove(group_id)
     except CursorError as e:
         return _error_internal(str(e))
     _event_log("Deleted group %s" % group_id)
-    flash('Deleted group')
+    flash('Deleted group', 'info')
     return redirect(url_for('.group_list'), 302)
 
 @app.route('/lvfs/group/<group_id>/admin')

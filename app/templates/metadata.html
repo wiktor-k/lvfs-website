@@ -2,20 +2,18 @@
 {% block title %}Firmware{% endblock %}
 
 {% block content %}
-<div class="container">
+<div class="container mt-3">
 <h1>Metadata</h1>
 <p>
-  The metadata URLs can be used in <code>/etc/fwupd.conf</code>
+  The metadata URLs can be used in <code>/etc/fwupd/remotes.d</code>
   to perform end-to-end tests. It is important to not share the
   embargo URL with external users if you want the firmware to remain hidden
   from the public.
-</p>
-<p>
   You also may need to do <code>fwupdmgr refresh</code> on each
   client to show new updates.
 </p>
 
-<table class="table table-striped table-bordered table-hover">
+<table class="table">
   <tr>
     <th>Description</th>
     <th>Private</th>

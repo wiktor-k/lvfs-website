@@ -2,7 +2,7 @@
 {% block title %}User Details{% endblock %}
 
 {% block content %}
-<div class="container">
+<div class="container mt-3">
 <h1>Details of user ‘{{u.username}}’</h1>
 
 {% if u.username == 'admin' %}
@@ -13,30 +13,30 @@
 {% endif %}
 
 <form method="post" action="/lvfs/user/{{u.username}}/modify_by_admin">
-  <div class="form-control">
+  <div class="form-group">
     <label for="group_id">Group:</label>
     <input type="text" class="form-control" name="group_id" value="{{u.group_id}}" required>
   </div>
-  <div class="form-control">
+  <div class="form-group">
     <label for="display_name">Vendor Name:</label>
     <input type="text" class="form-control" name="display_name" value="{{u.display_name}}" required>
   </div>
-  <div class="form-control">
+  <div class="form-group">
     <label for="email">Contact Email:</label>
     <input type="text" class="form-control" name="email" value="{{u.email}}" required>
   </div>
 {% if u.username != 'admin' %}
-  <div class="form-control">
+  <div class="form-group">
     <label for="pubkey">GPG Public Key (optional):</label>
-    <textarea name="pubkey" cols="64" rows="5">{{u.pubkey}}</textarea>
+    <textarea class="form-control" name="pubkey" cols="64" rows="5">{{u.pubkey}}</textarea>
   </div>
 {% endif %}
-  <div class="form-control">
+  <div class="form-group">
     <label for="password">New Password:</label>
     <input type="password" class="form-control" name="password">
   </div>
 {% if session['group_id'] == 'admin' %}
-  <div class="form-control">
+  <div class="form-group">
     <label for="is_enabled">
 {% if u.is_enabled %}
       <input class="checkbox" type="checkbox" name="is_enabled" value="1" checked />
@@ -46,7 +46,7 @@
       Account enabled:
     </label>
   </div>
-  <div class="form-control">
+  <div class="form-group">
     <label for="is_locked">
 {% if u.is_locked %}
       <input class="checkbox" type="checkbox" name="is_locked" value="1" checked />
@@ -56,7 +56,7 @@
       Prevent password change:
     </label>
   </div>
-  <div class="form-control">
+  <div class="form-group">
     <label for="is_qa">
 {% if u.is_qa %}
       <input class="checkbox" type="checkbox" name="is_qa" value="1" checked />

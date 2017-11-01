@@ -6,7 +6,7 @@
 
 import os
 
-from flask import session, request, url_for, redirect, render_template
+from flask import session, request, url_for, redirect, render_template, flash
 from flask.ext.login import login_required
 
 import appstream
@@ -17,7 +17,8 @@ from .affidavit import NoKeyError
 from .db import CursorError
 from .hash import _qa_hash
 from .metadata import _metadata_update_group, _metadata_update_targets
-from .util import _event_log, _error_internal, _error_permission_denied, _get_chart_labels_months
+from .models import FirmwareRequirement
+from .util import _event_log, _error_internal, _error_permission_denied, _get_chart_labels_months, _get_chart_labels_days, _validate_guid
 
 @app.route('/lvfs/firmware')
 def firmware(show_all=False):
@@ -100,18 +101,6 @@ def firmware_modify(firmware_id):
     for md in fwobj.mds:
         if 'urgency' in request.form:
             md.release_urgency = request.form['urgency']
-        if 'requirements' in request.form:
-            req_txt = request.form['requirements']
-            req_txt = req_txt.replace('\n', ',')
-            req_txt = req_txt.replace('\r', '')
-            md.requirements = []
-            for req in req_txt.split(','):
-                req = req.strip()
-                if len(req) == 0:
-                    continue
-                if len(req.split('/')) != 4:
-                    return _error_internal("Failed to parse %s" % req)
-                md.requirements.append(req)
         if 'description' in request.form:
             txt = request.form['description']
             if txt.find('<p>') == -1:
@@ -130,6 +119,49 @@ def firmware_modify(firmware_id):
 
     # log
     _event_log('Changed update description on %s' % firmware_id)
+
+    return redirect(url_for('.firmware_show', firmware_id=firmware_id))
+
+@app.route('/lvfs/firmware/<firmware_id>/modify_requirements', methods=['GET', 'POST'])
+@login_required
+def firmware_modify_requirements(firmware_id):
+    """ Modifies the update urgency and release notes for the update """
+
+    if request.method != 'POST':
+        return redirect(url_for('.firmware'))
+
+    # find firmware
+    try:
+        fwobj = db.firmware.get_item(firmware_id)
+    except CursorError as e:
+        return _error_internal(str(e))
+    if not fwobj:
+        return _error_internal("No firmware %s" % firmware_id)
+
+    # set new metadata values
+    for md in fwobj.mds:
+        if 'requirements' in request.form:
+            req_txt = request.form['requirements']
+            req_txt = req_txt.replace('\n', ',')
+            req_txt = req_txt.replace('\r', '')
+            md.requirements = []
+            for req in req_txt.split(','):
+                req = req.strip()
+                if len(req) == 0:
+                    continue
+                if len(req.split('/')) != 4:
+                    return _error_internal("Failed to parse %s" % req)
+                fwreq = FirmwareRequirement(req[0], req[1], req[2], req[3])
+                md.requirements.append(fwreq)
+
+    # modify
+    try:
+        db.firmware.update(fwobj)
+    except CursorError as e:
+        return _error_internal(str(e))
+
+    # log
+    _event_log('Changed requirements on %s' % firmware_id)
 
     return redirect(url_for('.firmware_show', firmware_id=firmware_id))
 
@@ -245,7 +277,6 @@ def firmware_show(firmware_id):
         embargo_url = '/downloads/firmware-%s.xml.gz' % _qa_hash(group_id)
 
     cnt_fn = db.clients.get_firmware_count_filename(item.filename)
-    data_fw = db.clients.get_stats_for_fn(12, 30, item.filename)
     return render_template('firmware-details.html',
                            fw=item,
                            qa_capability=session['qa_capability'],
@@ -253,6 +284,221 @@ def firmware_show(firmware_id):
                            embargo_url=embargo_url,
                            group_id=group_id,
                            cnt_fn=cnt_fn,
+                           firmware_id=firmware_id)
+
+@app.route('/lvfs/firmware/<firmware_id>/analytics')
+@login_required
+def firmware_analytics_year(firmware_id):
+    """ Show firmware analytics information """
+
+    # get details about the firmware
+    try:
+        item = db.firmware.get_item(firmware_id)
+    except CursorError as e:
+        return _error_internal(str(e))
+    if not item:
+        return _error_internal('No firmware matched!')
+
+    # we can only view our own firmware, unless admin
+    group_id = item.group_id
+    if group_id != session['group_id'] and session['group_id'] != 'admin':
+        return _error_permission_denied('Unable to view other vendor firmware')
+
+    data_fw = db.clients.get_stats_for_fn(12, 30, item.filename)
+    return render_template('firmware-analytics-year.html',
+                           fw=item,
                            firmware_id=firmware_id,
                            graph_labels=_get_chart_labels_months()[::-1],
                            graph_data=data_fw[::-1])
+
+@app.route('/lvfs/firmware/<firmware_id>/analytics/month')
+@login_required
+def firmware_analytics_month(firmware_id):
+    """ Show firmware analytics information """
+
+    # get details about the firmware
+    try:
+        item = db.firmware.get_item(firmware_id)
+    except CursorError as e:
+        return _error_internal(str(e))
+    if not item:
+        return _error_internal('No firmware matched!')
+
+    # we can only view our own firmware, unless admin
+    group_id = item.group_id
+    if group_id != session['group_id'] and session['group_id'] != 'admin':
+        return _error_permission_denied('Unable to view other vendor firmware')
+
+    data_fw = db.clients.get_stats_for_fn(30, 1, item.filename)
+    return render_template('firmware-analytics-month.html',
+                           fw=item,
+                           firmware_id=firmware_id,
+                           graph_labels=_get_chart_labels_days()[::-1],
+                           graph_data=data_fw[::-1])
+
+# get the right component
+def _item_filter_by_cid(item, cid):
+    for md in item.mds:
+        if md.cid == cid:
+            return md
+
+@app.route('/lvfs/firmware/<firmware_id>/component/<cid>')
+@app.route('/lvfs/firmware/<firmware_id>/component/<cid>/<page>')
+@login_required
+def firmware_component_show(firmware_id, cid, page='overview'):
+    """ Show firmware component information """
+
+    # get firmware component
+    try:
+        fwobj = db.firmware.get_item(firmware_id)
+    except CursorError as e:
+        return _error_internal(str(e))
+    if not fwobj:
+        return _error_internal('No firmware matched!')
+    md = _item_filter_by_cid(fwobj, cid)
+    if not md:
+        return _error_internal('No component matched!')
+
+    # we can only view our own firmware, unless admin
+    group_id = fwobj.group_id
+    if group_id != session['group_id'] and session['group_id'] != 'admin':
+        return _error_permission_denied('Unable to view other vendor firmware')
+
+    return render_template('firmware-md-' + page + '.html',
+                           md=md,
+                           qa_capability=session['qa_capability'],
+                           firmware_id=firmware_id)
+
+@app.route('/lvfs/firmware/<firmware_id>/component/<cid>/requires/remove/hwid/<hwid>')
+@login_required
+def firmware_component_requires_remove_hwid(firmware_id, cid, hwid):
+
+    # get firmware component
+    try:
+        fwobj = db.firmware.get_item(firmware_id)
+    except CursorError as e:
+        return _error_internal(str(e))
+    if not fwobj:
+        return _error_internal('No firmware matched!')
+    md = _item_filter_by_cid(fwobj, cid)
+    if not md:
+        return _error_internal('No component matched!')
+
+    # we can only modify our own firmware, unless admin
+    group_id = fwobj.group_id
+    if group_id != session['group_id'] and session['group_id'] != 'admin':
+        return _error_permission_denied('Unable to modify other vendor firmware')
+
+    # remove hwid
+    fwreq = md.find_fwreq('hardware', hwid)
+    md.requirements.remove(fwreq)
+
+    # modify
+    try:
+        db.firmware.update(fwobj)
+    except CursorError as e:
+        return _error_internal(str(e))
+
+    # log
+    _event_log('Removed HWID %s on %s' % (hwid, firmware_id))
+    return redirect(url_for('.firmware_component_show',
+                            firmware_id=firmware_id,
+                            cid=cid,
+                            page='requires'))
+
+@app.route('/lvfs/firmware/<firmware_id>/component/<cid>/requires/add/hwid', methods=['POST'])
+@login_required
+def firmware_component_requires_add_hwid(firmware_id, cid):
+    """ Modifies the update urgency and release notes for the update """
+
+    # get firmware component
+    try:
+        fwobj = db.firmware.get_item(firmware_id)
+    except CursorError as e:
+        return _error_internal(str(e))
+    if not fwobj:
+        return _error_internal('No firmware matched!')
+    md = _item_filter_by_cid(fwobj, cid)
+    if not md:
+        return _error_internal('No component matched!')
+
+    # we can only modify our own firmware, unless admin
+    group_id = fwobj.group_id
+    if group_id != session['group_id'] and session['group_id'] != 'admin':
+        return _error_permission_denied('Unable to modify other vendor firmware')
+
+    # check we have data
+    if 'hwid' not in request.form:
+        return _error_internal('No hwid specified!')
+
+    # add hwid
+    hwid = request.form['hwid']
+    fwreq = md.find_fwreq('hardware', hwid)
+    if fwreq:
+        flash('%s has already been added' % hwid, 'warning')
+    elif not _validate_guid(hwid):
+        flash('%s was not a valid GUID' % hwid, 'danger')
+    else:
+        fwreq = FirmwareRequirement('hardware', hwid)
+        md.requirements.append(fwreq)
+        try:
+            db.firmware.update(fwobj)
+        except CursorError as e:
+            return _error_internal(str(e))
+        _event_log('Added HWID %s on %s' % (hwid, firmware_id))
+    return redirect(url_for('.firmware_component_show',
+                            firmware_id=firmware_id,
+                            cid=cid,
+                            page='requires'))
+
+@app.route('/lvfs/firmware/<firmware_id>/component/<cid>/requires/set/<kind>/<value>', methods=['POST'])
+@login_required
+def firmware_component_requires_set(firmware_id, cid, kind, value):
+    """ Modifies the update urgency and release notes for the update """
+
+    # get firmware component
+    try:
+        fwobj = db.firmware.get_item(firmware_id)
+    except CursorError as e:
+        return _error_internal(str(e))
+    if not fwobj:
+        return _error_internal('No firmware matched!')
+    md = _item_filter_by_cid(fwobj, cid)
+    if not md:
+        return _error_internal('No component matched!')
+
+    # we can only modify our own firmware, unless admin
+    group_id = fwobj.group_id
+    if group_id != session['group_id'] and session['group_id'] != 'admin':
+        return _error_permission_denied('Unable to modify other vendor firmware')
+
+    print "len", len(request.form)
+    for ff in request.form:
+        print ff
+
+    # check we have data
+    if 'compare' not in request.form:
+        return _error_internal('No compare specified!')
+    if 'version' not in request.form:
+        return _error_internal('No version specified!')
+
+    # modify hwid, removing or creating as required
+    fwreq = md.find_fwreq(kind, value)
+    if request.form['compare'] == '':
+        if fwreq:
+            md.requirements.remove(fwreq)
+    else:
+        if not fwreq:
+            fwreq = FirmwareRequirement(kind, value)
+            md.requirements.append(fwreq)
+        fwreq.compare = request.form['compare']
+        fwreq.version = request.form['version']
+    try:
+        db.firmware.update(fwobj)
+    except CursorError as e:
+        return _error_internal(str(e))
+    _event_log('Changed %s/%s requirement on %s' % (kind, value, firmware_id))
+    return redirect(url_for('.firmware_component_show',
+                            firmware_id=firmware_id,
+                            cid=cid,
+                            page='requires'))

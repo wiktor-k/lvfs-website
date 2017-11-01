@@ -93,13 +93,12 @@ def _generate_metadata_kind(filename, items, affidavit=None):
                 component.add_require(req)
 
             # add manual firmware or fwupd version requires
-            for req_txt in md.requirements:
-                split = req_txt.split('/', 4)
+            for fwreq in md.requirements:
                 req = appstream.Require()
-                req.kind = split[0]
-                req.value = split[1]
-                req.compare = split[2]
-                req.version = split[3]
+                req.kind = fwreq.kind
+                req.value = fwreq.value
+                req.compare = fwreq.compare
+                req.version = fwreq.version
                 component.add_require(req)
 
             # add component

@@ -3,41 +3,13 @@
 {% block title %}Developers{% endblock %}
 
 {% block content %}
-<div class="container">
+<div class="container mt-3">
 
-<h1>Architecture</h1>
-<p>
-fwupd is implemented as a D-Bus activated service that is autostarted when
-required.
-</p>
-<img src="static/img/architecture-plan.png" alt="architecture-plan"/>
-<p>
-  The 'client' which is typically <code>gnome-software</code> or <code>fwupdmgr</code>
-  does all the query, download and schedule steps.
-  This means that the daemon has no network access and only acts as the mechanism
-  for clients.
-</p>
-
-<h2>Plugins</h2>
-<p>
-  Although we already support UEFI and DFU updates we're happy to accept
-  patches for custom hardware that supports firmware updates.
-  The plugin loader allows vendors to do pretty much anything to get the list
-  of attached hardware, as long as a unique hardware component is in some way
-  mapped to a GUID value.
-</p>
-<p>
-  <a href="http://www.freedesktop.org/software/appstream/docs/">AppStream 0.9</a>
-  is used as the interchange format for update descriptions.
-  A lot of tools already use AppStream and so this makes working with
-  other desktop and server tools very easy.
-  Actually generating the AppStream metadata can either be achieved using
-  <code>appstream-builder</code> or the <a href="/vendors">Linux Vendor Firmware Service</a>.
-</p>
+<h1>Developers</h1>
 
 <h2>Getting the code</h2>
 <p>
-  The latest code is always available at <a href="https://github.com/hughsie/fwupd">GitHub</a>
+  The latest fwupd code is always available at <a href="https://github.com/hughsie/fwupd">GitHub</a>
   and this is also the place to file <a href="https://github.com/hughsie/fwupd/issues">bugs or feature requests</a>.
   You can trivially get the code by doing:
 </p>
@@ -53,88 +25,26 @@ $ sudo dnf install docbook-utils gettext intltool libgudev1-devel \
                    sqlite-devel gpgme-devel fwupdate-devel libsoup-devel
 </pre>
 
-<h2>How does fwupd know the device firmware version?</h2>
+<h2>Architecture</h2>
 <p>
-  There are currently several ways to detect the firmware version:
-</p>
-<ul>
-  <li>USB firmware version extensions (see below)</li>
-  <li>The <code>bcdVersion</code> for some USB devices</li>
-  <li>Parsing the option ROM and searching for serial numbers</li>
-  <li>Using <code>libfwupdate</code> to get the ESRT table data</li>
-  <li>Using a custom provider (not covered here)</li>
-</ul>
-
-<h3>USB Firmware Version Extensions</h3>
-<p>
-  For generic USB devices you can use the firmware vendor extensions that
-  are being used by several OpenHardware projects.
-  This means the fwupd daemon can obtain the GUID and firmware version without
-  claiming the interface on the device and preventing other software from using it.
-</p>
-<p>
-  To implement the firmware version extension just create an interface descriptor
-  with class code <code>0xff</code>, subclass code <code>0x46</code> and
-  protocol <code>0x57</code> pointing to a string descriptor with the firmware version.
-  An example commit to the ColorHug project can be found
-  <a href="https://github.com/hughski/colorhug2-firmware/commit/5e1bb64ad722a9d2d95927e305fd869b4a3a46a8">here</a>.
-</p>
-<p>
-  Furthermore, using the firmware GUID extension allows fwupd to detect firmware
-  updates for devices it does not know how to update.
-  These types of devices will however show up in the command line and GUI tools,
-  so the user is at least aware that updates are available.
-</p>
-<p>
-  To implement this, add an interface descriptor with class code <code>0xff</code>, subclass
-  code <code>0x47</code> and protocol <code>0x55</code> pointing to a string descriptor with the GUID.
-  If the GUID matches the <code>&lt;id&gt;</code> obtained from the AppStream metadata then the
-  device will be shown.
-  An example commit to the ColorHug project can be found
-  <a href="https://github.com/hughski/colorhug2-firmware/commit/f974638ac17b0e50f21987e2f1d982374cabe22c">here</a>.
+  The 'client' which is typically <code>gnome-software</code> or <code>fwupdmgr</code>
+  interacts with the daemon using D-DBus using PolicyKit.
+  The daemon has no network access and only acts as the mechanism for clients.
 </p>
 
-<h2>Offline Updates Lifecycle</h2>
-<p>
-  Offline updates are done using a special boot target which means that the usual
-  graphical environment is not started. Once the firmware update has completed the
-  system will reboot.
-</p>
-<p>
-Devices go through the following lifecycles:
-</p>
-<ol>
-  <li>created &rarr; <code>SCHEDULED</code> &rarr; <code>SUCCESS</code> &rarr; deleted</li>
-  <li>created &rarr; <code>SCHEDULED</code> &rarr; <code>FAILED</code> &rarr; deleted</li>
-</ol>
-<p>
-  Any user-visible output is available using the <code>GetResults()</code> D-Bus method, and
-  the database entry is only deleted once the <code>ClearResults()</code> method is called.
-</p>
-<p>
-  The results are obtained and cleared either using a provider-supplied method
-  or using a small SQLite database located at <code>/var/lib/fwupd/pending.db</code>
-</p>
+<figure class="text-center">
+  <img src="static/img/architecture-plan.png" class="figure-img img-fluid rounded" alt="architecture-plan">
+  <figcaption class="figure-caption">
+    fwupd is implemented as a D-Bus activated service that is autostarted when required.
+  </figcaption>
+</figure>
 
-<h2>Adding Trusted Keys</h2>
+<h2>Plugins</h2>
 <p>
-  Installing a public key to <code>/etc/pki/fwupd</code> allows firmware signed with a
-  matching private key to be recognized as trusted, which may require less
-  authentication to install than for untrusted files.
-  By default trusted firmware can be <b>upgraded</b> (but not downgraded)
-  without the user or administrator
-  password.
-</p>
-<p>
-  Only very few keys will be installed <i>by default</i>. These are the keys of
-  vendors who have a proven security track record and a thorough understanding of
-  public-private key security.
-</p>
-<p>
-  In particular, private keys should <b>only</b> be kept on Hardware Security
-  Mechanisms, and used on machines (or virtual machine) that have limited network
-  access, or networking completely disabled.
-  The machine and any backups also need to be kept physically secure.
+  Although we already support many different methods of updating firmware
+  we're happy to accept patches for vendor-specific protocols.
+  The plugin loader requires the plugin to obtain the list of attached hardware
+  and assign a model-specific GUID value to each device.
 </p>
 
 </div> <!-- container -->

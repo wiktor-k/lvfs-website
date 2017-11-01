@@ -21,7 +21,7 @@ from flask.ext.login import login_required, login_user, logout_user
 from app import app, db, lm
 
 from .db import CursorError
-from .models import Firmware, FirmwareMd, DownloadKind
+from .models import Firmware, FirmwareMd, FirmwareRequirement, DownloadKind
 from .affidavit import NoKeyError
 from .inf_parser import InfParser
 from .hash import _qa_hash, _password_hash
@@ -455,8 +455,8 @@ def upload():
 
         # from requires
         for req in component.requires:
-            req_txt = "%s/%s/%s/%s" % (req.kind, req.value, req.compare, req.version)
-            md.requirements.append(req_txt)
+            fwreq = FirmwareRequirement(req.kind, req.value, req.compare, req.version)
+            md.requirements.append(fwreq)
 
         # from the first screenshot
         if len(component.screenshots) > 0:

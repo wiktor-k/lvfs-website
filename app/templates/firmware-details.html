@@ -2,174 +2,96 @@
 {% block title %}Firmware Details{% endblock %}
 
 {% block content %}
-<div class="container">
+<div class="container mt-3">
 <h1>Firmware Details</h1>
-<script src="/static/Chart.js"></script>
-<script>
-Chart.defaults.global.animation = false;
-</script>
 
-<table class="table table-bordered">
-  <tr><th>Filename</th><td><a href="/downloads/{{fw.filename}}">{{orig_filename}}</a></td></tr>
-  <tr><th>Current Target</th><td>{{fw.target}}</td></tr>
-  <tr><th>Submitted</th><td>{{fw.timestamp}}</td></tr>
-  <tr><th>Group</th><td><a href="{{embargo_url}}">{{group_id}}</a></td></tr>
-  <tr><th>Uploaded from</th><td><code>{{fw.addr}}</code></td></tr>
-{% if fw.version_display %}
-  <tr><th>Version (display only)</th><td>{{fw.version_display}}</td></tr>
-{% endif %}
-  <tr><th>Downloads</th><td>{{cnt_fn}}</td></tr>
-  <tr>
-    <th>Actions</th>
-    <td>
+<table class="table">
+  <tr class="row">
+    <th class="col-sm-4 align-middle">Filename</th>
+    <td class="col-sm-4 align-middle"><a href="/downloads/{{fw.filename}}">{{orig_filename}}</a></td>
+    <td class="col-sm-4 text-right">
 {% if fw.target != 'stable' or qa_capability %}
       <form method="get" action="/lvfs/firmware/{{firmware_id}}/delete">
-      <button class="btn btn-danger btn-large">Delete</button>
+      <button class="btn btn-danger">Delete</button>
       </form>
 {% endif %}
+    </td>
+  </tr>
+  <tr class="row">
+    <th class="col-sm-4 align-middle">Current Target</th>
+    <td class="col-sm-4 align-middle">{{fw.target}}</td>
+    <td class="col-sm-4 align-middle text-right">
 {% if qa_capability %}
 {% if fw.target == 'private' %}
       <form method="get" action="/lvfs/firmware/{{firmware_id}}/promote/embargo">
-      <button class="btn btn-primary btn-large">&#8594; Embargo</button>
+        <button class="btn btn-primary">&#8594; Embargo</button>
       </form>
 {% endif %}
 {% if fw.target == 'embargo' %}
       <form method="get" action="/lvfs/firmware/{{firmware_id}}/promote/testing">
-      <button class="btn btn-primary btn-large">&#8594; Testing</button>
+        <button class="btn btn-primary">&#8594; Testing</button>
       </form>
 {% endif %}
 {% if fw.target == 'testing' %}
       <form method="get" action="/lvfs/firmware/{{firmware_id}}/promote/stable">
-      <button class="btn btn-primary btn-large">&#8594; Stable</button>
+        <button class="btn btn-primary">&#8594; Stable</button>
       </form>
 {% endif %}
 {% endif %}
     </td>
   </tr>
+  <tr class="row">
+    <th class="col-sm-4">Submitted</th>
+    <td class="col-sm-8" colspan="2">{{fw.timestamp}}</td>
+  </tr>
+  <tr class="row">
+    <th class="col-sm-4">Group</th>
+    <td class="col-sm-8" colspan="2"><a href="{{embargo_url}}">{{group_id}}</a></td>
+  </tr>
+  <tr class="row">
+    <th class="col-sm-4">Uploaded from</th>
+    <td class="col-sm-8" colspan="2"><code>{{fw.addr}}</code></td>
+  </tr>
+{% if fw.version_display %}
+  <tr class="row">
+    <th class="col-sm-4">Version (display only)</th>
+    <td class="col-sm-4">{{fw.version_display}}</td>
+    <td class="col-sm-4"></td>
+  </tr>
+{% endif %}
+  <tr class="row">
+    <th class="col-sm-4">Downloads</th>
+    <td class="col-sm-4">{{cnt_fn}}</td>
+    <td class="col-sm-4 text-right">
+      <form method="get" action="/lvfs/firmware/{{firmware_id}}/analytics">
+        <button class="btn btn-info">Graphs</button>
+      </form>
+    </td>
+  </tr>
 </table>
 
+<h2>Firmware Components</h2>
+<table class="table">
+  <tr class="row">
+    <th class="col-sm-4">Name &amp; Version</th>
+    <th class="col-sm-8" colspan="2">Component ID</th>
+  </tr>
 {% for md in fw.mds %}
-<h2>{{md.name}}</h2>
-<p>{{md.summary}}</p>
-<table class="table table-bordered table-hover">
-  <tr><th>ID</th><td>{{md.cid}}</td></tr>
-{% for guid in md.guids %}
-  <tr><th>Device GUID</th><td><code>{{guid}}</code></td></tr>
+  <tr class="row">
+    <td class="col-sm-4">
+      {{md.name}} {{md.version}}
+    </td>
+    <td class="col-sm-4">
+      <code>{{md.cid}}</code>
+    </td>
+    <td class="col-sm-4 text-right">
+      <form method="get" action="/lvfs/firmware/{{firmware_id}}/component/{{md.cid}}">
+        <button class="btn btn-info">Details</button>
+      </form>
+    </td>
+  </tr>
 {% endfor %}
-  <tr><th>Version</th><td>{{md.version}}</td></tr>
-  <tr><th>Installed Size</th><td>{{format_size(md.release_installed_size)}}</td></tr>
-  <tr><th>Download Size</th><td>{{format_size(md.release_download_size)}}</td></tr>
-{% if md.screenshot_caption %}
-  <tr><th>Screenshot Caption</th><td>{{md.screenshot_caption}}</td></tr>
-{% endif %}
-{% if md.screenshot_url %}
-  <tr><th>Screenshot URL</th><td>{{md.screenshot_url}}</td></tr>
-{% endif %}
 </table>
-
-<h2>Update Details</h2>
-
-{% if not qa_capability %}
-<table class="table table-bordered table-hover">
-{% if md.release_urgency %}
-  <tr><th>Release Urgency</th><td>{{md.release_urgency}}</td></tr>
-{% endif %}
-  <tr><th>Update Description</th><td>{{md.release_description|safe}}</td></tr>
-  <tr><th>Update Requirements</th><td>{{md.requirements|join(',')}}</td></tr>
-</table>
-{% else %}
-
-<table class="table table-bordered table-hover">
-  <form method="post" action="/lvfs/firmware/{{firmware_id}}/modify">
-  <tr>
-    <th>Release Urgency</th>
-    <td>
-    <select name="urgency" class="fixedwidth" required>
-{% if md.release_urgency == "unknown" %}
-      <option value="unknown" selected>Unknown</option>
-{% else %}
-      <option value="unknown">Unknown</option>
-{% endif %}
-{% if md.release_urgency == "low" %}
-      <option value="low" selected>Low</option>
-{% else %}
-      <option value="low">Low</option>
-{% endif %}
-{% if md.release_urgency == "medium" %}
-      <option value="medium" selected>Medium</option>
-{% else %}
-      <option value="medium">Medium</option>
-{% endif %}
-{% if md.release_urgency == "high" %}
-      <option value="high" selected>High</option>
-{% else %}
-      <option value="high">High</option>
-{% endif %}
-{% if md.release_urgency == "critical" %}
-      <option value="critical" selected>Critical</option>
-{% else %}
-      <option value="critical">Critical</option>
-{% endif %}
-{% if md.release_urgency == "unknown" %}
-      <option value="unknown" selected>Unknown</option>
-{% else %}
-      <option value="unknown">Unknown</option>
-{% endif %}
-    </select>
-    </td>
-  </tr>
-  <tr>
-    <th>Update Description</th>
-    <td>
-      <textarea name="description" cols="100" rows="5">{{md.release_description|safe}}</textarea>
-      <p>Unformatted text will be automatically converted to
-        <a href="http://www.freedesktop.org/software/appstream/docs/chap-Metadata.html#tag-description">
-        AppStream XML description markup</a>.
-        </p>
-    </td>
-  </tr>
-  <tr>
-    <th>Update Requirements</th>
-    <td>
-      <textarea name="requirements" cols="100" rows="5">{{md.requirements|join('\n')}}</textarea>
-      <p>
-        Requirements are specified in compact notation and can chained
-        by specifying multiple entries on new lines. e.g.
-        <ul>
-          <li><code>id/org.freedesktop.fwupd/ge/0.8.2</code></li>
-          <li><code>firmware/bootloader/regex/BOT03.0[0-1]_*</code> </li>
-        </ul>
-      </p>
-    </td>
-  </tr>
-  <tr><th>&nbsp;</th><td><input type="submit" value="Save update details"/></td></tr>
-  </form>
-</table>
-{% endif %}
-
-{% endfor %}
-
-<h1>User Downloads</h1>
-<canvas id="metadataChartMonths" width="800" height="400"></canvas>
-<script>
-var ctx = document.getElementById("metadataChartMonths").getContext("2d");
-var data = {
-    labels: {{graph_labels|safe}},
-    datasets: [
-        {
-            label: "Firmware",
-            fillColor: "rgba(251,14,5,0.2)",
-            strokeColor: "rgba(151,14,5,0.1)",
-            pointColor: "rgba(151,14,5,0.3)",
-            pointStrokeColor: "#fff",
-            pointHighlightFill: "#fff",
-            pointHighlightStroke: "rgba(151,187,205,1)",
-            data: {{graph_data}}
-        },
-    ]
-};
-var myLineChartMonths = new Chart(ctx).Line(data, null);
-</script>
 
 </div> <!-- container -->
 {% endblock %}

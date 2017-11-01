@@ -57,13 +57,13 @@ def _event_log(msg, is_important=False):
 def _error_internal(msg=None, errcode=402):
     """ Error handler: Internal """
     _event_log("Internal error: %s" % msg, is_important=True)
-    flash("Internal error: %s" % msg)
+    flash("Internal error: %s" % msg, 'danger')
     return render_template('error.html'), errcode
 
 def _error_permission_denied(msg=None):
     """ Error handler: Permission Denied """
     _event_log("Permission denied: %s" % msg, is_important=True)
-    flash("Permission denied: %s" % msg)
+    flash("Permission denied: %s" % msg, 'danger')
     return render_template('error.html'), 401
 
 def _get_chart_labels_months():
@@ -92,6 +92,23 @@ def _get_chart_labels_hours():
     for i in range(0, 24):
         labels.append("%02i" % i)
     return labels
+
+def _validate_guid(guid):
+    """ Validates if the string is a valid GUID """
+    split = guid.split('-')
+    if len(split) != 5:
+        return False
+    if len(split[0]) != 8:
+        return False
+    if len(split[1]) != 4:
+        return False
+    if len(split[2]) != 4:
+        return False
+    if len(split[3]) != 4:
+        return False
+    if len(split[4]) != 12:
+        return False
+    return True
 
 def main():
     if len(sys.argv) != 2:

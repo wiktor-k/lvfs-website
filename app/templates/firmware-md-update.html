@@ -1,0 +1,61 @@
+{% extends "default.html" %}
+{% block title %}Firmware Component Details{% endblock %}
+
+{% block content %}
+<div class="container mt-3">
+
+<nav>
+  <ul class="nav nav-tabs">
+    <li class="nav-item">
+      <a class="nav-link" href="/lvfs/firmware/{{firmware_id}}/component/{{md.cid}}">Overview</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link active" href="/lvfs/firmware/{{firmware_id}}/component/{{md.cid}}/update">Update Details</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="/lvfs/firmware/{{firmware_id}}/component/{{md.cid}}/requires">Requirements</a>
+    </li>
+  </ul>
+</nav>
+
+{% if not qa_capability %}
+<table class="table">
+{% if md.release_urgency %}
+  <tr><th>Release Urgency</th><td>{{md.release_urgency}}</td></tr>
+{% endif %}
+  <tr><th>Update Description</th><td>{{md.release_description|safe}}</td></tr>
+  <tr><th>Update Requirements</th><td>{{md.requirements|join(',')}}</td></tr>
+</table>
+
+{% else %}
+
+<div class="container mt-3">
+  <h3>Update Metadata</h3>
+  <form method="post" action="/lvfs/firmware/{{firmware_id}}/modify">
+    <div class="form-group">
+      <label for="urgency">Urgency</label>
+      <select class="form-control" id="urgency" name="urgency" required>
+        <option value="unknown" {{ 'selected' if md.release_urgency == 'unknown' }}>Unknown</option>
+        <option value="low" {{ 'selected' if md.release_urgency == 'low' }}>Low</option>
+        <option value="medium" {{ 'selected' if md.release_urgency == 'medium' }}>Medium</option>
+        <option value="high" {{ 'selected' if md.release_urgency == 'high' }}>High</option>
+        <option value="critical" {{ 'selected' if md.release_urgency == 'critical' }}>Critical</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="description">Description</label>
+      <textarea class="form-control" name="description" id="description" cols="100" rows="5">{{md.release_description|safe}}</textarea>
+      <p class="text-secondary">Unformatted text will be automatically converted to
+        <a href="http://www.freedesktop.org/software/appstream/docs/chap-Metadata.html#tag-description">
+        AppStream XML description markup</a>.
+      </p>
+    </div>
+    <a class="btn btn-info" href="/lvfs/firmware/{{firmware_id}}" role="button">&laquo; Back to firmware file</a>
+    <input class="btn btn-primary" type="submit" value="Save"/>
+  </form>
+</div>
+
+{% endif %}
+
+</div> <!-- container -->
+{% endblock %}

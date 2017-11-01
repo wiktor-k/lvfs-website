@@ -8,7 +8,7 @@ import cgi
 import datetime
 import MySQLdb as mdb
 
-from .models import User, FirmwareMd, Firmware, EventLogItem, Group
+from .models import User, FirmwareMd, Firmware, FirmwareRequirement, EventLogItem, Group
 from .hash import _addr_hash, _password_hash
 
 def _create_user_item(e):
@@ -54,7 +54,10 @@ def _create_firmware_md(e):
     md.screenshot_caption = e[20]
     md.metainfo_id = e[21]
     if e[22]:
-        md.requirements = e[22].split(',')
+        for fwreq_str in e[22].split(','):
+            fwreq = FirmwareRequirement()
+            fwreq.from_string(fwreq_str)
+            md.requirements.append(fwreq)
     return md
 
 def _create_firmware_item(e):
@@ -385,6 +388,9 @@ class DatabaseFirmware(object):
                         (fwobj.version_display,
                          fwobj.firmware_id,))
             for md in fwobj.mds:
+                req_str = []
+                for fwreq in md.requirements:
+                    req_str.append(fwreq.to_string())
                 cur.execute("UPDATE firmware_md SET description=%s, "
                             "release_description=%s, "
                             "release_urgency=%s, "
@@ -397,7 +403,7 @@ class DatabaseFirmware(object):
                              md.release_urgency,
                              md.release_installed_size,
                              md.release_download_size,
-                             ','.join(md.requirements),
+                             ','.join(req_str),
                              fwobj.firmware_id,))
         except mdb.Error as e:
             raise CursorError(cur, e)
@@ -416,6 +422,9 @@ class DatabaseFirmware(object):
                          fwobj.target,
                          fwobj.version_display,))
             for md in fwobj.mds:
+                req_str = []
+                for fwreq in md.requirements:
+                    req_str.append(fwreq.to_string())
                 cur.execute("INSERT INTO firmware_md (firmware_id, id, guid, version, "
                             "name, summary, checksum_contents, release_description, "
                             "release_timestamp, developer_name, metadata_license, "
@@ -449,7 +458,7 @@ class DatabaseFirmware(object):
                              md.screenshot_url,
                              md.screenshot_caption,
                              md.metainfo_id,
-                             ','.join(md.requirements),))
+                             ','.join(req_str),))
         except mdb.Error as e:
             raise CursorError(cur, e)
 
@@ -510,6 +519,12 @@ class DatabaseFirmware(object):
             if item.firmware_id == firmware_id:
                 return item
         return None
+
+    def get_component(self, firmware_id, cid):
+        """ Gets a specific firmware object """
+        item = self.get_item(firmware_id)
+        if not item:
+            return None
 
 class DatabaseEventlog(object):
 
