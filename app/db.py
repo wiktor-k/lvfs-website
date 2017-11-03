@@ -514,17 +514,21 @@ class DatabaseFirmware(object):
 
     def get_item(self, firmware_id):
         """ Gets a specific firmware object """
-        items = self.get_all()
-        for item in items:
-            if item.firmware_id == firmware_id:
-                return item
-        return None
-
-    def get_component(self, firmware_id, cid):
-        """ Gets a specific firmware object """
-        item = self.get_item(firmware_id)
-        if not item:
+        try:
+            cur = self._db.cursor()
+            cur.execute("SELECT group_id, addr, timestamp, "
+                        "filename, firmware_id, target, version_display "
+                        "FROM firmware WHERE firmware_id = %s LIMIT 1;",
+                        (firmware_id,))
+        except mdb.Error as e:
+            raise CursorError(cur, e)
+        e = cur.fetchone()
+        if not e:
             return None
+        item = _create_firmware_item(e)
+        self._add_items_md(item)
+        return item
+
 
 class DatabaseEventlog(object):
 
