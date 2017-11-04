@@ -31,6 +31,17 @@
 
 <div class="container mt-3">
   <h3>Update Metadata</h3>
+{% if fw.target == 'stable' %}
+  <div class="alert alert-danger mt-1" role="alert">
+    This firmware has <strong>already been pushed to stable</strong>.
+    The admin user has to manually rebuild the metadata to propagate changes.
+  </div>
+{% else %}
+  <div class="alert alert-info mt-1" role="alert">
+    Changing this information will <strong>only</strong> modify the metadata when the
+    firmware changes state, e.g. from <em>testing</em> to <em>stable</em>.
+  </div>
+{% endif %}
   <form method="post" action="/lvfs/firmware/{{firmware_id}}/modify">
     <div class="form-group">
       <label for="urgency">Urgency</label>

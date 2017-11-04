@@ -366,6 +366,7 @@ def firmware_component_show(firmware_id, cid, page='overview'):
 
     return render_template('firmware-md-' + page + '.html',
                            md=md,
+                           fw=fwobj,
                            qa_capability=session['qa_capability'],
                            firmware_id=firmware_id)
 
