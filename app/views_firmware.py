@@ -473,10 +473,6 @@ def firmware_component_requires_set(firmware_id, cid, kind, value):
     if group_id != session['group_id'] and session['group_id'] != 'admin':
         return _error_permission_denied('Unable to modify other vendor firmware')
 
-    print "len", len(request.form)
-    for ff in request.form:
-        print ff
-
     # check we have data
     if 'compare' not in request.form:
         return _error_internal('No compare specified!')
