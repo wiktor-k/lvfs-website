@@ -28,14 +28,12 @@
       </form>
 {% endif %}
 {% if fw.target == 'embargo' %}
-      <form method="get" action="/lvfs/firmware/{{firmware_id}}/promote/testing">
-        <button class="btn btn-primary">&#8594; Testing</button>
-      </form>
+      <a class="btn btn-secondary" href="/lvfs/firmware/{{firmware_id}}/promote/private" role="button">&#8592; Private</a>
+      <a class="btn btn-primary" href="/lvfs/firmware/{{firmware_id}}/promote/testing" role="button">&#8594; Testing</a>
 {% endif %}
 {% if fw.target == 'testing' %}
-      <form method="get" action="/lvfs/firmware/{{firmware_id}}/promote/stable">
-        <button class="btn btn-primary">&#8594; Stable</button>
-      </form>
+      <a class="btn btn-secondary" href="/lvfs/firmware/{{firmware_id}}/promote/embargo" role="button">&#8592; Embargo</a>
+      <a class="btn btn-primary" href="/lvfs/firmware/{{firmware_id}}/promote/stable" role="button">&#8594; Stable</a>
 {% endif %}
 {% endif %}
     </td>
