@@ -45,6 +45,35 @@ class Group(object):
     def __repr__(self):
         return "Group object %s" % self.group_id
 
+class Vendor(object):
+    def __init__(self):
+        """ Constructor for object """
+        self.group_id = None
+        self.display_name = None
+        self.plugins = None
+        self.description = None
+        self.visible = False
+        self.is_fwupd_supported = None
+        self.is_account_holder = None
+        self.is_uploading = None
+    def _get_sorting_key(self):
+        val = 0
+        if self.is_fwupd_supported == 'yes':
+            val += 0x200
+        if self.is_fwupd_supported == 'na':
+            val += 0x100
+        if self.is_account_holder == 'yes':
+            val += 0x20
+        if self.is_account_holder == 'na':
+            val += 0x10
+        if self.is_uploading == 'yes':
+            val += 0x2
+        if self.is_uploading == 'na':
+            val += 0x1
+        return val
+    def __repr__(self):
+        return "Vendor object %s" % self.group_id
+
 class EventLogItem(object):
     def __init__(self):
         """ Constructor for object """

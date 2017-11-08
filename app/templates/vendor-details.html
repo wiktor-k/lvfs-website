@@ -1,0 +1,69 @@
+{% extends "default.html" %}
+{% block title %}Vendor Details{% endblock %}
+
+{% block content %}
+<div class="container mt-3">
+<h1>Details of user ‘{{v.group_id}}’</h1>
+
+<form method="post" action="/lvfs/vendor/{{v.group_id}}/modify_by_admin">
+  <div class="form-group">
+    <label for="group_id">Group ID:</label>
+    <input type="text" class="form-control" name="group_id" value="{{v.group_id}}" required>
+  </div>
+  <div class="form-group">
+    <label for="display_name">Vendor Name:</label>
+    <input type="text" class="form-control" name="display_name" value="{{v.display_name}}" required>
+  </div>
+  <div class="form-group">
+    <label for="display_name">Plugins:</label>
+    <input type="text" class="form-control" name="plugins" value="{{v.plugins}}" required>
+  </div>
+  <div class="form-group">
+    <label for="email">Description:</label>
+    <input type="text" class="form-control" name="description" value="{{v.description}}" required>
+  </div>
+  <div class="form-group">
+    <label for="email">Visible in list:</label>
+    <select class="form-control" name="visible">
+      <option value="0" {{ 'selected' if v.visible == '0' }}>No</option>
+      <option value="1" {{ 'selected' if v.visible == '1' }}>Yes</option>
+    </select>
+  </div>
+  <div class="form-group">
+    <label for="email">Supported in fwupd:</label>
+    <select class="form-control" name="is_fwupd_supported">
+      <option value="no" {{ 'selected' if v.is_fwupd_supported == 'no' }}>No</option>
+      <option value="yes" {{ 'selected' if v.is_fwupd_supported == 'yes' }}>Yes</option>
+      <option value="na" {{ 'selected' if v.is_fwupd_supported == 'na' }}>n/a</option>
+    </select>
+  </div>
+  <div class="form-group">
+    <label for="email">Is LVFS account holder:</label>
+    <select class="form-control" name="is_account_holder">
+      <option value="no" {{ 'selected' if v.is_account_holder == 'no' }}>No</option>
+      <option value="yes" {{ 'selected' if v.is_account_holder == 'yes' }}>Yes</option>
+      <option value="na" {{ 'selected' if v.is_account_holder == 'na' }}>n/a</option>
+    </select>
+  </div>
+  <div class="form-group">
+    <label for="email">Is uploading firmware:</label>
+    <select class="form-control" name="is_uploading">
+      <option value="no" {{ 'selected' if v.is_uploading == 'no' }}>No</option>
+      <option value="yes" {{ 'selected' if v.is_uploading == 'yes' }}>Yes</option>
+      <option value="na" {{ 'selected' if v.is_uploading == 'na' }}>n/a</option>
+    </select>
+  </div>
+  <input type="submit" class="btn btn-primary btn-large" class="submit" value="Modify">
+</form>
+
+<h1 class="mt-3">Delete Vendor</h1>
+<p>
+  Unless you are required to delete a user for legal or compliance reasons,
+  removing a vendor is not recommended.
+</p>
+<form method="get" action="/lvfs/vendor/{{v.group_id}}/delete">
+  <button class="btn btn-danger">Delete</button>
+</form>
+
+</div> <!-- container -->
+{% endblock %}

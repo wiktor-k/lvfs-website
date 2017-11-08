@@ -11,6 +11,82 @@
   If you'd like to be added to this list please let me know.
 </p>
 
+<!-- FIXME: remove 'if' when ported list -->
+{% if session['username'] and session['group_id'] == 'admin' %}
+<table class="table">
+  <tr>
+    <th>Vendor</th>
+    <th>fwupd support</th>
+    <th>LVFS account</th>
+    <th>Uploading firmware</th>
+    <th>Comments</th>
+{% if session['username'] and session['group_id'] == 'admin' %}
+    <th>&nbsp;</th>
+{% endif %}
+  </tr>
+{% for v in vendors %}
+{% if v.visible or session['group_id'] == 'admin' %}
+  <tr id="{{v.group_id}}">
+    <td>{{v.display_name}}</td>
+{% if v.is_fwupd_supported == 'no' %}
+    <td class="no">
+      No ({{v.plugins}})
+    </td>
+{% elif v.is_fwupd_supported == 'yes' %}
+    <td class="yes">
+      Yes ({{v.plugins}})
+    </td>
+{% else %}
+    <td class="na">
+      n/a ({{v.plugins}})
+    </td>
+{% endif %}
+{% if v.is_account_holder == 'no' %}
+    <td class="no">
+      No
+    </td>
+{% elif v.is_account_holder == 'yes' %}
+    <td class="yes">
+      Yes
+    </td>
+{% else %}
+    <td class="na">
+      n/a
+    </td>
+{% endif %}
+{% if v.is_uploading == 'no' %}
+    <td class="no">
+      No
+    </td>
+{% elif v.is_uploading == 'yes' %}
+    <td class="yes">
+      Yes
+    </td>
+{% else %}
+    <td class="na">
+      n/a
+    </td>
+{% endif %}
+    <td>{{v.description}}</td>
+{% if session['username'] and session['group_id'] == 'admin' %}
+    <td><a class="btn btn-secondary" href="/lvfs/vendor/{{v.group_id}}/details">Edit</a></td>
+{% endif %}
+  </tr>
+{% endif %}
+{% endfor %}
+  </tr>
+</table>
+{% endif %}
+
+{% if session['username'] and session['group_id'] == 'admin' %}
+<h1>Create a new vendor</h1>
+<form method="post" action="/lvfs/vendorlist/add" class="form-inline">
+  <input class="form-control" type="text" size="20" name="group_id" placeholder="Group ID" required>
+  <input class="btn btn-primary" type="submit" value="Add">
+</form>
+{% endif %}
+
+
 <table class="table">
   <tr>
     <th>Vendor</th>
@@ -103,6 +179,13 @@
     <td class="no">No</td>
     <td>Vendor is investigating adding support for fwupd and LVFS</td>
   </tr>
+  <tr id="supermicro">
+    <td>Supermicro</td>
+    <td class="yes">Yes (uefi)</td>
+    <td class="yes">Yes</td>
+    <td class="no">No</td>
+    <td>Vendor is investigating adding support for fwupd and LVFS</td>
+  </tr>
   <tr>
     <td>HakShop</td>
     <td class="yes">Yes (dfu)</td>
@@ -167,11 +250,25 @@
     <td>Unable to use current architecture</td>
   </tr>
   <tr>
+    <td>Ultimate Hacking Keyboard</td>
+    <td class="no">Kinetis?</td>
+    <td class="no">No</td>
+    <td class="no">No</td>
+    <td>Vendor has developed own tool called Agent</td>
+  </tr>
+  <tr>
     <td>Focusrite</td>
     <td class="no">No</td>
     <td class="no">No</td>
     <td class="no">No</td>
     <td>Vendor does not provide official Linux support</td>
+  </tr>
+  <tr>
+    <td>Seagate</td>
+    <td class="no">No</td>
+    <td class="no">No</td>
+    <td class="no">No</td>
+    <td>Vendor does not support updating firmware on Linux</td>
   </tr>
   <tr>
     <td>Ubertooth</td>
@@ -181,7 +278,7 @@
     <td>Initial tests not yet done</td>
   </tr>
   <tr>
-    <td>Next Thing Co.</td>
+    <td>Next Thing Co</td>
     <td class="no">No</td>
     <td class="no">No</td>
     <td class="no">No</td>

@@ -51,3 +51,4 @@ from app import views_user
 from app import views_group
 from app import views_device
 from app import views_firmware
+from app import views_vendor

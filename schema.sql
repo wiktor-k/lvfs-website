@@ -14,6 +14,19 @@ CREATE TABLE users (
 INSERT INTO users (username, password, display_name, email, is_enabled, is_qa, is_locked, group_id)
     VALUES ('admin', '5459dbe5e9aa80e077bfa40f3fb2ca8368ed09b4', 'Admin User', 'sign-test@fwupd.org', 1, 1, 0, 'admin');
 
+DROP TABLE IF EXISTS vendors;
+CREATE TABLE vendors (
+  group_id VARCHAR(40) NOT NULL DEFAULT '',
+  display_name VARCHAR(128) DEFAULT NULL,
+  plugins VARCHAR(128) DEFAULT NULL,
+  description VARCHAR(255) NOT NULL DEFAULT '',
+  visible TINYINT DEFAULT 0,
+  is_fwupd_supported VARCHAR(16) NOT NULL DEFAULT 'no',
+  is_account_holder VARCHAR(16) NOT NULL DEFAULT 'no',
+  is_uploading VARCHAR(16) NOT NULL DEFAULT 'no',
+  UNIQUE KEY id (group_id)
+) CHARSET=utf8;
+
 -- the cab file
 DROP TABLE IF EXISTS firmware;
 CREATE TABLE firmware (

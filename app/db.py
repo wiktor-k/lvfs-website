@@ -8,7 +8,7 @@ import cgi
 import datetime
 import MySQLdb as mdb
 
-from .models import User, FirmwareMd, Firmware, FirmwareRequirement, EventLogItem, Group
+from .models import User, FirmwareMd, Firmware, FirmwareRequirement, EventLogItem, Group, Vendor
 from .hash import _addr_hash, _password_hash
 
 def _create_user_item(e):
@@ -71,6 +71,18 @@ def _create_firmware_item(e):
     item.version_display = e[6]
     return item
 
+def _create_vendor_item(e):
+    item = Vendor()
+    item.group_id = e[0]
+    item.display_name = e[1]
+    item.plugins = e[2]
+    item.description = e[3]
+    item.visible = int(e[4])
+    item.is_fwupd_supported = e[5]
+    item.is_account_holder = e[6]
+    item.is_uploading = e[7]
+    return item
+
 def _create_eventlog_item(e):
     item = EventLogItem()
     item.timestamp = e[0]
@@ -118,6 +130,7 @@ class Database(object):
         self.eventlog = DatabaseEventlog(self._db)
         self.clients = DatabaseClients(self._db)
         self.firmware = DatabaseFirmware(self._db)
+        self.vendors = DatabaseVendors(self._db)
 
     def verify(self):
         """ repairs database when required """
@@ -740,3 +753,79 @@ class DatabaseClients(object):
                 raise CursorError(cur, e)
             data.append(int(cur.fetchone()[0]))
         return data
+
+class DatabaseVendors(object):
+
+    def __init__(self, db):
+        """ Constructor for object """
+        self._db = db
+
+    def add(self, group_id):
+        """ Adds the vendor to the vendorlist """
+        assert group_id
+        try:
+            cur = self._db.cursor()
+            cur.execute("INSERT INTO vendors (group_id) VALUES (%s);",
+                        (group_id,))
+        except mdb.Error as e:
+            raise CursorError(cur, e)
+
+    def remove(self, group_id):
+        """ Removes the vendor from the vendorlist """
+        assert group_id
+        try:
+            cur = self._db.cursor()
+            cur.execute("DELETE FROM vendors WHERE group_id=%s;", (group_id,))
+        except mdb.Error as e:
+            raise CursorError(cur, e)
+
+    def modify(self, group_id, display_name, plugins, description, visible, is_fwupd_supported, is_account_holder, is_uploading):
+        """ Update vendor details """
+        assert group_id
+        assert display_name
+        assert description
+        try:
+            cur = self._db.cursor()
+            cur.execute("UPDATE vendors SET display_name=%s, plugins=%s, "
+                        "description=%s, visible=%s, is_fwupd_supported=%s, "
+                        "is_account_holder=%s, is_uploading=%s "
+                        "WHERE group_id=%s;",
+                        (display_name, plugins, description, visible,
+                         is_fwupd_supported, is_account_holder, is_uploading,
+                         group_id,))
+        except mdb.Error as e:
+            raise CursorError(cur, e)
+
+    def get_all(self):
+        """ Get all the vendors """
+        try:
+            cur = self._db.cursor()
+            cur.execute("SELECT group_id, display_name, plugins, description, "
+                        "visible, is_fwupd_supported, is_account_holder, "
+                        "is_uploading FROM vendors;")
+        except mdb.Error as e:
+            raise CursorError(cur, e)
+        res = cur.fetchall()
+        if not res:
+            return []
+        items = []
+        for e in res:
+            items.append(_create_vendor_item(e))
+        return items
+
+    def get_item(self, group_id):
+        """ Gets information about a specific vendor """
+        assert group_id
+        try:
+            cur = self._db.cursor()
+            cur.execute("SELECT group_id, display_name, plugins, description, "
+                        "visible, is_fwupd_supported, is_account_holder, "
+                        "is_uploading FROM vendors "
+                        "WHERE group_id = %s LIMIT 1;",
+                        (group_id,))
+        except mdb.Error as e:
+            raise CursorError(cur, e)
+        res = cur.fetchone()
+        if not res:
+            return None
+        return _create_vendor_item(res)
