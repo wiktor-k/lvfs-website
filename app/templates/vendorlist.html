@@ -11,14 +11,12 @@
   If you'd like to be added to this list please let me know.
 </p>
 
-<!-- FIXME: remove 'if' when ported list -->
-{% if session['username'] and session['group_id'] == 'admin' %}
 <table class="table">
   <tr>
     <th>Vendor</th>
     <th>fwupd support</th>
     <th>LVFS account</th>
-    <th>Uploading firmware</th>
+    <th>Uploaded firmware</th>
     <th>Comments</th>
 {% if session['username'] and session['group_id'] == 'admin' %}
     <th>&nbsp;</th>
@@ -27,10 +25,16 @@
 {% for v in vendors %}
 {% if v.visible or session['group_id'] == 'admin' %}
   <tr id="{{v.group_id}}">
-    <td>{{v.display_name}}</td>
+    <td>
+{% if v.visible %}
+      {{v.display_name}}
+{% else %}
+      <em>{{v.display_name}} [private]</em>
+{% endif %}
+    </td>
 {% if v.is_fwupd_supported == 'no' %}
     <td class="no">
-      No ({{v.plugins}})
+      No
     </td>
 {% elif v.is_fwupd_supported == 'yes' %}
     <td class="yes">
@@ -76,7 +80,6 @@
 {% endfor %}
   </tr>
 </table>
-{% endif %}
 
 {% if session['username'] and session['group_id'] == 'admin' %}
 <h1>Create a new vendor</h1>
@@ -85,220 +88,6 @@
   <input class="btn btn-primary" type="submit" value="Add">
 </form>
 {% endif %}
-
-
-<table class="table">
-  <tr>
-    <th>Vendor</th>
-    <th>fwupd support</th>
-    <th>LVFS account</th>
-    <th>Uploading firmware</th>
-    <th>Comments</th>
-  </tr>
-  <tr>
-    <td>Dell</td>
-    <td class="yes">Yes (uefi &amp; dell)</td>
-    <td class="yes">Yes</td>
-    <td class="yes">Yes</td>
-    <td>Recent IoT, XPS, Latitude, Precision, and Optiplex hardware is supported</td>
-  </tr>
-  <tr>
-    <td>Logitech</td>
-    <td class="yes">Yes (unifying)</td>
-    <td class="yes">Yes</td>
-    <td class="yes">Yes</td>
-    <td>All Unifying receivers supported, and a few wireless devices</td>
-  </tr>
-  <tr>
-    <td>Jabra</td>
-    <td class="yes">Yes (dfu)</td>
-    <td class="yes">Yes</td>
-    <td class="yes">Yes</td>
-    <td>All SPEAK hardware is supported in fwupd >= 1.0.1, more models to follow</td>
-  </tr>
-  <tr>
-    <td>8Bitdo</td>
-    <td class="yes">Yes (ebitdo)</td>
-    <td class="yes">Yes</td>
-    <td class="yes">Yes (indirectly)</td>
-    <td>All game pads are supported</td>
-  </tr>
-  <tr>
-    <td>AltusMetrum</td>
-    <td class="yes">Yes (altos)</td>
-    <td class="yes">Yes</td>
-    <td class="yes">Yes (indirectly)</td>
-    <td>Only the ChaosKey is supported</td>
-  </tr>
-  <tr>
-    <td>Hewlett-Packard</td>
-    <td class="yes">Yes (uefi)</td>
-    <td class="yes">Yes</td>
-    <td class="na">Soon</td>
-    <td>One model of hardware is being tested</td>
-  </tr>
-  <tr>
-    <td>Purism</td>
-    <td class="yes">Yes (purism)</td>
-    <td class="yes">Yes</td>
-    <td class="na">Soon</td>
-    <td>Testing is in progress, hopefully done soon!</td>
-  </tr>
-  <tr>
-    <td>Intel (Thunderbolt)</td>
-    <td class="yes">Yes (thunderbolt)</td>
-    <td class="yes">Yes</td>
-    <td class="na">n/a</td>
-    <td>Firmware uploading is owned by Thunderbolt system vendors</td>
-  </tr>
-  <tr>
-    <td>Blinkinlabs</td>
-    <td class="yes">Yes (dfu)</td>
-    <td class="na">Soon</td>
-    <td class="yes">Yes (indirectly)</td>
-    <td>All devices with updates are supported</td>
-  </tr>
-  <tr>
-    <td>Lenovo</td>
-    <td class="yes">Yes (uefi)</td>
-    <td class="yes">Yes</td>
-    <td class="no">No</td>
-    <td>Testing is in progress</td>
-  </tr>
-  <tr>
-    <td>Mellanox</td>
-    <td class="yes">Yes (uefi)</td>
-    <td class="yes">Yes</td>
-    <td class="no">No</td>
-    <td>FMP implemented, however UEFI capsules were not created or tested</td>
-  </tr>
-  <tr id="aiaiai">
-    <td>AIAIAI</td>
-    <td class="yes">Yes (dfu)</td>
-    <td class="yes">Yes</td>
-    <td class="no">No</td>
-    <td>Vendor is investigating adding support for fwupd and LVFS</td>
-  </tr>
-  <tr id="supermicro">
-    <td>Supermicro</td>
-    <td class="yes">Yes (uefi)</td>
-    <td class="yes">Yes</td>
-    <td class="no">No</td>
-    <td>Vendor is investigating adding support for fwupd and LVFS</td>
-  </tr>
-  <tr>
-    <td>HakShop</td>
-    <td class="yes">Yes (dfu)</td>
-    <td class="no">No</td>
-    <td class="no">No</td>
-    <td>Vendor is investigating adding support for fwupd and LVFS</td>
-  </tr>
-  <tr>
-    <td>Walkera</td>
-    <td class="yes">Yes (dfu)</td>
-    <td class="no">No</td>
-    <td class="no">No</td>
-    <td>Encrypted firmware with no metadata, so can't be done automatically</td>
-  </tr>
-  <tr>
-    <td>SIMtrace</td>
-    <td class="yes">Yes (dfu)</td>
-    <td class="no">No</td>
-    <td class="no">No</td>
-    <td>No response to initial inquiry</td>
-  </tr>
-  <tr>
-    <td>RyscCorp</td>
-    <td class="na">Soon (dfu-atxmega32a4u)</td>
-    <td class="no">No</td>
-    <td class="no">No</td>
-    <td>No response to initial inquiry</td>
-  </tr>
-  <tr>
-    <td>Busware</td>
-    <td class="na">Soon (dfu-atxmega256a3u)</td>
-    <td class="no">No</td>
-    <td class="no">No</td>
-    <td>No response to initial inquiry</td>
-  </tr>
-  <tr>
-    <td>Retrode</td>
-    <td class="na">Soon (dfu-at90usb646)</td>
-    <td class="no">No</td>
-    <td class="no">No</td>
-    <td>No response to initial inquiry</td>
-  </tr>
-  <tr>
-    <td>Printrbot</td>
-    <td class="no">No</td>
-    <td class="no">No</td>
-    <td class="no">No</td>
-    <td>Vendor is enthusiastic about Linux support, more details required</td>
-  </tr>
-  <tr>
-    <td>SteelSeries</td>
-    <td class="no">No</td>
-    <td class="no">No</td>
-    <td class="no">No</td>
-    <td>Initial version support in fwupd but with no firmware update support</td>
-  </tr>
-  <tr>
-    <td>System76</td>
-    <td class="no">No</td>
-    <td class="no">No</td>
-    <td class="no">No</td>
-    <td>Unable to use current architecture</td>
-  </tr>
-  <tr>
-    <td>Ultimate Hacking Keyboard</td>
-    <td class="no">Kinetis?</td>
-    <td class="no">No</td>
-    <td class="no">No</td>
-    <td>Vendor has developed own tool called Agent</td>
-  </tr>
-  <tr>
-    <td>Focusrite</td>
-    <td class="no">No</td>
-    <td class="no">No</td>
-    <td class="no">No</td>
-    <td>Vendor does not provide official Linux support</td>
-  </tr>
-  <tr>
-    <td>Seagate</td>
-    <td class="no">No</td>
-    <td class="no">No</td>
-    <td class="no">No</td>
-    <td>Vendor does not support updating firmware on Linux</td>
-  </tr>
-  <tr>
-    <td>Ubertooth</td>
-    <td class="no">No</td>
-    <td class="no">No</td>
-    <td class="no">No</td>
-    <td>Initial tests not yet done</td>
-  </tr>
-  <tr>
-    <td>Next Thing Co</td>
-    <td class="no">No</td>
-    <td class="no">No</td>
-    <td class="no">No</td>
-    <td>Only fastboot is supported on Linux</td>
-  </tr>
-  <tr>
-    <td>ROCCAT</td>
-    <td class="no">No</td>
-    <td class="no">No</td>
-    <td class="no">No</td>
-    <td>No response to initial inquiry</td>
-  </tr>
-  <tr>
-    <td>Wiggleport</td>
-    <td class="no">No</td>
-    <td class="no">No</td>
-    <td class="no">No</td>
-    <td>No response to initial inquiry</td>
-  </tr>
-</table>
 
 </div> <!-- container -->
 {% endblock %}

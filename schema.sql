@@ -17,7 +17,7 @@ INSERT INTO users (username, password, display_name, email, is_enabled, is_qa, i
 DROP TABLE IF EXISTS vendors;
 CREATE TABLE vendors (
   group_id VARCHAR(40) NOT NULL DEFAULT '',
-  display_name VARCHAR(128) DEFAULT NULL,
+  display_name VARCHAR(128) NOT NULL DEFAULT '',
   plugins VARCHAR(128) DEFAULT NULL,
   description VARCHAR(255) NOT NULL DEFAULT '',
   visible TINYINT DEFAULT 0,
