@@ -119,7 +119,8 @@ def vendor_modify_by_admin(group_id):
                           request.form['visible'],
                           request.form['is_fwupd_supported'],
                           request.form['is_account_holder'],
-                          request.form['is_uploading'])
+                          request.form['is_uploading'],
+                          request.form['comments'])
     except CursorError as e:
         return _error_internal(str(e))
 

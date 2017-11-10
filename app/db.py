@@ -81,6 +81,7 @@ def _create_vendor_item(e):
     item.is_fwupd_supported = e[5]
     item.is_account_holder = e[6]
     item.is_uploading = e[7]
+    item.comments = e[8]
     return item
 
 def _create_eventlog_item(e):
@@ -779,7 +780,7 @@ class DatabaseVendors(object):
         except mdb.Error as e:
             raise CursorError(cur, e)
 
-    def modify(self, group_id, display_name, plugins, description, visible, is_fwupd_supported, is_account_holder, is_uploading):
+    def modify(self, group_id, display_name, plugins, description, visible, is_fwupd_supported, is_account_holder, is_uploading, comments):
         """ Update vendor details """
         assert group_id
         assert display_name
@@ -788,11 +789,11 @@ class DatabaseVendors(object):
             cur = self._db.cursor()
             cur.execute("UPDATE vendors SET display_name=%s, plugins=%s, "
                         "description=%s, visible=%s, is_fwupd_supported=%s, "
-                        "is_account_holder=%s, is_uploading=%s "
+                        "is_account_holder=%s, is_uploading=%s, comments=%s "
                         "WHERE group_id=%s;",
                         (display_name, plugins, description, visible,
                          is_fwupd_supported, is_account_holder, is_uploading,
-                         group_id,))
+                         comments, group_id,))
         except mdb.Error as e:
             raise CursorError(cur, e)
 
@@ -802,7 +803,7 @@ class DatabaseVendors(object):
             cur = self._db.cursor()
             cur.execute("SELECT group_id, display_name, plugins, description, "
                         "visible, is_fwupd_supported, is_account_holder, "
-                        "is_uploading FROM vendors;")
+                        "is_uploading, comments FROM vendors;")
         except mdb.Error as e:
             raise CursorError(cur, e)
         res = cur.fetchall()
@@ -820,7 +821,7 @@ class DatabaseVendors(object):
             cur = self._db.cursor()
             cur.execute("SELECT group_id, display_name, plugins, description, "
                         "visible, is_fwupd_supported, is_account_holder, "
-                        "is_uploading FROM vendors "
+                        "is_uploading, comments FROM vendors "
                         "WHERE group_id = %s LIMIT 1;",
                         (group_id,))
         except mdb.Error as e:

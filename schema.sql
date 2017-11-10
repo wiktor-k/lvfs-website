@@ -24,6 +24,7 @@ CREATE TABLE vendors (
   is_fwupd_supported VARCHAR(16) NOT NULL DEFAULT 'no',
   is_account_holder VARCHAR(16) NOT NULL DEFAULT 'no',
   is_uploading VARCHAR(16) NOT NULL DEFAULT 'no',
+  comments VARCHAR(255) NOT NULL DEFAULT '',
   UNIQUE KEY id (group_id)
 ) CHARSET=utf8;
 

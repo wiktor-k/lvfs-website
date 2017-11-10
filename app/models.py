@@ -56,6 +56,7 @@ class Vendor(object):
         self.is_fwupd_supported = None
         self.is_account_holder = None
         self.is_uploading = None
+        self.comments = None
     def _get_sorting_key(self):
         val = 0
         if self.is_fwupd_supported == 'yes':
