@@ -50,6 +50,14 @@
   </tr>
 </table>
 
+{% if not session['qa_capability'] %}
+<div class="alert alert-warning mt-1" role="alert">
+  End-to-end tests using the metadata can <strong>only</strong> be used with a
+  custom <code>/etc/fwupd/remotes.d/{{group_id}}-embargo.remote</code> file as this user account does not
+  yet have permission to push to <em>testing</em> or <em>stable</em>.
+</div>
+{% endif %}
+
 {% if group_id=='admin' %}
 <!-- admin only actions -->
 <h2>Actions</h2>
