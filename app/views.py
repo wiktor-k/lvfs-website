@@ -15,7 +15,7 @@ import cabarchive
 import appstream
 
 from flask import session, request, flash, url_for, redirect, render_template
-from flask import send_from_directory, abort
+from flask import send_from_directory, abort, make_response
 from flask.ext.login import login_required, login_user, logout_user
 
 from app import app, db, lm
@@ -145,6 +145,35 @@ def index():
 def new_account():
     """ New account page for prospective vendors """
     return render_template('new-account.html')
+
+@login_required
+@app.route('/lvfs/metadata/<qa_group>')
+def metadata_remote(qa_group):
+    """
+    Generate a remote file for a given QA group.
+    """
+
+    # find the Group
+    try:
+        item = db.groups.get_item(qa_group)
+    except CursorError as e:
+        return _error_internal(str(e))
+    if not item:
+        return _error_internal('No QA Group')
+
+    # generate file
+    remote = []
+    remote.append('[fwupd Remote]')
+    remote.append('Enabled=true')
+    remote.append('Title=Embargoed for ' + qa_group)
+    remote.append('Keyring=gpg')
+    remote.append('MetadataURI=https://fwupd.org/downloads/firmware-' + _qa_hash(qa_group) + '.xml.gz')
+    remote.append('OrderBefore=lvfs,fwupd')
+    fn = qa_group + '-embargo.remote'
+    response = make_response('\n'.join(remote))
+    response.headers['Content-Disposition'] = 'attachment; filename=' + fn
+    response.mimetype='text/plain'
+    return response
 
 @app.route('/lvfs/metadata')
 @login_required

@@ -16,38 +16,30 @@
 <table class="table">
   <tr>
     <th>Description</th>
-    <th>Private</th>
-    <th>Embargo</th>
-    <th>Testing</th>
-    <th>Stable</th>
-  <th>URL</th>
+    <th>Public</th>
+    <th>URL</th>
+    <th>Custom Remote</th>
+  </tr>
+  <tr>
+    <td>Stable</td>
+    <td><b>Yes</b></td>
+    <td><a href="/downloads/firmware.xml.gz">firmware.xml.gz</td>
+    <td class="text-muted">not required</td>
+  </tr>
+  <tr>
+    <td>Testing</td>
+    <td><b>Yes</b></td>
+    <td><a href="/downloads/firmware-testing.xml.gz">firmware-testing.xml.gz</td>
+    <td class="text-muted">not required</td>
   </tr>
 {% for qa in group_ids %}
   <tr>
     <td>Embargoed for &lsquo;{{qa}}&rsquo;</td>
-    <td>No</td>
-    <td><b>Yes</b></td>
-    <td><b>Yes</b></td>
-    <td><b>Yes</b></td>
+    <td><b>No</b></td>
     <td><a href="/downloads/{{ 'firmware-%s.xml.gz' % format_qa_hash(qa) }}">{{ 'firmware-%s...xml.gz' % format_qa_hash(qa)[0:8] }}</td>
+    <td><code><a href="/lvfs/metadata/{{qa}}">{{qa}}-embargo.remote</a></code></td>
   </tr>
 {% endfor %}
-  <tr>
-    <td>Testing</td>
-    <td>No</td>
-    <td>No</td>
-    <td><b>Yes</b></td>
-    <td><b>Yes</b></td>
-    <td><a href="/downloads/firmware-testing.xml.gz">firmware-testing.xml.gz</td>
-  </tr>
-  <tr>
-    <td>Stable</td>
-    <td>No</td>
-    <td>No</td>
-    <td>No</td>
-    <td><b>Yes</b></td>
-    <td><a href="/downloads/firmware.xml.gz">firmware.xml.gz</td>
-  </tr>
 </table>
 
 {% if not session['qa_capability'] %}
