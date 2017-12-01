@@ -133,6 +133,8 @@ def user_modify_by_admin(username):
             if key == 'password' and len(tmp) == 0:
                 continue
             if key == 'pubkey':
+                if tmp == '0':
+                    continue
                 if not _pubkey_check(tmp):
                     flash('Invalid GPG public key', 'warning')
                     return redirect(url_for('.user_admin',
