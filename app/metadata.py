@@ -118,7 +118,10 @@ def _generate_metadata_kind(filename, items, affidavit=None):
     # generate and upload the detached signature
     if affidavit:
         blob_asc = affidavit.create(blob)
-        _upload_to_cdn(filename + '.asc', blob_asc)
+        filename_asc = filename + '.asc'
+        with open(filename_asc,'w') as f:
+            f.write(blob_asc)
+        _upload_to_cdn(filename_asc, blob_asc)
 
 def _metadata_update_group(group_id):
     """ updates metadata for a specific group_id """
