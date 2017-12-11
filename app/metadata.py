@@ -13,7 +13,7 @@ from app import app, db
 from .hash import _qa_hash
 from .util import _upload_to_cdn, _create_affidavit
 
-def _generate_metadata_kind(filename, items, affidavit=None):
+def _generate_metadata_kind(filename, items, affidavit=None, upload_cdn=True):
     """ Generates AppStream metadata of a specific kind """
     store = appstream.Store('lvfs')
     for item in items:
@@ -113,7 +113,8 @@ def _generate_metadata_kind(filename, items, affidavit=None):
 
     # upload to the CDN
     blob = open(filename, 'rb').read()
-    _upload_to_cdn(filename, blob)
+    if upload_cdn:
+        _upload_to_cdn(filename, blob)
 
     # generate and upload the detached signature
     if affidavit:
@@ -121,7 +122,8 @@ def _generate_metadata_kind(filename, items, affidavit=None):
         filename_asc = filename + '.asc'
         with open(filename_asc,'w') as f:
             f.write(blob_asc)
-        _upload_to_cdn(filename_asc, blob_asc)
+        if upload_cdn:
+            _upload_to_cdn(filename_asc, blob_asc)
 
 def _metadata_update_group(group_id):
     """ updates metadata for a specific group_id """
@@ -141,7 +143,8 @@ def _metadata_update_group(group_id):
     filename = 'firmware-%s.xml.gz' % _qa_hash(group_id)
     _generate_metadata_kind(filename,
                             firmwares_filtered,
-                            affidavit=affidavit)
+                            affidavit=affidavit,
+                            upload_cdn=False)
 
 def _metadata_update_targets(targets):
     """ updates metadata for a specific target """
