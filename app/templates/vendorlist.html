@@ -12,20 +12,22 @@
 </p>
 
 <table class="table">
-  <tr>
-    <th>Vendor</th>
-    <th>fwupd support</th>
-    <th>LVFS account</th>
-    <th>Uploaded firmware</th>
-    <th>Comments</th>
+  <tr class="row">
+    <th class="col-sm-2">Vendor</th>
+    <th class="col-sm-3">fwupd support</th>
+    <th class="col-sm-1">LVFS account</th>
+    <th class="col-sm-1">Uploaded firmware</th>
 {% if session['username'] and session['group_id'] == 'admin' %}
-    <th>&nbsp;</th>
+    <th class="col-sm-4">Comments</th>
+    <th class="col-sm-1">&nbsp;</th>
+{% else %}
+    <th class="col-sm-5">Comments</th>
 {% endif %}
   </tr>
 {% for v in vendors %}
 {% if v.visible or session['group_id'] == 'admin' %}
-  <tr id="{{v.group_id}}">
-    <td>
+  <tr class="row" id="{{v.group_id}}">
+    <td class="col-sm-2">
 {% if v.visible %}
       {{v.display_name}}
 {% else %}
@@ -33,47 +35,49 @@
 {% endif %}
     </td>
 {% if v.is_fwupd_supported == 'no' %}
-    <td class="no">
+    <td class="col-sm-3 no">
       No
     </td>
 {% elif v.is_fwupd_supported == 'yes' %}
-    <td class="yes">
+    <td class="col-sm-3 yes">
       Yes ({{v.plugins}})
     </td>
 {% else %}
-    <td class="na">
+    <td class="col-sm-3 na">
       n/a ({{v.plugins}})
     </td>
 {% endif %}
 {% if v.is_account_holder == 'no' %}
-    <td class="no">
+    <td class="col-sm-1 no">
       No
     </td>
 {% elif v.is_account_holder == 'yes' %}
-    <td class="yes">
+    <td class="col-sm-1 yes">
       Yes
     </td>
 {% else %}
-    <td class="na">
+    <td class="col-sm-2 na">
       n/a
     </td>
 {% endif %}
 {% if v.is_uploading == 'no' %}
-    <td class="no">
+    <td class="col-sm-1 no">
       No
     </td>
 {% elif v.is_uploading == 'yes' %}
-    <td class="yes">
+    <td class="col-sm-1 yes">
       Yes
     </td>
 {% else %}
-    <td class="na">
+    <td class="col-sm-1 na">
       n/a
     </td>
 {% endif %}
-    <td>{{v.description}}</td>
 {% if session['username'] and session['group_id'] == 'admin' %}
-    <td><a class="btn btn-secondary" href="/lvfs/vendor/{{v.group_id}}/details">Edit</a></td>
+    <td class="col-sm-4">{{v.description}}</td>
+    <td class="col-sm-1"><a class="btn btn-secondary" href="/lvfs/vendor/{{v.group_id}}/details">Edit</a></td>
+{% else %}
+    <td class="col-sm-5">{{v.description}}</td>
 {% endif %}
   </tr>
 {% endif %}
