@@ -64,8 +64,6 @@ def serveStaticResource(resource):
 
     # firmware blobs can be stored on a CDN
     if resource.startswith('downloads/'):
-        if app.config['CDN_URI']:
-            return redirect(os.path.join(app.config['CDN_URI'], resource), 301)
         return send_from_directory(app.config['DOWNLOAD_DIR'], os.path.basename(resource))
 
     # static files served locally
