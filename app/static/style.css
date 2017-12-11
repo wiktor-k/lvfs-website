@@ -1,0 +1,9 @@
+td.yes {
+	background-color: #8ae234;
+}
+td.no {
+	background-color: #f57900;
+}
+td.na {
+	background-color: #edd400;
+}

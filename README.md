@@ -108,6 +108,8 @@ Then add something like this to `lvfs-website/app/lvfs.cfg`:
     DATABASE_DB = 'lvfs'
     DATABASE_PORT = 3306
     FIRMWARE_BASEURL = 'https://foo.bar/downloads/'
+    SESSION_COOKIE_SECURE = True
+    REMEMBER_COOKIE_SECURE = True
 
 ## Using the CDN ##
 
@@ -191,6 +193,13 @@ To just restore the database, do:
     mkswap /swapfile
     swapon /swapfile
     free -h
+
+## Configuring SSH ##
+
+ * Copy `KexAlgorithms,Ciphers,MACs` from https://wiki.mozilla.org/Security/Guidelines/OpenSSH
+ * Set `PasswordAuthentication no`
+ * Disable X11 forwarding
+ * Use https://observatory.mozilla.org/ to verify SH config
 
 ## Setting the system hostname ##
 

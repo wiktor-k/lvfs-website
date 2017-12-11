@@ -11,8 +11,10 @@ from flask.ext.login import LoginManager
 from werkzeug.local import LocalProxy
 
 from .db import Database
+from .response import SecureResponse
 
 app = Flask(__name__)
+app.response_class = SecureResponse
 if os.path.exists('custom.cfg'):
     app.config.from_pyfile('custom.cfg')
 else:
