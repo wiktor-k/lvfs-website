@@ -162,7 +162,7 @@ The default admin password is `Pa$$w0rd`
 
 To get just the database you can do:
 
-    mysqldump lvfs > backup-`date +%Y%m%d`.sql
+    mysqldump lvfs > /home/lvfs/backup/lvfs_`date +%Y%m%d`.sql
 
 ## Restoring the database from a backup ##
 
@@ -176,7 +176,7 @@ To just restore the database, do:
 ## Enabling backups using cron ##
 
     crontab -e
-    0 0 * * Sun /usr/bin/mysqldump ... > /home/lvfs/backup/lvfs_$( date +"%Y_%m_%d" ).sql
+    0 0 * * Sun /usr/bin/mysqldump ... > /home/lvfs/backup/lvfs_$( date +"\%Y\%m\%d" ).sql
 
 ## Debugging crashes ##
 
