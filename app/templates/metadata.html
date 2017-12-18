@@ -37,7 +37,7 @@
     <td>Embargoed for &lsquo;{{qa}}&rsquo;</td>
     <td><b>No</b></td>
     <td><a href="/downloads/{{ 'firmware-%s.xml.gz' % format_qa_hash(qa) }}">{{ 'firmware-%s...xml.gz' % format_qa_hash(qa)[0:8] }}</td>
-    <td><code><a href="/lvfs/metadata/{{qa}}">{{qa}}-embargo.remote</a></code></td>
+    <td><code><a href="/lvfs/metadata/{{qa}}">{{qa}}-embargo.conf</a></code></td>
   </tr>
 {% endfor %}
 </table>
@@ -45,7 +45,7 @@
 {% if not session['qa_capability'] %}
 <div class="alert alert-warning mt-1" role="alert">
   End-to-end tests using the metadata can <strong>only</strong> be used with a
-  custom <code>/etc/fwupd/remotes.d/{{group_id}}-embargo.remote</code> file as this user account does not
+  custom <code>/etc/fwupd/remotes.d/{{group_id}}-embargo.conf</code> file as this user account does not
   yet have permission to push to <em>testing</em> or <em>stable</em>.
 </div>
 {% endif %}

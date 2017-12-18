@@ -167,7 +167,7 @@ def metadata_remote(qa_group):
     remote.append('Keyring=gpg')
     remote.append('MetadataURI=https://fwupd.org/downloads/firmware-' + _qa_hash(qa_group) + '.xml.gz')
     remote.append('OrderBefore=lvfs,fwupd')
-    fn = qa_group + '-embargo.remote'
+    fn = qa_group + '-embargo.conf'
     response = make_response('\n'.join(remote))
     response.headers['Content-Disposition'] = 'attachment; filename=' + fn
     response.mimetype='text/plain'
