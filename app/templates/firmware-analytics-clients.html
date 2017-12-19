@@ -1,0 +1,49 @@
+{% extends "default.html" %}
+{% block title %}Firmware Details{% endblock %}
+
+{% block content %}
+<div class="container mt-3">
+
+<script src="/Chart.js"></script>
+<script>
+Chart.defaults.global.animation = false;
+</script>
+
+<nav>
+  <ul class="nav nav-tabs">
+    <li class="nav-item">
+      <a class="nav-link active" href="/lvfs/firmware/{{firmware_id}}/analytics/clients">Recent</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="/lvfs/firmware/{{firmware_id}}/analytics/year">Past Year</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="/lvfs/firmware/{{firmware_id}}/analytics/month">Past Month</a>
+    </li>
+  </ul>
+</nav>
+
+<div class="container mt-3">
+
+<h2>Recent Activity</h2>
+
+<table class="table">
+  <tr class="row">
+    <th class="col-sm-2">Timestamp</th>
+    <th class="col-sm-2">Address</th>
+    <th class="col-sm-8">User Agent</th>
+  </tr>
+{% for c in clients %}
+  <tr class="row">
+    <td class="col-sm-2">{{c.timestamp}}</td>
+    <td class="col-sm-2"><code>{{format_truncate(c.addr,8)}}</code></td>
+    <td class="col-sm-8">{{c.user_agent}}</td>
+  </tr>
+{% endfor %}
+</table>
+
+<a class="btn btn-info" href="/lvfs/firmware/{{firmware_id}}" role="button">&laquo; Back to firmware file</a>
+
+
+</div> <!-- container -->
+{% endblock %}
