@@ -67,7 +67,7 @@ def serveStaticResource(resource):
         return send_from_directory(app.config['DOWNLOAD_DIR'], os.path.basename(resource))
 
     # static files served locally
-    return send_from_directory('app/static/', resource)
+    return send_from_directory(os.path.join(app.root_path, 'static'), resource)
 
 @app.context_processor
 def utility_processor():
