@@ -161,6 +161,17 @@ class Firmware(object):
     def __repr__(self):
         return "Firmware object %s" % self.firmware_id
 
+class Client(object):
+    def __init__(self):
+        """ Constructor for object """
+        self.id = 0
+        self.timestamp = None
+        self.addr = None
+        self.filename = None
+        self.user_agent = None
+    def __repr__(self):
+        return "Client object %s" % self.id
+
 class DownloadKind(object):
     METADATA = 0
     FIRMWARE = 1

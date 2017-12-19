@@ -286,7 +286,7 @@ def firmware_show(firmware_id):
                            cnt_fn=cnt_fn,
                            firmware_id=firmware_id)
 
-@app.route('/lvfs/firmware/<firmware_id>/analytics')
+@app.route('/lvfs/firmware/<firmware_id>/analytics/year')
 @login_required
 def firmware_analytics_year(firmware_id):
     """ Show firmware analytics information """
@@ -310,6 +310,30 @@ def firmware_analytics_year(firmware_id):
                            firmware_id=firmware_id,
                            graph_labels=_get_chart_labels_months()[::-1],
                            graph_data=data_fw[::-1])
+
+@app.route('/lvfs/firmware/<firmware_id>/analytics')
+@app.route('/lvfs/firmware/<firmware_id>/analytics/clients')
+@login_required
+def firmware_analytics_clients(firmware_id):
+    """ Show firmware clients information """
+
+    # get details about the firmware
+    try:
+        item = db.firmware.get_item(firmware_id)
+    except CursorError as e:
+        return _error_internal(str(e))
+    if not item:
+        return _error_internal('No firmware matched!')
+
+    # we can only view our own firmware, unless admin
+    group_id = item.group_id
+    if group_id != session['group_id'] and session['group_id'] != 'admin':
+        return _error_permission_denied('Unable to view other vendor firmware')
+    clients = db.clients.get_all_for_filename(item.filename)
+    return render_template('firmware-analytics-clients.html',
+                           fw=item,
+                           firmware_id=firmware_id,
+                           clients=clients)
 
 @app.route('/lvfs/firmware/<firmware_id>/analytics/month')
 @login_required

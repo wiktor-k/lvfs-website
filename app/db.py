@@ -8,7 +8,7 @@ import cgi
 import datetime
 import MySQLdb as mdb
 
-from .models import User, FirmwareMd, Firmware, FirmwareRequirement, EventLogItem, Group, Vendor
+from .models import User, FirmwareMd, Firmware, FirmwareRequirement, EventLogItem, Group, Vendor, Client
 from .hash import _addr_hash, _password_hash
 
 def _create_user_item(e):
@@ -69,6 +69,15 @@ def _create_firmware_item(e):
     item.firmware_id = e[4]
     item.target = e[5]
     item.version_display = e[6]
+    return item
+
+def _create_client_item(e):
+    item = Client()
+    item.id = e[0]
+    item.timestamp = e[1]
+    item.addr = e[2]
+    item.filename = e[3]
+    item.user_agent = e[4]
     return item
 
 def _create_vendor_item(e):
@@ -754,6 +763,20 @@ class DatabaseClients(object):
                 raise CursorError(cur, e)
             data.append(int(cur.fetchone()[0]))
         return data
+
+    def get_all_for_filename(self, filename, limit=10):
+        """ get the clients """
+        try:
+            cur = self._db.cursor()
+            cur.execute("SELECT id, timestamp, addr, filename, user_agent FROM clients "
+                        "WHERE filename = %s ORDER BY id DESC LIMIT %s",
+                        (filename, limit,))
+        except mdb.Error as e:
+            raise CursorError(cur, e)
+        items = []
+        for e in cur.fetchall():
+            items.append(_create_client_item(e))
+        return items
 
 class DatabaseVendors(object):
 
