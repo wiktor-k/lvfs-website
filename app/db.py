@@ -115,7 +115,10 @@ def _get_datestr_from_datetime(when):
 
 class CursorError(Exception):
     def __init__(self, cur, e):
-        self.value = cgi.escape(cur._last_executed) + '&#10145; ' + cgi.escape(str(e))
+        if hasattr(cur, '_last_executed'):
+            self.value = cgi.escape(cur._last_executed) + '&#10145; ' + cgi.escape(str(e))
+        else:
+            self.value = cgi.escape(str(e))
     def __str__(self):
         return repr(self.value)
 
