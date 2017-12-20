@@ -101,6 +101,7 @@ def _create_eventlog_item(e):
     item.address = e[3]
     item.message = e[4]
     item.is_important = e[5]
+    item.request = e[6]
     return item
 
 def _create_group_id(e):
@@ -148,6 +149,10 @@ class Database(object):
     def verify(self):
         """ repairs database when required """
         cur = self._db.cursor()
+        try:
+            cur.execute("SELECT request FROM event_log LIMIT 1;")
+        except mdb.Error as e:
+            cur.execute('ALTER TABLE event_log ADD COLUMN request TEXT DEFAULT NULL;')
         try:
             cur.execute("SELECT group_id FROM users LIMIT 1;")
         except mdb.Error as e:
@@ -562,7 +567,7 @@ class DatabaseEventlog(object):
         """ Constructor for object """
         self._db = db
 
-    def add(self, msg, username, group_id, addr, is_important):
+    def add(self, msg, username, group_id, addr, is_important, request=None):
         """ Adds an item to the event log """
         assert msg
         assert username
@@ -570,9 +575,10 @@ class DatabaseEventlog(object):
         assert addr
         try:
             cur = self._db.cursor()
-            cur.execute("INSERT INTO event_log (username, group_id, addr, message, is_important) "
-                        "VALUES (%s, %s, %s, %s, %s);",
-                        (username, group_id, addr, msg, is_important,))
+            cur.execute("INSERT INTO event_log (username, group_id, addr, message, "
+                        "is_important, request) "
+                        "VALUES (%s, %s, %s, %s, %s, %s);",
+                        (username, group_id, addr, msg, is_important, request))
         except mdb.Error as e:
             raise CursorError(cur, e)
 
@@ -605,7 +611,8 @@ class DatabaseEventlog(object):
         """ Gets the event log items """
         try:
             cur = self._db.cursor()
-            cur.execute("SELECT timestamp, username, group_id, addr, message, is_important "
+            cur.execute("SELECT timestamp, username, group_id, addr, message, "
+                        "is_important, request "
                         "FROM event_log ORDER BY id DESC LIMIT %s,%s;",
                         (start, length,))
         except mdb.Error as e:
@@ -622,7 +629,8 @@ class DatabaseEventlog(object):
         """ Gets the event log items """
         try:
             cur = self._db.cursor()
-            cur.execute("SELECT timestamp, username, group_id, addr, message, is_important "
+            cur.execute("SELECT timestamp, username, group_id, addr, message, "
+                        "is_important, request "
                         "FROM event_log WHERE group_id = %s ORDER BY id DESC LIMIT %s,%s;",
                         (group_id, start, length,))
         except mdb.Error as e:

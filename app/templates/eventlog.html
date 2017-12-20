@@ -27,6 +27,9 @@
       &#x272a;
 {% endif %}
       {{e.message}}
+{% if e.request %}
+      <code>{{e.request}}</code>
+{% endif %}
     </td>
   </tr>
 {% endfor %}

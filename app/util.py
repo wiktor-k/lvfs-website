@@ -43,6 +43,7 @@ def _event_log(msg, is_important=False):
     """ Adds an item to the event log """
     username = None
     group_id = None
+    request_path = None
     if 'username' in session:
         username = session['username']
     if not username:
@@ -51,8 +52,10 @@ def _event_log(msg, is_important=False):
         group_id = session['group_id']
     if not group_id:
         group_id = 'admin'
+    if request:
+        request_path = request.path
     db.eventlog.add(msg, username, group_id,
-                    _get_client_address(), is_important)
+                    _get_client_address(), is_important, request_path)
 
 def _error_internal(msg=None, errcode=402):
     """ Error handler: Internal """

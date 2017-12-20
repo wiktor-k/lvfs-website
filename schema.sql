@@ -89,6 +89,7 @@ CREATE TABLE event_log (
   addr VARCHAR(40) DEFAULT NULL,
   message TEXT DEFAULT NULL,
   is_important TINYINT DEFAULT 0,
+  request TEXT DEFAULT NULL,
   UNIQUE KEY id (id)
 ) CHARSET=utf8;
 

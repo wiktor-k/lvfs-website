@@ -83,6 +83,7 @@ class EventLogItem(object):
         self.group_id = None
         self.address = None
         self.message = None
+        self.request = None
         self.is_important = False
     def __repr__(self):
         return "EventLogItem object %s" % self.message
