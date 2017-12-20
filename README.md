@@ -206,3 +206,8 @@ To just restore the database, do:
 Add this to `/etc/hosts/`
     127.0.0.1       fwupd.org
     127.0.0.1       www.fwupd.org
+
+## Locking down the server ##
+
+ * Disable the rpcbind socket activation: `systemctl disable rpcbind.socket`
+ * Disable all networking in MariaDB by adding `skip-networking` to `/etc/my.cnf`
