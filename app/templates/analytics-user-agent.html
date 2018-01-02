@@ -1,0 +1,56 @@
+{% extends "default.html" %}
+{% block title %}Analytics{% endblock %}
+
+{% block content %}
+<div class="container mt-3">
+
+<script src="/Chart.js"></script>
+<script>
+Chart.defaults.global.animation = false;
+</script>
+
+<nav>
+  <ul class="nav nav-tabs">
+    <li class="nav-item">
+      <a class="nav-link" href="/lvfs/analytics/month">Past Month</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="/lvfs/analytics/year">Past Year</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link active" href="/lvfs/analytics/user_agent">User Agents</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="/lvfs/analytics/clients">Clients</a>
+    </li>
+  </ul>
+</nav>
+
+<div class="container mt-3">
+
+<h2>Firmware Downloads by User Agent</h2>
+<canvas id="metadataChartUserAgents" width="1000" height="600"></canvas>
+<script>
+var ctx = document.getElementById("metadataChartUserAgents").getContext("2d");
+var data = {
+    labels: {{labels_user_agent|safe}},
+    datasets: [
+        {
+            label: "User Agents",
+            fillColor: "rgba(20,120,220,0.2)",
+            strokeColor: "rgba(20,120,120,0.1)",
+            pointColor: "rgba(20,120,120,0.3)",
+            pointStrokeColor: "#fff",
+            pointHighlightFill: "#fff",
+            pointHighlightStroke: "rgba(220,220,220,1)",
+            data: {{data_user_agent|safe}}
+        },
+    ]
+};
+var myLineChartUserAgent = new Chart(ctx).Bar(data, null);
+</script>
+
+</div>
+
+</div> <!-- container -->
+{% endblock %}

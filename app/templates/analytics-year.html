@@ -1,5 +1,5 @@
 {% extends "default.html" %}
-{% block title %}Firmware Details{% endblock %}
+{% block title %}Analytics{% endblock %}
 
 {% block content %}
 <div class="container mt-3">
@@ -12,44 +12,45 @@ Chart.defaults.global.animation = false;
 <nav>
   <ul class="nav nav-tabs">
     <li class="nav-item">
-      <a class="nav-link" href="/lvfs/firmware/{{firmware_id}}/analytics/clients">Recent</a>
+      <a class="nav-link" href="/lvfs/analytics/month">Past Month</a>
     </li>
     <li class="nav-item">
-      <a class="nav-link active" href="/lvfs/firmware/{{firmware_id}}/analytics/year">Past Year</a>
+      <a class="nav-link active" href="/lvfs/analytics/year">Past Year</a>
     </li>
     <li class="nav-item">
-      <a class="nav-link" href="/lvfs/firmware/{{firmware_id}}/analytics/month">Past Month</a>
+      <a class="nav-link" href="/lvfs/analytics/user_agent">User Agents</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="/lvfs/analytics/clients">Clients</a>
     </li>
   </ul>
 </nav>
 
 <div class="container mt-3">
 
-<h2>User Downloads</h2>
+<h2>Firmware Downloads</h2>
 <canvas id="metadataChartMonths" width="1000" height="600"></canvas>
 <script>
 var ctx = document.getElementById("metadataChartMonths").getContext("2d");
 var data = {
-    labels: {{graph_labels|safe}},
+    labels: {{labels_months|safe}},
     datasets: [
         {
             label: "Firmware",
-            fillColor: "rgba(251,14,5,0.2)",
-            strokeColor: "rgba(151,14,5,0.1)",
-            pointColor: "rgba(151,14,5,0.3)",
+            fillColor: "rgba(20,120,220,0.2)",
+            strokeColor: "rgba(20,120,120,0.1)",
+            pointColor: "rgba(20,120,120,0.3)",
             pointStrokeColor: "#fff",
             pointHighlightFill: "#fff",
-            pointHighlightStroke: "rgba(151,187,205,1)",
-            data: {{graph_data}}
+            pointHighlightStroke: "rgba(220,220,220,1)",
+            data: {{data_months|safe}}
         },
     ]
 };
 var myLineChartMonths = new Chart(ctx).Line(data, null);
 </script>
+
 </div>
-
-<a class="btn btn-info" href="/lvfs/firmware/{{firmware_id}}" role="button">&laquo; Back to firmware file</a>
-
 
 </div> <!-- container -->
 {% endblock %}

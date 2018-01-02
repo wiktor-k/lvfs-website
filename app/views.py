@@ -522,8 +522,9 @@ def upload():
     return redirect(url_for('.firmware_show', firmware_id=firmware_id))
 
 @app.route('/lvfs/analytics')
+@app.route('/lvfs/analytics/month')
 @login_required
-def analytics():
+def analytics_month():
     """ A analytics screen to show information about users """
 
     # security check
@@ -531,16 +532,47 @@ def analytics():
         return _error_permission_denied('Unable to view analytics')
     labels_days = _get_chart_labels_days()[::-1]
     data_days = db.clients.get_stats_for_month(DownloadKind.FIRMWARE)[::-1]
+    return render_template('analytics-month.html',
+                           labels_days=labels_days,
+                           data_days=data_days)
+
+@app.route('/lvfs/analytics/year')
+@login_required
+def analytics_year():
+    """ A analytics screen to show information about users """
+
+    # security check
+    if session['group_id'] != 'admin':
+        return _error_permission_denied('Unable to view analytics')
     labels_months = _get_chart_labels_months()[::-1]
     data_months = db.clients.get_stats_for_year(DownloadKind.FIRMWARE)[::-1]
-    labels_user_agent, data_user_agent = db.clients.get_user_agent_stats()
-    return render_template('analytics.html',
-                           labels_days=labels_days,
-                           data_days=data_days,
+    return render_template('analytics-year.html',
                            labels_months=labels_months,
-                           data_months=data_months,
+                           data_months=data_months)
+
+@app.route('/lvfs/analytics/user_agent')
+@login_required
+def analytics_user_agents():
+    """ A analytics screen to show information about users """
+
+    # security check
+    if session['group_id'] != 'admin':
+        return _error_permission_denied('Unable to view analytics')
+    labels_user_agent, data_user_agent = db.clients.get_user_agent_stats()
+    return render_template('analytics-user-agent.html',
                            labels_user_agent=labels_user_agent,
                            data_user_agent=data_user_agent)
+
+@app.route('/lvfs/analytics/clients')
+@login_required
+def analytics_clients():
+    """ A analytics screen to show information about users """
+
+    # security check
+    if session['group_id'] != 'admin':
+        return _error_permission_denied('Unable to view analytics')
+    clients = db.clients.get_all(limit=25)
+    return render_template('analytics-clients.html', clients=clients)
 
 @app.route('/lvfs/login', methods=['POST'])
 def login():

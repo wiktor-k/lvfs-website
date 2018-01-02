@@ -789,6 +789,20 @@ class DatabaseClients(object):
             items.append(_create_client_item(e))
         return items
 
+    def get_all(self, limit=10):
+        """ get the clients """
+        try:
+            cur = self._db.cursor()
+            cur.execute("SELECT id, timestamp, addr, filename, user_agent FROM clients "
+                        "ORDER BY id DESC LIMIT %s",
+                        (limit,))
+        except mdb.Error as e:
+            raise CursorError(cur, e)
+        items = []
+        for e in cur.fetchall():
+            items.append(_create_client_item(e))
+        return items
+
 class DatabaseVendors(object):
 
     def __init__(self, db):

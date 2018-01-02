@@ -1,0 +1,48 @@
+{% extends "default.html" %}
+{% block title %}Analytics{% endblock %}
+
+{% block content %}
+<div class="container mt-3">
+
+<nav>
+  <ul class="nav nav-tabs">
+    <li class="nav-item">
+      <a class="nav-link" href="/lvfs/analytics/month">Past Month</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="/lvfs/analytics/year">Past Year</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="/lvfs/analytics/user_agent">User Agents</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link active" href="/lvfs/analytics/clients">Clients</a>
+    </li>
+  </ul>
+</nav>
+
+<div class="container mt-3">
+
+<h2>Recent Activity</h2>
+
+<table class="table">
+  <tr class="row">
+    <th class="col-sm-2">Timestamp</th>
+    <th class="col-sm-2">Address</th>
+    <th class="col-sm-4">Filename</th>
+    <th class="col-sm-4">User Agent</th>
+  </tr>
+{% for c in clients %}
+  <tr class="row">
+    <td class="col-sm-2">{{c.timestamp}}</td>
+    <td class="col-sm-2"><code>{{format_truncate(c.addr,8)}}</code></td>
+    <td class="col-sm-4">{{c.filename}}</td>
+    <td class="col-sm-4">{{c.user_agent}}</td>
+  </tr>
+{% endfor %}
+</table>
+
+</div>
+
+</div> <!-- container -->
+{% endblock %}
