@@ -203,8 +203,3 @@ def _metadata_update_pulp():
     f = open(filename, 'w')
     f.writelines(data)
     f.close()
-
-    # upload to CDN
-    blob = open(filename, 'rb').read()
-    _upload_to_cdn(filename, blob)
-    return

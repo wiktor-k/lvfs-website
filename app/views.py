@@ -25,7 +25,7 @@ from .models import Firmware, FirmwareMd, FirmwareRequirement, DownloadKind
 from .affidavit import NoKeyError
 from .inf_parser import InfParser
 from .hash import _qa_hash, _password_hash
-from .util import _upload_to_cdn, _create_affidavit, _event_log, _get_client_address
+from .util import _create_affidavit, _event_log, _get_client_address
 from .util import _error_internal, _error_permission_denied
 from .util import _get_chart_labels_months, _get_chart_labels_days
 from .metadata import _metadata_update_group, _metadata_update_targets, _metadata_update_pulp
@@ -432,9 +432,6 @@ def upload():
         os.mkdir(download_dir)
     fn = os.path.join(download_dir, new_filename)
     open(fn, 'wb').write(cab_data)
-
-    # dump to the CDN
-    _upload_to_cdn(new_filename, StringIO(cab_data))
 
     # create parent firmware object
     target = request.form['target']
