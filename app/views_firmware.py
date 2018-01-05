@@ -243,10 +243,13 @@ def firmware_promote(firmware_id, target):
     # update everything
     try:
         _metadata_update_group(item.group_id)
-        if target == 'stable':
-            _metadata_update_targets(['stable', 'testing'])
-        elif target == 'testing':
-            _metadata_update_targets(['testing'])
+        targets = []
+        if target == 'stable' or item.target == 'stable':
+            targets.append('stable')
+        if target == 'testing' or item.target == 'testing':
+            targets.append('testing')
+        if len(targets) > 0:
+            _metadata_update_targets(targets)
     except NoKeyError as e:
         return _error_internal('Failed to sign metadata: ' + str(e))
     except CursorError as e:
