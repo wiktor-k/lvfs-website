@@ -623,6 +623,8 @@ def firmware_report():
     reports = item['Reports']
     if len(reports) == 0:
         return json_error('no reports included')
+
+    msgs = []
     for report in reports:
         for key in ['Checksum', 'UpdateState']:
             if not key in report:
@@ -634,10 +636,12 @@ def firmware_report():
             # try to find the firmware_id (which might not exist on this server)
             firmware_id = db.firmware.get_id_from_container_checksum(checksum)
             if not firmware_id:
+                msgs.append('%s did not match any known firmware archive' % checksum)
                 continue
             # remove any old report
             report_old = db.reports.find_by_id_checksum(machine_id, checksum)
             if report_old:
+                msgs.append('%s replaces old report' % checksum)
                 db.reports.remove_by_id(report_old.id)
 
             # copy common keys
@@ -651,4 +655,10 @@ def firmware_report():
             db.reports.add(report['UpdateState'], machine_id, firmware_id, checksum, json_raw)
         except CursorError as e:
             return json_error(str(e))
+
+    # get a message on one line
+    if len(msgs) > 0:
+        return json_success('\n'.join(msgs))
+
+    # no messages to report
     return json_success()
