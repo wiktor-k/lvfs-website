@@ -604,6 +604,17 @@ def report_view(report_id):
                     status=400, \
                     mimetype="application/json")
 
+@app.route('/lvfs/report/<report_id>/delete')
+@login_required
+def report_delete(report_id):
+    if session['group_id'] != 'admin':
+        return _error_permission_denied('Unable to view report')
+    try:
+        db.reports.remove_by_id(report_id)
+    except CursorError as e:
+        return _error_internal(str(e))
+    return redirect(url_for('.analytics_reports'))
+
 @app.route('/lvfs/login', methods=['POST'])
 def login():
     """ A login screen to allow access to the LVFS main page """
