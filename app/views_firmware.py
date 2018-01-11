@@ -608,14 +608,14 @@ def firmware_report():
         return json_error(str(e))
 
     # check we got enough data
-    for key in ['ReportVersion', 'MachineId', 'Reports']:
+    for key in ['ReportVersion', 'MachineId', 'Reports', 'Metadata']:
         if not key in item:
             return json_error('invalid data, expected %s' % key)
         if item[key] is None:
             return json_error('missing data, expected %s' % key)
 
     # parse only this version
-    if item['ReportVersion'] != 1:
+    if item['ReportVersion'] != 2:
         return json_error('report version not supported')
 
     # add each firmware report
@@ -623,15 +623,19 @@ def firmware_report():
     reports = item['Reports']
     if len(reports) == 0:
         return json_error('no reports included')
+    metadata = item['Metadata']
+    if len(metadata) == 0:
+        return json_error('no metadata included')
 
     msgs = []
     for report in reports:
-        for key in ['Checksum', 'UpdateState']:
+        for key in ['Checksum', 'UpdateState', 'Metadata']:
             if not key in report:
                 return json_error('invalid data, expected %s' % key)
             if report[key] is None:
                 return json_error('missing data, expected %s' % key)
         checksum = report['Checksum']
+        report_metadata = report['Metadata']
         try:
             # try to find the firmware_id (which might not exist on this server)
             firmware_id = db.firmware.get_id_from_container_checksum(checksum)
@@ -644,10 +648,11 @@ def firmware_report():
                 msgs.append('%s replaces old report' % checksum)
                 db.reports.remove_by_id(report_old.id)
 
-            # copy common keys
-            for root_key in item:
-                if root_key != 'Reports':
-                    report[root_key] = item[root_key]
+            # copy shared metadata
+            for key in metadata:
+                if key in report_metadata:
+                    continue
+                report_metadata[key] = metadata[key]
 
             # save in the database
             json_raw = json.dumps(report, sort_keys=True,
