@@ -233,11 +233,14 @@ def upload():
         return _error_internal('No file object')
     data = fileitem.read()
     if len(data) > 50000000:
-        return _error_internal('File too large, limit is 50Mb', 413)
+        flash('File too large, limit is 50Mb', 'danger')
+        return redirect(request.url)
     if len(data) == 0:
-        return _error_internal('File has no content')
+        flash('File has no content', 'danger')
+        return redirect(request.url)
     if len(data) < 1024:
-        return _error_internal('File too small, mimimum is 1k')
+        flash('File too small, mimimum is 1k', 'danger')
+        return redirect(request.url)
 
     # check the file does not already exist
     firmware_id = hashlib.sha1(data).hexdigest()
@@ -246,7 +249,9 @@ def upload():
     except CursorError as e:
         return _error_internal(str(e))
     if item:
-        return _error_internal("A firmware file with hash %s already exists" % firmware_id, 422)
+        flash('A firmware file with hash %s already exists' % firmware_id, 'danger')
+        return redirect(request.url)
+
 
     # parse the file
     arc = cabarchive.CabArchive()
@@ -256,9 +261,11 @@ def upload():
             arc.set_decompressor(cabextract_cmd)
         arc.parse(data)
     except cabarchive.CorruptionError as e:
-        return _error_internal('Invalid file type: %s' % str(e), 415)
+        flash('Invalid file type: %s' % str(e), 'danger')
+        return redirect(request.url)
     except cabarchive.NotSupportedError as e:
-        return _error_internal('The file is unsupported: %s' % str(e), 415)
+        flash('The file is unsupported: %s' % str(e), 'danger')
+        return redirect(request.url)
 
     # check .inf exists
     fw_version_inf = None
@@ -266,8 +273,9 @@ def upload():
     cf = arc.find_file("*.inf")
     if cf:
         if cf.contents.find('FIXME') != -1:
-            return _error_internal("The inf file was not complete; "
-                                   "Any FIXME text must be replaced with the correct values.")
+            flash('The inf file was not complete; Any FIXME text must be '
+                  'replaced with the correct values.', 'danger')
+            return redirect(request.url)
 
         # check .inf file is valid
         cfg = InfParser()
@@ -275,20 +283,25 @@ def upload():
         try:
             tmp = cfg.get('Version', 'Class')
         except (ConfigParser.NoOptionError, ConfigParser.NoSectionError) as e:
-            return _error_internal('The inf file Version:Class was missing')
+            flash('The inf file Version:Class was missing', 'danger')
+            return redirect(request.url)
         if tmp != 'Firmware':
-            return _error_internal('The inf file Version:Class was invalid')
+            flash('The inf file Version:Class was invalid', 'danger')
+            return redirect(request.url)
         try:
             tmp = cfg.get('Version', 'ClassGuid')
         except ConfigParser.NoOptionError as e:
-            return _error_internal('The inf file Version:ClassGuid was missing')
+            flash('The inf file Version:ClassGuid was missing', 'danger')
+            return redirect(request.url)
         if tmp != '{f2e7dd72-6468-4e36-b6f1-6488f42c1b52}':
-            return _error_internal('The inf file Version:ClassGuid was invalid')
+            flash('The inf file Version:ClassGuid was invalid', 'danger')
+            return redirect(request.url)
         try:
             tmp = cfg.get('Version', 'DriverVer')
             fw_version_display_inf = tmp.split(',')
             if len(fw_version_display_inf) != 2:
-                return _error_internal('The inf file Version:DriverVer was invalid')
+                flash('The inf file Version:DriverVer was invalid', 'danger')
+                return redirect(request.url)
         except ConfigParser.NoOptionError as e:
             pass
 
@@ -306,7 +319,8 @@ def upload():
     # check metainfo exists
     cfs = arc.find_files("*.metainfo.xml")
     if len(cfs) == 0:
-        return _error_internal('The firmware file had no .metadata.xml files')
+        flash('The firmware file had no .metadata.xml files', 'danger')
+        return redirect(request.url)
 
     # parse each MetaInfo file
     apps = []
@@ -316,29 +330,36 @@ def upload():
             component.parse(str(cf.contents))
             component.validate()
         except appstream.ParseError as e:
-            return _error_internal('The metadata %s could not be parsed: %s' % (cf, str(e)))
+            flash('The metadata %s could not be parsed: %s' % (cf, str(e)), 'danger')
+            return redirect(request.url)
         except appstream.ValidationError as e:
-            return _error_internal('The metadata %s file did not validate: %s' % (cf, str(e)))
+            flash('The metadata %s file did not validate: %s' % (cf, str(e)), 'danger')
+            return redirect(request.url)
 
         # get the metadata ID
         component.custom['metainfo_id'] = hashlib.sha1(cf.contents).hexdigest()
 
         # check the file does not have any missing request.form
         if cf.contents.find('FIXME') != -1:
-            return _error_internal("The metadata file was not complete; "
-                                   "Any FIXME text must be replaced with the correct values.")
+            flash('The metadata file was not complete; '
+                  'Any FIXME text must be replaced with the correct values.',
+                  'danger')
+            return redirect(request.url)
 
         # check the firmware provides something
         if len(component.provides) == 0:
-            return _error_internal("The metadata file did not provide any GUID.")
+            flash('The metadata file did not provide any GUID.', 'danger')
+            return redirect(request.url)
         if len(component.releases) == 0:
-            return _error_internal("The metadata file did not provide any releases.")
+            flash('The metadata file did not provide any releases.', 'danger')
+            return redirect(request.url)
 
         # check the inf file matches up with the .xml file
         if fw_version_inf and fw_version_inf != component.releases[0].version:
-            return _error_internal("The inf Firmware_AddReg[HKR->FirmwareVersion] "
-                                   "'%s' did not match the metainfo.xml value '%s'."
-                                   % (fw_version_inf, component.releases[0].version))
+            flash('The inf Firmware_AddReg[HKR->FirmwareVersion] '
+                  '%s did not match the metainfo.xml value %s.'
+                  % (fw_version_inf, component.releases[0].version), 'danger')
+            return redirect(request.url)
 
         # check the guid and version does not already exist
         try:
@@ -349,7 +370,8 @@ def upload():
             for md in item.mds:
                 for guid in md.guids:
                     if guid == component.provides[0].value and md.version == component.releases[0].version:
-                        return _error_internal("A firmware file for this version already exists", 422)
+                        flash('A firmware file for this version already exists', 'danger')
+                        return redirect('/lvfs/firmware/%s' % item.firmware_id)
 
         # check if the file dropped a GUID previously supported
         new_guids = []
@@ -361,13 +383,16 @@ def upload():
                     continue
                 for old_guid in md.guids:
                     if not old_guid in new_guids:
-                        return _error_internal("Firmware %s dropped a GUID previously supported %s" % (md.cid, old_guid), 422)
+                        flash('Firmware %s dropped a GUID previously '
+                              'supported %s' % (md.cid, old_guid), 'danger')
+                        return redirect(request.url)
 
         # check the file didn't try to add it's own <require> on vendor-id
         # to work around the vendor-id security checks in fwupd
         req = component.get_require_by_kind('firmware', 'vendor-id')
         if req:
-            return _error_internal("Firmware cannot specify vendor-id", 422)
+            flash('Firmware cannot specify vendor-id', 'danger')
+            return redirect(request.url)
 
         # add to array
         apps.append(component)
@@ -394,7 +419,8 @@ def upload():
         # get the contents checksum
         fw_data = arc.find_file(csum.filename)
         if not fw_data:
-            return _error_internal('No %s found in the archive' % csum.filename)
+            flash('No %s found in the archive' % csum.filename, 'danger')
+            return redirect(request.url)
         csum.kind = 'sha1'
         csum.value = hashlib.sha1(fw_data.contents).hexdigest()
 
