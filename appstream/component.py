@@ -40,6 +40,16 @@ else:
     # But python3 has distinct types
     string_types = (str, bytes)
 
+def _escape(tmp):
+    convert = {
+      "&" : "&amp;",
+      "<" : "&lt;",
+      ">" : "&gt;",
+    }
+    for key in convert:
+        tmp = tmp.replace(key, convert[key])
+    return tmp
+
 class Checksum(object):
     def __init__(self):
         """ Set defaults """
@@ -48,7 +58,7 @@ class Checksum(object):
         self.value = None
         self.filename = None
     def to_xml(self):
-        return '        <checksum filename="%s" target="%s" type="sha1">%s</checksum>\n' % (self.filename, self.target, self.value)
+        return '        <checksum filename="%s" target="%s" type="sha1">%s</checksum>\n' % (_escape(self.filename), self.target, self.value)
     def _parse_tree(self, node):
         """ Parse a <checksum> object """
         if 'filename' in node.attrib:
