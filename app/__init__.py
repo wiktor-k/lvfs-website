@@ -15,7 +15,7 @@ from .response import SecureResponse
 
 app = Flask(__name__)
 app.response_class = SecureResponse
-if os.path.exists('custom.cfg'):
+if os.path.exists('app/custom.cfg'):
     app.config.from_pyfile('custom.cfg')
 else:
     app.config.from_pyfile('flaskapp.cfg')
