@@ -23,6 +23,8 @@ def _create_affidavit():
 
 def _upload_to_cdn(fn, blob):
     """ Upload something to the CDN """
+    if 'CDN_BUCKET' not in app.config:
+        return
     if not app.config['CDN_BUCKET']:
         return
     key = os.path.join("downloads/", os.path.basename(fn))
