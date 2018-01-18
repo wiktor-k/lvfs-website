@@ -81,7 +81,7 @@ def _generate_metadata_kind(filename, items, affidavit=None, upload_cdn=True):
 
             # add requires for each allowed vendor_ids
             group = db.groups.get_item(item.group_id)
-            if group.vendor_ids:
+            if group and group.vendor_ids:
                 req = appstream.Require()
                 req.kind = 'firmware'
                 req.value = 'vendor-id'
