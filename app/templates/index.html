@@ -53,9 +53,11 @@
 </div> <!-- /container -->
 
 {% if default_admin_password %}
-<p>
-  <b>WARNING</b> the default admin password <code>Pa$$w0rd</code> is still in use!
-</p>
+<div class="container mt-3">
+  <div class="alert alert-danger" role="alert">
+    <b>WARNING</b> the default admin password <code>Pa$$w0rd</code> is still in use!
+  </div>
+</div>
 {% endif %}
 
 {% endblock %}
