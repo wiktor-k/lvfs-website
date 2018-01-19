@@ -129,3 +129,13 @@ CREATE TABLE reports (
   checksum VARCHAR(64) DEFAULT NULL,
   UNIQUE KEY id (id)
 ) CHARSET=utf8;
+
+DROP TABLE IF EXISTS settings;
+CREATE TABLE settings (
+  id INT NOT NULL AUTO_INCREMENT,
+  config_key TEXT DEFAULT NULL,
+  config_value TEXT DEFAULT NULL,
+  UNIQUE KEY id (id)
+) CHARSET=utf8;
+INSERT INTO settings (config_key, config_value)
+  VALUES ('server_warning', 'This is a test instance and may be broken at any time.');

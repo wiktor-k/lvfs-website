@@ -157,6 +157,7 @@ class Database(object):
         self.firmware = DatabaseFirmware(self._db)
         self.vendors = DatabaseVendors(self._db)
         self.reports = DatabaseReports(self._db)
+        self.settings = DatabaseSettings(self._db)
 
     def verify(self):
         """ repairs database when required """
@@ -984,3 +985,33 @@ class DatabaseVendors(object):
         if not res:
             return None
         return _create_vendor_item(res)
+
+class DatabaseSettings(object):
+
+    def __init__(self, db):
+        """ Constructor for object """
+        self._db = db
+
+    def modify(self, key, value):
+        """ Update vendor details """
+        assert key
+        try:
+            cur = self._db.cursor()
+            cur.execute("UPDATE settings SET config_value=%s WHERE config_key=%s;", (value, key,))
+        except mdb.Error as e:
+            raise CursorError(cur, e)
+
+    def get_all(self):
+        """ Get all the vendors """
+        try:
+            cur = self._db.cursor()
+            cur.execute("SELECT config_key, config_value FROM settings;")
+        except mdb.Error as e:
+            raise CursorError(cur, e)
+        res = cur.fetchall()
+        if not res:
+            return []
+        settings = {}
+        for e in res:
+            settings[e[0]] = e[1]
+        return settings

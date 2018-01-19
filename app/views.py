@@ -137,10 +137,12 @@ def vendors():
 @app.route('/lvfs/')
 def index():
     user = db.users.get_item('admin')
+    settings = db.settings.get_all()
     default_admin_password = False
     if user and user.password == '5459dbe5e9aa80e077bfa40f3fb2ca8368ed09b4':
         default_admin_password = True
     return render_template('index.html',
+                           server_warning=settings['server_warning'],
                            default_admin_password=default_admin_password)
 
 @app.route('/lvfs/newaccount')
@@ -804,6 +806,52 @@ def profile():
                            vendor_name=item.display_name,
                            contact_email=item.email,
                            pubkey=item.pubkey)
+
+@app.route('/lvfs/settings')
+@login_required
+def settings():
+    """
+    Allows the admin to change details about the LVFS instance
+    """
+
+    # security check
+    if session['group_id'] != 'admin':
+        return _error_permission_denied('Only admin is allowed to change settings')
+
+    # get all settings
+    try:
+        settings = db.settings.get_all()
+    except CursorError as e:
+        return _error_internal(str(e))
+    return render_template('settings.html',
+                           settings=settings)
+
+@app.route('/lvfs/settings/modify', methods=['GET', 'POST'])
+@login_required
+def settings_modify():
+    """ Change details about the instance """
+
+    # only accept form data
+    if request.method != 'POST':
+        return redirect(url_for('.index'))
+
+    # security check
+    if session['group_id'] != 'admin':
+        return _error_permission_denied('Unable to modify settings as non-admin')
+
+    # not enough data
+    for key in ['server_warning']:
+        if key not in request.form:
+            return _error_internal('no key %s in form data' % key)
+
+    # save new values
+    try:
+        db.settings.modify('server_warning', request.form['server_warning'])
+    except CursorError as e:
+        return _error_internal(str(e))
+    _event_log('Changed server settings')
+    flash('Updated settings', 'info')
+    return redirect(url_for('.settings'))
 
 @app.route('/lvfs/metadata_rebuild')
 @login_required

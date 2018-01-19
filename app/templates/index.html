@@ -3,6 +3,14 @@
 
 {% block content %}
 
+{% if server_warning %}
+<div class="container mt-3">
+  <div class="alert alert-warning" role="alert">
+    <b>WARNING:</b>{{server_warning}}
+  </div>
+</div>
+{% endif %}
+
 <div class="jumbotron">
   <div class="container">
     <h1 class="display-3">Linux Vendor Firmware Service</h1>
