@@ -139,3 +139,5 @@ CREATE TABLE settings (
 ) CHARSET=utf8;
 INSERT INTO settings (config_key, config_value)
   VALUES ('server_warning', 'This is a test instance and may be broken at any time.');
+INSERT INTO settings (config_key, config_value)
+  VALUES ('firmware_baseuri', 'https://fwupd.org/downloads/');

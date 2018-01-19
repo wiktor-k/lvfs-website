@@ -69,7 +69,6 @@ DATABASE_USERNAME = '${dbusername}'
 DATABASE_PASSWORD = '${dbpassword}'
 DATABASE_DB = 'lvfs'
 DATABASE_PORT = 3306
-FIRMWARE_BASEURL = '${server_baseurl}/downloads/'
 SESSION_COOKIE_SECURE = ${using_ssl}
 REMEMBER_COOKIE_SECURE = ${using_ssl}
 ",

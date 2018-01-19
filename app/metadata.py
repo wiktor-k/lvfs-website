@@ -13,7 +13,8 @@ from app import app, db
 from .hash import _qa_hash
 from .util import _upload_to_cdn, _create_affidavit
 
-def _generate_metadata_kind(filename, items, affidavit=None, upload_cdn=True):
+def _generate_metadata_kind(filename, items, firmware_baseurl='',
+                            affidavit=None, upload_cdn=True):
     """ Generates AppStream metadata of a specific kind """
     store = appstream.Store('lvfs')
     for item in items:
@@ -47,7 +48,7 @@ def _generate_metadata_kind(filename, items, affidavit=None, upload_cdn=True):
                 if md.release_timestamp:
                     rel.timestamp = md.release_timestamp
                 rel.checksums = []
-                rel.location = app.config['FIRMWARE_BASEURL'] + item.filename
+                rel.location = firmware_baseurl + item.filename
                 rel.size_installed = md.release_installed_size
                 rel.size_download = md.release_download_size
                 rel.urgency = md.release_urgency
@@ -129,6 +130,7 @@ def _metadata_update_group(group_id):
     """ updates metadata for a specific group_id """
 
     # get all firmwares in this group
+    settings = db.settings.get_all()
     firmwares = db.firmware.get_all()
     firmwares_filtered = []
     for f in firmwares:
@@ -143,6 +145,7 @@ def _metadata_update_group(group_id):
     filename = 'firmware-%s.xml.gz' % _qa_hash(group_id)
     _generate_metadata_kind(filename,
                             firmwares_filtered,
+                            firmware_baseurl=settings['firmware_baseurl'],
                             affidavit=affidavit,
                             upload_cdn=False)
 
@@ -150,6 +153,7 @@ def _metadata_update_targets(targets):
     """ updates metadata for a specific target """
     affidavit = _create_affidavit()
     firmwares = db.firmware.get_all()
+    settings = db.settings.get_all()
     for target in targets:
         firmwares_filtered = []
         for f in firmwares:
@@ -161,10 +165,12 @@ def _metadata_update_targets(targets):
         if target == 'stable':
             _generate_metadata_kind('firmware.xml.gz',
                                     firmwares_filtered,
+                                    firmware_baseurl=settings['firmware_baseurl'],
                                     affidavit=affidavit)
         elif target == 'testing':
             _generate_metadata_kind('firmware-testing.xml.gz',
                                     firmwares_filtered,
+                                    firmware_baseurl=settings['firmware_baseurl'],
                                     affidavit=affidavit)
 
 def _hashfile(afile, hasher, blocksize=65536):

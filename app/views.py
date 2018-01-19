@@ -840,13 +840,14 @@ def settings_modify():
         return _error_permission_denied('Unable to modify settings as non-admin')
 
     # not enough data
-    for key in ['server_warning']:
+    for key in ['server_warning', 'firmware_baseuri']:
         if key not in request.form:
             return _error_internal('no key %s in form data' % key)
 
     # save new values
     try:
         db.settings.modify('server_warning', request.form['server_warning'])
+        db.settings.modify('firmware_baseuri', request.form['firmware_baseuri'])
     except CursorError as e:
         return _error_internal(str(e))
     _event_log('Changed server settings')
