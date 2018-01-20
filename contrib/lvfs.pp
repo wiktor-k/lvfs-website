@@ -53,7 +53,7 @@ file { '/var/www/lvfs/stable/app/custom.cfg':
     group   => 'uwsgi',
     content => "# Managed by Puppet, DO NOT EDIT
 import os
-DEBUG = True
+DEBUG = False
 PROPAGATE_EXCEPTIONS = True
 SECRET_KEY = '${lvfs_secret_key}'
 HOST_NAME = 'localhost'
