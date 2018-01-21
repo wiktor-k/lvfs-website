@@ -7,7 +7,7 @@ file { '/var/www/lvfs':
     group    => 'uwsgi',
     require  => File['/var/www'],
 }
-vcsrepo { '/var/www/lvfs/stable':
+vcsrepo { '/var/www/lvfs/admin':
     ensure   => latest,
     provider => git,
     revision => $lvfs_revision',
@@ -46,7 +46,7 @@ file { '/var/www/backup':
     group   => 'uwsgi',
     require => Package['uwsgi'],
 }
-file { '/var/www/lvfs/stable/app/custom.cfg':
+file { '/var/www/lvfs/admin/app/custom.cfg':
     ensure  => 'present',
     replace => 'no',
     owner   => 'uwsgi',
@@ -143,7 +143,7 @@ CREATE DATABASE lvfs;
 CREATE USER '${dbusername}'@'localhost' IDENTIFIED BY '${dbpassword}';
 USE lvfs;
 GRANT ALL ON lvfs.* TO '${dbusername}'@'localhost';
-SOURCE /var/www/lvfs/stable/schema.sql
+SOURCE /var/www/lvfs/admin/schema.sql
 ",
     require => Package['mariadb-server'],
 }
@@ -173,7 +173,7 @@ file { '/etc/uwsgi.d/lvfs.ini':
     group    => 'uwsgi',
     content => "# Managed by Puppet, DO NOT EDIT
 [uwsgi]
-chdir = /var/www/lvfs/stable
+chdir = /var/www/lvfs/admin
 module = app:app
 plugins = python
 uid = uwsgi
@@ -255,7 +255,7 @@ http {
         include /etc/nginx/default.d/*.conf;
 
         location /img/ {
-            alias /var/www/lvfs/stable/app/static/img/;
+            alias /var/www/lvfs/admin/app/static/img/;
         }
         location /downloads/firmware.xml.gz {
             alias /var/www/lvfs/downloads/firmware.xml.gz;
