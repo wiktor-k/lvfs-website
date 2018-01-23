@@ -255,7 +255,7 @@ def upload():
         return _error_internal(str(e))
     if item:
         flash('A firmware file with hash %s already exists' % firmware_id, 'danger')
-        return redirect(request.url)
+        return redirect('/lvfs/firmware/%s' % item.firmware_id)
 
     # parse the file
     try:
