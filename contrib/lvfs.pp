@@ -10,7 +10,7 @@ file { '/var/www/lvfs':
 vcsrepo { '/var/www/lvfs/admin':
     ensure   => latest,
     provider => git,
-    revision => $lvfs_revision',
+    revision => $lvfs_revision,
     source   => 'https://github.com/hughsie/lvfs-website.git',
     user     => 'uwsgi',
     group    => 'uwsgi',
