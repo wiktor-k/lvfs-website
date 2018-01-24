@@ -338,7 +338,7 @@ def upload():
             component.add_format(fmt)
             component.validate(AppStreamGlib.AppValidateFlags.NONE)
         except GLib.Error as e:
-            flash('The metadata %s could not be parsed: %s' % (cf, str(e)), 'danger')
+            flash('The metadata %s could not be parsed: %s' % (cf.get_name(), str(e)), 'danger')
             return redirect(request.url)
 
         # get the metadata ID
