@@ -5,7 +5,7 @@ file { '/var/www/lvfs':
     ensure   => 'directory',
     owner    => 'uwsgi',
     group    => 'uwsgi',
-    require  => File['/var/www'],
+    require  => [ File['/var/www'], Package['uwsgi'] ],
 }
 vcsrepo { '/var/www/lvfs/admin':
     ensure   => latest,
@@ -70,7 +70,7 @@ DATABASE_PORT = 3306
 SESSION_COOKIE_SECURE = ${using_ssl}
 REMEMBER_COOKIE_SECURE = ${using_ssl}
 ",
-    require => [ File['/var/www/lvfs'], Package['uwsgi'] ],
+    require => [ File['/var/www/lvfs'], Package['uwsgi'], Vcsrepo['/var/www/lvfs/admin'] ],
 }
 
 # all the Flask request
@@ -143,7 +143,7 @@ USE lvfs;
 GRANT ALL ON lvfs.* TO '${dbusername}'@'localhost';
 SOURCE /var/www/lvfs/admin/schema.sql
 ",
-    require => Package['mariadb-server'],
+    require => [ Package['mariadb-server'], Vcsrepo['/var/www/lvfs/admin'] ],
 }
 
 # use uWSGI
@@ -248,6 +248,9 @@ http {
         ssl_certificate_key /etc/letsencrypt/live/${server_fqdn}/privkey.pem;
         include /etc/letsencrypt/options-ssl-nginx.conf;
         ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+        location /.well-known/ {
+            alias /var/www/.well-known/;
+        }
 
         # Load configuration files for the default server block.
         include /etc/nginx/default.d/*.conf;
@@ -276,7 +279,7 @@ http {
     }
 }
 ",
-    require => Package['nginx'],
+    require => [ Package['nginx'], Vcsrepo['/var/www/lvfs/admin'] ],
 }
 service { 'nginx':
     ensure => 'running',
