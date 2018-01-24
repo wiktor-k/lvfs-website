@@ -64,7 +64,7 @@ def user_modify(username):
     except CursorError as e:
         return _error_internal(str(e))
     if not auth:
-        flash('Incorrect existing password', 'error')
+        flash('Incorrect existing password', 'danger')
         return redirect(url_for('.profile'), 302)
 
     # check password
@@ -209,7 +209,7 @@ def user_delete(username):
     except CursorError as e:
         return _error_internal(str(e))
     if not exists:
-        flash("No entry with username %s" % username, 'error')
+        flash("No entry with username %s" % username, 'danger')
         return redirect(url_for('.user_list'), 422)
     try:
         db.users.remove(username)

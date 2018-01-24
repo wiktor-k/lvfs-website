@@ -654,12 +654,12 @@ def login():
     if not user:
         # log failure
         _event_log('Failed login attempt for %s' % request.form['username'])
-        flash('Incorrect username or password', 'error')
+        flash('Incorrect username or password', 'danger')
         return redirect(url_for('.index'))
     if not user.is_enabled:
         # log failure
         _event_log('Failed login attempt for %s (user disabled)' % request.form['username'])
-        flash('User account is disabled', 'error')
+        flash('User account is disabled', 'danger')
         return redirect(url_for('.index'))
 
     # this is signed, not encrypted
