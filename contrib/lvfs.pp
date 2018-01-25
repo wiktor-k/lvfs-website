@@ -275,6 +275,7 @@ http {
 
         error_page 500 502 503 504 /50x.html;
             location = /50x.html {
+            alias /var/www/lvfs/admin/app/templates/50x.html;
         }
     }
 }
