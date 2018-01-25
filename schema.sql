@@ -150,3 +150,9 @@ INSERT INTO settings (config_key, config_value)
   VALUES ('sign_gpg_signing_uid', 'sign-test@fwupd.org');
 INSERT INTO settings (config_key, config_value)
   VALUES ('sign_gpg_keyring_dir', '/var/www/lvfs/.gnupg');
+INSERT INTO settings (config_key, config_value)
+  VALUES ('cdn_sync_username', 'aws_access_key_id');
+INSERT INTO settings (config_key, config_value)
+  VALUES ('cdn_sync_password', 'aws_secret_access_key');
+INSERT INTO settings (config_key, config_value)
+  VALUES ('cdn_sync_region', 'us-east-1');

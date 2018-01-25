@@ -22,24 +22,6 @@ file { '/var/www/lvfs/downloads':
     group    => 'uwsgi',
     require  => [ File['/var/www/lvfs'], Package['uwsgi'] ],
 }
-file { '/var/www/lvfs/.aws':
-    ensure   => 'directory',
-    owner    => 'uwsgi',
-    group    => 'uwsgi',
-    require  => [ File['/var/www/lvfs'], Package['uwsgi'] ],
-}
-file { '/var/www/lvfs/.aws/credentials':
-    ensure   => 'present',
-    owner    => 'uwsgi',
-    group    => 'uwsgi',
-    content  => "
-[default]
-region=us-east-1
-aws_access_key_id=${aws_access_key_id}
-aws_secret_access_key=${aws_secret_access_key}
-",
-    require => [ File['/var/www/lvfs'], Package['uwsgi'] ],
-}
 file { '/var/www/backup':
     ensure  => 'directory',
     owner   => 'uwsgi',

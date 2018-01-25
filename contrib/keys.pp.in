@@ -1,6 +1,4 @@
 # replace these with actual values
-$aws_access_key_id = 'xxx'
-$aws_secret_access_key = 'xxx'
 $dbusername = 'lvfs'
 $dbpassword = 'lvfs'
 $lvfs_secret_key = 'xxx'

@@ -27,6 +27,9 @@ class Plugin(PluginBase):
         s = []
         s.append(PluginSettingText('cdn_sync_folder', 'Folder'))
         s.append(PluginSettingText('cdn_sync_bucket', 'Bucket'))
+        s.append(PluginSettingText('cdn_sync_region', 'Region'))
+        s.append(PluginSettingText('cdn_sync_username', 'Username'))
+        s.append(PluginSettingText('cdn_sync_password', 'Password'))
         s.append(PluginSettingText('cdn_sync_files', 'File Whitelist'))
         return s
 
@@ -51,7 +54,10 @@ class Plugin(PluginBase):
         # upload
         try:
             key = os.path.join(settings['folder'], os.path.basename(fn))
-            s3 = boto3.resource('s3')
+            session = boto3.Session(aws_access_key_id=settings['username'],
+                                    aws_secret_access_key=settings['password'],
+                                    region_name=settings['region'])
+            s3 = session.resource('s3')
             bucket = s3.Bucket(settings['bucket'])
             bucket.Acl().put(ACL='public-read')
             print("uploading %s as %s" % (fn, key))
