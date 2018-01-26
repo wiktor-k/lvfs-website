@@ -3,28 +3,28 @@
 
 {% block content %}
 <div class="container mt-3">
-<h1>Server Settings</h1>
 
-<div class="container">
-  <form class="form" method="post" action="/lvfs/settings/modify">
-    <div class="form-group row">
-      <label for="name" class="col-sm-2 col-form-label">Server Warning</label>
-      <div class="col-sm-10">
-        <input type="text" class="form-control" name="server_warning" value="{{settings['server_warning']}}">
-      </div>
-    </div>
-    <div class="form-group row">
-      <label for="contact_email" class="col-sm-2 col-form-label">Firmware BaseURI</label>
-      <div class="col-sm-10">
-        <input type="text" class="form-control" name="firmware_baseuri" value="{{settings['firmware_baseuri']}}" required>
-        <div class="alert alert-warning mt-2" role="alert">
-          The URL address set here will be used in all metadata targets.
-        </div>
-      </div>
-    </div>
-    <div><h2>Plugins</h2></div>
+<nav>
+  <ul class="nav nav-tabs">
 {% for plugin in plugins %}
-    <div><h3>{{ plugin.name() }}</h3></div>
+    <div><h3></h3></div>
+    <li class="nav-item">
+{% if plugin_id == plugin.id %}
+      <a class="nav-link active" href="/lvfs/settings/{{plugin.id}}">{{plugin.name()}}</a>
+{% else %}
+      <a class="nav-link" href="/lvfs/settings/{{plugin.id}}">{{plugin.name()}}</a>
+{% endif %}
+    </li>
+{% endfor %}
+  </ul>
+</nav>
+
+<div class="container mt-3">
+  <form class="form" method="post" action="/lvfs/settings/modify">
+
+{% for plugin in plugins %}
+{% if plugin.id == plugin_id %}
+    <div><h2>{{plugin.name()}}</h2></div>
 {% for s in plugin.settings() %}
     <div class="form-group row">
       <label for="name" class="col-sm-2 col-form-label">{{s.name}}</label>
@@ -33,6 +33,7 @@
       </div>
     </div>
 {% endfor %}
+{% endif %}
 {% endfor %}
     <div class="form-group row">
       <div class="col-sm-2"></div>

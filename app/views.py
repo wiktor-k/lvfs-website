@@ -753,8 +753,9 @@ def profile():
                            contact_email=item.email)
 
 @app.route('/lvfs/settings')
+@app.route('/lvfs/settings/<plugin_id>')
 @login_required
-def settings():
+def settings(plugin_id='general'):
     """
     Allows the admin to change details about the LVFS instance
     """
@@ -775,6 +776,7 @@ def settings():
         return _error_internal(str(e))
     return render_template('settings.html',
                            settings=settings,
+                           plugin_id=plugin_id,
                            plugins=plugins)
 
 @app.route('/lvfs/settings/modify', methods=['GET', 'POST'])
@@ -790,18 +792,9 @@ def settings_modify():
     if session['group_id'] != 'admin':
         return _error_permission_denied('Unable to modify settings as non-admin')
 
-    # not enough data
-    keys = ['server_warning', 'firmware_baseuri']
-    for p in ploader.get_all():
-        for s in p.settings():
-            keys.append(s.key)
-    for key in keys:
-        if key not in request.form:
-            return _error_internal('no key %s in form data' % key)
-
     # save new values
     try:
-        for key in keys:
+        for key in request.form:
             db.settings.modify(key, request.form[key])
     except CursorError as e:
         return _error_internal(str(e))

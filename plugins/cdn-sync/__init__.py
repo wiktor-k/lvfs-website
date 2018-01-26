@@ -21,7 +21,7 @@ class Plugin(PluginBase):
         return ['sign-gpg']
 
     def name(self):
-        return 'CDN Sync'
+        return 'CDN'
 
     def settings(self):
         s = []

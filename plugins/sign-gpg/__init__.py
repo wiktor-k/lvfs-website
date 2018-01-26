@@ -66,7 +66,7 @@ class Plugin(PluginBase):
         PluginBase.__init__(self)
 
     def name(self):
-        return 'Sign GPG'
+        return 'GPG'
 
     def settings(self):
         s = []
