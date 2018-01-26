@@ -87,6 +87,11 @@ package { 'python-flask-wtf':
     ensure => installed,
 }
 
+# required for the PKCS#7 support
+package { 'gnutls-utils':
+    ensure => installed,
+}
+
 # set up the database
 package { 'mariadb-server':
   ensure => installed,
