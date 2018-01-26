@@ -23,8 +23,8 @@ class PluginSettingText(object):
 
 class PluginBase(object):
 
-    def __init__(self):
-        self.id = None
+    def __init__(self, plugin_id=None):
+        self.id = plugin_id
         self.priority = 0
 
     def name(self):
@@ -32,6 +32,21 @@ class PluginBase(object):
 
     def settings(self):
         return []
+
+class PluginGeneral(PluginBase):
+    def __init__(self):
+        PluginBase.__init__(self, 'general')
+
+    def name(self):
+        return 'General'
+
+    def settings(self):
+        s = []
+        s.append(PluginSettingText('server_warning', 'Server Warning',
+                                   'This is a test instance and may be broken at any time.'))
+        s.append(PluginSettingText('firmware_baseuri', 'Firmware BaseURI',
+                                   'https://fwupd.org/downloads/'))
+        return s
 
 class Pluginloader(object):
 
@@ -81,6 +96,9 @@ class Pluginloader(object):
         for plugin in list(plugins.values()):
             self._plugins.append(plugin)
         self._plugins.sort(key=lambda x: x.priority)
+
+        # general item
+        self._plugins.insert(0, PluginGeneral())
 
         # success
         self.loaded = True
