@@ -25,12 +25,14 @@ class Plugin(PluginBase):
 
     def settings(self):
         s = []
-        s.append(PluginSettingText('cdn_sync_folder', 'Folder'))
-        s.append(PluginSettingText('cdn_sync_bucket', 'Bucket'))
-        s.append(PluginSettingText('cdn_sync_region', 'Region'))
-        s.append(PluginSettingText('cdn_sync_username', 'Username'))
-        s.append(PluginSettingText('cdn_sync_password', 'Password'))
-        s.append(PluginSettingText('cdn_sync_files', 'File Whitelist'))
+        s.append(PluginSettingText('cdn_sync_folder', 'Folder', 'downloads'))
+        s.append(PluginSettingText('cdn_sync_bucket', 'Bucket', 'lvfstestbucket'))
+        s.append(PluginSettingText('cdn_sync_region', 'Region', 'us-east-1'))
+        s.append(PluginSettingText('cdn_sync_username', 'Username', 'aws_access_key_id'))
+        s.append(PluginSettingText('cdn_sync_password', 'Password', 'aws_secret_access_key'))
+        s.append(PluginSettingText('cdn_sync_files', 'File Whitelist',
+                                   'firmware.xml.gz,firmware.xml.gz.asc,"'
+                                   'firmware-testing.xml.gz,firmware-testing.xml.gz.asc'))
         return s
 
     def file_modified(self, fn):

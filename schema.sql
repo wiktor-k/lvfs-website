@@ -140,19 +140,3 @@ INSERT INTO settings (config_key, config_value)
   VALUES ('server_warning', 'This is a test instance and may be broken at any time.');
 INSERT INTO settings (config_key, config_value)
   VALUES ('firmware_baseuri', 'https://fwupd.org/downloads/');
-INSERT INTO settings (config_key, config_value)
-  VALUES ('cdn_sync_folder', 'downloads');
-INSERT INTO settings (config_key, config_value)
-  VALUES ('cdn_sync_bucket', 'lvfstestbucket');
-INSERT INTO settings (config_key, config_value)
-  VALUES ('cdn_sync_files', 'firmware.xml.gz,firmware.xml.gz.asc,firmware-testing.xml.gz,firmware-testing.xml.gz.asc');
-INSERT INTO settings (config_key, config_value)
-  VALUES ('sign_gpg_signing_uid', 'sign-test@fwupd.org');
-INSERT INTO settings (config_key, config_value)
-  VALUES ('sign_gpg_keyring_dir', '/var/www/lvfs/.gnupg');
-INSERT INTO settings (config_key, config_value)
-  VALUES ('cdn_sync_username', 'aws_access_key_id');
-INSERT INTO settings (config_key, config_value)
-  VALUES ('cdn_sync_password', 'aws_secret_access_key');
-INSERT INTO settings (config_key, config_value)
-  VALUES ('cdn_sync_region', 'us-east-1');

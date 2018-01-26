@@ -993,6 +993,17 @@ class DatabaseSettings(object):
         """ Constructor for object """
         self._db = db
 
+    def add(self, key, value):
+        """ Update vendor details """
+        assert key
+        try:
+            cur = self._db.cursor()
+            cur.execute("INSERT INTO settings (config_key, config_value) "
+                        "VALUES (%s, %s);",
+                        (key, value,))
+        except mdb.Error as e:
+            raise CursorError(cur, e)
+
     def modify(self, key, value):
         """ Update vendor details """
         assert key

@@ -16,9 +16,10 @@ class PluginError(Exception):
 
 class PluginSettingText(object):
 
-    def __init__(self, key, name):
+    def __init__(self, key, name, default=''):
         self.key = key
         self.name = name
+        self.default = default
 
 class PluginBase(object):
 

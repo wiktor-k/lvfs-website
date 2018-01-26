@@ -767,6 +767,10 @@ def settings():
     try:
         settings = db.settings.get_all()
         plugins = ploader.get_all()
+        for p in plugins:
+            for s in p.settings():
+                if s.key not in settings:
+                    db.settings.add(s.key, s.default)
     except CursorError as e:
         return _error_internal(str(e))
     return render_template('settings.html',

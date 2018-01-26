@@ -70,8 +70,10 @@ class Plugin(PluginBase):
 
     def settings(self):
         s = []
-        s.append(PluginSettingText('sign_gpg_keyring_dir', 'Keyring Directory'))
-        s.append(PluginSettingText('sign_gpg_signing_uid', 'Signing UID'))
+        s.append(PluginSettingText('sign_gpg_keyring_dir', 'Keyring Directory',
+                                   '/var/www/lvfs/.gnupg'))
+        s.append(PluginSettingText('sign_gpg_signing_uid', 'Signing UID',
+                                   'sign-test@fwupd.org'))
         return s
 
     def _create_affidavit(self):
