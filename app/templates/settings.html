@@ -24,7 +24,7 @@
 
 {% for plugin in plugins %}
 {% if plugin.id == plugin_id %}
-    <div><h2>{{plugin.name()}}</h2></div>
+    <div><p>{{plugin.summary()}}</p></div>
 {% for s in plugin.settings() %}
     <div class="form-group row">
       <label for="name" class="col-sm-2 col-form-label">{{s.name}}</label>

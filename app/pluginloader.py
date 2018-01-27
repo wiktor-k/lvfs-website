@@ -30,6 +30,9 @@ class PluginBase(object):
     def name(self):
         return 'Noname Plugin'
 
+    def summary(self):
+        return 'Plugin did not set summary()'
+
     def settings(self):
         return []
 
@@ -39,6 +42,9 @@ class PluginGeneral(PluginBase):
 
     def name(self):
         return 'General'
+
+    def summary(self):
+        return 'General server settings.'
 
     def settings(self):
         s = []

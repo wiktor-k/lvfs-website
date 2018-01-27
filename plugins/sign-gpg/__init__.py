@@ -68,6 +68,9 @@ class Plugin(PluginBase):
     def name(self):
         return 'GPG'
 
+    def summary(self):
+        return 'Sign files using GnuPG, a free implementation of the OpenPGP standard.'
+
     def settings(self):
         s = []
         s.append(PluginSettingText('sign_gpg_keyring_dir', 'Keyring Directory',

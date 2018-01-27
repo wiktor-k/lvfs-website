@@ -23,6 +23,9 @@ class Plugin(PluginBase):
     def name(self):
         return 'CDN'
 
+    def summary(self):
+        return 'Sync files to an S3-compatible content delivery network.'
+
     def settings(self):
         s = []
         s.append(PluginSettingText('cdn_sync_folder', 'Folder', 'downloads'))
