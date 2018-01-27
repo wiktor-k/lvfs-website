@@ -780,13 +780,14 @@ def settings(plugin_id='general'):
                            plugins=plugins)
 
 @app.route('/lvfs/settings/modify', methods=['GET', 'POST'])
+@app.route('/lvfs/settings/modify/<plugin_id>', methods=['GET', 'POST'])
 @login_required
-def settings_modify():
+def settings_modify(plugin_id='general'):
     """ Change details about the instance """
 
     # only accept form data
     if request.method != 'POST':
-        return redirect(url_for('.index'))
+        return redirect(url_for('.settings', plugin_id=plugin_id))
 
     # security check
     if session['group_id'] != 'admin':
@@ -800,7 +801,7 @@ def settings_modify():
         return _error_internal(str(e))
     _event_log('Changed server settings')
     flash('Updated settings', 'info')
-    return redirect(url_for('.settings'))
+    return redirect(url_for('.settings', plugin_id=plugin_id), 302)
 
 @app.route('/lvfs/metadata_rebuild')
 @login_required

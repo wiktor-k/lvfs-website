@@ -20,7 +20,7 @@
 </nav>
 
 <div class="container mt-3">
-  <form class="form" method="post" action="/lvfs/settings/modify">
+  <form class="form" method="post" action="/lvfs/settings/modify/{{plugin_id}}">
 
 {% for plugin in plugins %}
 {% if plugin.id == plugin_id %}
