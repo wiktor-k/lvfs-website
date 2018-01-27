@@ -795,11 +795,14 @@ def settings_modify(plugin_id='general'):
 
     # save new values
     try:
+        settings = db.settings.get_all()
         for key in request.form:
+            if settings[key] == request.form[key]:
+                continue
+            _event_log('Changed server settings %s to %s' % (key, request.form[key]))
             db.settings.modify(key, request.form[key])
     except CursorError as e:
         return _error_internal(str(e))
-    _event_log('Changed server settings')
     flash('Updated settings', 'info')
     return redirect(url_for('.settings', plugin_id=plugin_id), 302)
 

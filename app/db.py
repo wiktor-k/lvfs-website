@@ -1005,7 +1005,7 @@ class DatabaseSettings(object):
             raise CursorError(cur, e)
 
     def modify(self, key, value):
-        """ Update vendor details """
+        """ Update setting """
         assert key
         try:
             cur = self._db.cursor()
@@ -1014,7 +1014,7 @@ class DatabaseSettings(object):
             raise CursorError(cur, e)
 
     def get_all(self):
-        """ Get all the vendors """
+        """ Get all the settings """
         try:
             cur = self._db.cursor()
             cur.execute("SELECT config_key, config_value FROM settings;")

@@ -9,7 +9,7 @@ from __future__ import print_function
 import os
 import boto3
 
-from app.pluginloader import PluginBase, PluginError, PluginSettingText
+from app.pluginloader import PluginBase, PluginError, PluginSettingText, PluginSettingBool
 
 from app import db
 
@@ -28,6 +28,7 @@ class Plugin(PluginBase):
 
     def settings(self):
         s = []
+        s.append(PluginSettingBool('cdn_sync_enable', 'Enabled', False))
         s.append(PluginSettingText('cdn_sync_folder', 'Folder', 'downloads'))
         s.append(PluginSettingText('cdn_sync_bucket', 'Bucket', 'lvfstestbucket'))
         s.append(PluginSettingText('cdn_sync_region', 'Region', 'us-east-1'))
@@ -42,19 +43,19 @@ class Plugin(PluginBase):
 
         # is the file in the whitelist
         settings = db.settings.get_filtered('cdn_sync_')
+        if settings['enable'] != 'enabled':
+            return
         fns = settings['files']
         if not fns:
-            return
+            raise PluginError('No file whitelist set')
         basename = os.path.basename(fn)
         if basename not in fns.split(','):
             print('%s not in %s' % (basename, fns))
             return
 
         # bucket not set
-        if 'bucket' not in settings:
-            return
         if not settings['bucket']:
-            return
+            raise PluginError('No bucket set')
 
         # upload
         try:

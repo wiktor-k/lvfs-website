@@ -21,6 +21,16 @@ class PluginSettingText(object):
         self.name = name
         self.default = default
 
+class PluginSettingBool(object):
+
+    def __init__(self, key, name, default=False):
+        self.key = key
+        self.name = name
+        if default:
+            self.default = 'enabled'
+        else:
+            self.default = 'disabled'
+
 class PluginBase(object):
 
     def __init__(self, plugin_id=None):

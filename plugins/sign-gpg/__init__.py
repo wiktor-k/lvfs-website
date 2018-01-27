@@ -13,7 +13,7 @@ from gi.repository import Gio
 from gi.repository import GLib
 from gi.repository import GCab
 
-from app.pluginloader import PluginBase, PluginError, PluginSettingText
+from app.pluginloader import PluginBase, PluginError, PluginSettingText, PluginSettingBool
 from app import db, ploader
 from app.util import _archive_get_files_from_glob
 
@@ -73,6 +73,7 @@ class Plugin(PluginBase):
 
     def settings(self):
         s = []
+        s.append(PluginSettingBool('sign_gpg_enable', 'Enabled', False))
         s.append(PluginSettingText('sign_gpg_keyring_dir', 'Keyring Directory',
                                    '/var/www/lvfs/.gnupg'))
         s.append(PluginSettingText('sign_gpg_signing_uid', 'Signing UID',
@@ -82,10 +83,12 @@ class Plugin(PluginBase):
     def _create_affidavit(self):
         """ Create an affidavit that can be used to sign files """
         settings = db.settings.get_filtered('sign_gpg_')
+        if settings['enable'] != 'enabled':
+            return None
         if not settings['signing_uid']:
-            return None
+            raise PluginError('No signing UID set')
         if not settings['keyring_dir']:
-            return None
+            raise PluginError('No keyring directory set')
         return Affidavit(settings['signing_uid'], settings['keyring_dir'])
 
     def _metadata_modified(self, fn):

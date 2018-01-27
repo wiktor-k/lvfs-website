@@ -15,7 +15,7 @@ from gi.repository import Gio
 from gi.repository import GLib
 from gi.repository import GCab
 
-from app.pluginloader import PluginBase, PluginError, PluginSettingText
+from app.pluginloader import PluginBase, PluginError, PluginSettingText, PluginSettingBool
 from app import db, ploader
 from app.util import _archive_get_files_from_glob
 
@@ -31,6 +31,7 @@ class Plugin(PluginBase):
 
     def settings(self):
         s = []
+        s.append(PluginSettingBool('sign_pkcs7_enable', 'Enabled', False))
         s.append(PluginSettingText('sign_pkcs7_privkey', 'Private Key',
                                    'pkcs7/fwupd.org.key'))
         s.append(PluginSettingText('sign_pkcs7_certificate', 'Certificate',
@@ -41,10 +42,12 @@ class Plugin(PluginBase):
 
         # get settings
         settings = db.settings.get_filtered('sign_pkcs7_')
+        if settings['enable'] != 'enabled':
+            return None
         if not settings['privkey']:
-            return None
+            raise PluginError('No private key set')
         if not settings['certificate']:
-            return None
+            raise PluginError('No certificate set')
 
         # write firmware to temp file
         src = tempfile.NamedTemporaryFile(mode='wb',

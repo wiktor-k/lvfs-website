@@ -29,7 +29,16 @@
     <div class="form-group row">
       <label for="name" class="col-sm-2 col-form-label">{{s.name}}</label>
       <div class="col-sm-10">
+{% if s.__class__.__name__ == 'PluginSettingBool' %}
+{% if settings[s.key] == 'enabled' %}
+        <input type="checkbox" class="form-check" name="{{s.key}}" value="enabled" checked>
+{% else %}
+        <input type="checkbox" class="form-check" name="{{s.key}}" value="enabled">
+{% endif %}
+        <input type="hidden" name="{{s.key}}" value="disabled">
+{% else %}
         <input type="text" class="form-control" name="{{s.key}}" value="{{settings[s.key]}}">
+{% endif %}
       </div>
     </div>
 {% endfor %}
