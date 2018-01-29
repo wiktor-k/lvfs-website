@@ -18,6 +18,8 @@ The official instance is set up using puppet on RHEL 7, on which you could use:
     yum install https://kojipkgs.fedoraproject.org//work/tasks/1429/24421429/libappstream-glib-0.7.5-2.fc28.x86_64.rpm
     yum install https://kojipkgs.fedoraproject.org//packages/gcab/1.0/1.fc27/x86_64/libgcab1-1.0-1.fc27.x86_64.rpm
     yum install puppet
+    git clone https://github.com/hughsie/lvfs-puppet.git
+    cd lvfs-puppet
     hostname admin
     puppet module install puppetlabs-vcsrepo --version 2.2.0
     cp keys.pp.in keys.pp
