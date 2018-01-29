@@ -51,10 +51,13 @@ def _check_session():
 def serveStaticResource(resource):
     """ Return a static image or resource """
 
-    # ban MJ12BOT, it ignores robots.txt
+    # ban the robots that ignore robots.txt
     user_agent = request.headers.get('User-Agent')
-    if user_agent and user_agent.find('MJ12BOT') != -1:
-        abort(403)
+    if user_agent:
+        if user_agent.find('MJ12BOT') != -1:
+            abort(403)
+        if user_agent.find('ltx71') != -1:
+            abort(403)
 
     # log certain kinds of files
     if resource.endswith('.cab'):
