@@ -22,11 +22,11 @@ file { '/var/www/lvfs/downloads':
     group    => 'uwsgi',
     require  => [ File['/var/www/lvfs'], Package['uwsgi'] ],
 }
-file { '/var/www/backup':
+file { '/var/www/lvfs/backup':
     ensure  => 'directory',
     owner   => 'uwsgi',
     group   => 'uwsgi',
-    require => Package['uwsgi'],
+    require  => [ File['/var/www/lvfs'], Package['uwsgi'] ],
 }
 file { '/var/www/lvfs/admin/app/custom.cfg':
     ensure  => 'present',
@@ -109,7 +109,7 @@ max_connect_errors = 1000
     require => Package['mariadb-server'],
 }
 cron { 'mysqldump':
-    command => '/usr/bin/mysqldump lvfs > /var/www/backup/lvfs_$( date +"\%Y\%m\%d" ).sql',
+    command => '/usr/bin/mysqldump lvfs > /var/www/lvfs/backup/lvfs_$( date +"\%Y\%m\%d" ).sql',
     user    => 'root',
     weekday => 'Sun',
     hour    => 0,
