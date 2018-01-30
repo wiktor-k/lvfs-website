@@ -160,37 +160,6 @@ class Database(object):
         self.reports = DatabaseReports(self._db)
         self.settings = DatabaseSettings(self._db)
 
-    def verify(self):
-        """ repairs database when required """
-        cur = self._db.cursor()
-        try:
-            cur.execute("SELECT request FROM event_log LIMIT 1;")
-        except mdb.Error as e:
-            cur.execute('ALTER TABLE event_log ADD COLUMN request TEXT DEFAULT NULL;')
-        try:
-            cur.execute("SELECT group_id FROM users LIMIT 1;")
-        except mdb.Error as e:
-            cur.execute('ALTER TABLE firmware CHANGE COLUMN qa_group group_id VARCHAR(40) DEFAULT NULL;')
-            cur.execute('ALTER TABLE event_log CHANGE COLUMN qa_group group_id VARCHAR(40) DEFAULT NULL;')
-            cur.execute('ALTER TABLE users CHANGE COLUMN qa_group group_id VARCHAR(40) DEFAULT NULL;')
-        try:
-            cur.execute("SELECT firmware_id FROM firmware LIMIT 1;")
-        except mdb.Error as e:
-            cur.execute('ALTER TABLE firmware CHANGE COLUMN fwid firmware_id VARCHAR(40) DEFAULT NULL;')
-            cur.execute('ALTER TABLE firmware_md CHANGE COLUMN fwid firmware_id VARCHAR(40) DEFAULT NULL;')
-        try:
-            cur.execute("SELECT vendor_ids FROM groups LIMIT 1;")
-        except mdb.Error as e:
-            cur.execute("""
-                        CREATE TABLE groups (
-                          group_id VARCHAR(40) DEFAULT NULL,
-                          vendor_ids VARCHAR(40) NOT NULL DEFAULT '',
-                          UNIQUE KEY id (group_id)
-                        ) CHARSET=utf8;""")
-            for user in self.users.get_all():
-                if not self.groups.get_item(user.group_id):
-                    self.groups.add(user.group_id)
-
     def close(self):
         """ Clean up the database """
         if self._db:

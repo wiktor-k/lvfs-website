@@ -30,7 +30,6 @@ ploader = Pluginloader('plugins')
 def get_db():
     if not hasattr(g, 'db'):
         g.db = Database(app)
-        g.db.verify()
     return g.db
 db = LocalProxy(get_db)
 
