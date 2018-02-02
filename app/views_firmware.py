@@ -456,21 +456,11 @@ def firmware_component_show(firmware_id, cid, page='overview'):
 @app.route('/lvfs/telemetry/repair')
 @login_required
 def telemetry_repair():
-
     if session['group_id'] != 'admin':
         return _error_permission_denied('Not admin user')
-
-    # are all the download counts zero, i.e. an old database schema?
-    total_downloads = 0
-    fws = db.firmware.get_all()
-    for fw in fws:
-        total_downloads += fw.download_cnt
-
-    # repair the firmware database using the client data
-    if total_downloads == 0:
-        for fw in fws:
-            cnt = db.clients.get_firmware_count_filename(fw.filename)
-            db.firmware.set_download_count(fw.firmware_id, cnt)
+    for fw in db.firmware.get_all():
+        cnt = db.clients.get_firmware_count_filename(fw.filename)
+        db.firmware.set_download_count(fw.firmware_id, cnt)
     return redirect(url_for('.telemetry'))
 
 @app.route('/lvfs/telemetry/<int:age>/<sort_key>/<sort_direction>')
