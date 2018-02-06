@@ -15,7 +15,7 @@
 <h1>Update History</h1>
 {% for fw in fws %}
 
-{% if g.user.check_capability('admin') or fw.target == 'stable' or fw.target == 'testing' %}
+{% if (session['username'] and g.user.check_capability('admin')) or fw.target == 'stable' or fw.target == 'testing' %}
 <hr/>
 {% if fw.version_display %}
 <h2>Version {{fw.version_display}}:</h2>
