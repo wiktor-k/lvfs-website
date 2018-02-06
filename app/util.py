@@ -4,12 +4,14 @@
 # Copyright (C) 2015 Richard Hughes <richard@hughsie.com>
 # Licensed under the GNU General Public License Version 2
 
+from __future__ import print_function
+
 import os
 import calendar
 import datetime
 from glob import fnmatch
 
-from flask import session, request, flash, render_template, g
+from flask import request, flash, render_template, g
 
 def _get_basename_safe(fn):
     """ gets the file basename, also with win32-style backslashes """
