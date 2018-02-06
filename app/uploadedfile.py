@@ -64,6 +64,10 @@ def _repackage_archive(filename, buf, tmpdir=None):
     else:
         raise NotImplementedError('Filename had no supported extension')
 
+    # bail out early
+    if not os.path.exists(argv[0]):
+        raise IOError('command %s not found' % argv[0])
+
     # extract
     ps = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if ps.wait() != 0:
