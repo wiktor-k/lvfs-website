@@ -9,13 +9,9 @@ from __future__ import print_function
 import os
 import gnupg
 
-from gi.repository import Gio
-from gi.repository import GLib
-from gi.repository import GCab
-
 from app.pluginloader import PluginBase, PluginError, PluginSettingText, PluginSettingBool
 from app import db, ploader
-from app.util import _get_basename_safe
+from app.util import _get_basename_safe, _archive_add
 
 class Affidavit(object):
 
@@ -118,13 +114,7 @@ class Plugin(PluginBase):
             return
         contents = firmware_cff.get_bytes().get_data()
         contents_asc = affidavit.create(contents)
-        contents_bytes = GLib.Bytes.new(contents_asc.encode('utf-8'))
         detached_fn = _get_basename_safe(firmware_cff.get_name() + '.asc')
-        asc_cff = GCab.File.new_with_bytes(detached_fn, contents_bytes)
 
         # add it to the archive
-        folders = arc.get_folders()
-        if not folders:
-            print('archive has no folders')
-            return
-        folders[0].add_file(asc_cff, False)
+        _archive_add(arc, detached_fn, contents_asc)

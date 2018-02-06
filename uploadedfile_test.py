@@ -10,21 +10,9 @@ import StringIO
 
 from gi.repository import GCab
 from gi.repository import Gio
-from gi.repository import GLib
 
 from app.uploadedfile import UploadedFile, FileTooSmall, FileNotSupported, MetadataInvalid
-from app.util import _archive_get_files_from_glob
-
-def _archive_create():
-    arc = GCab.Cabinet.new()
-    cffolder = GCab.Folder.new(GCab.Compression.NONE)
-    arc.add_folder(cffolder)
-    return arc
-
-def _archive_add(arc, filename, contents):
-    cffile = GCab.File.new_with_bytes(filename, GLib.Bytes.new(contents))
-    cffolders = arc.get_folders()
-    cffolders[0].add_file(cffile, False)
+from app.util import _archive_get_files_from_glob, _archive_add
 
 def _get_valid_firmware():
     return 'fubar'.ljust(1024)
@@ -83,7 +71,7 @@ class TestStringMethods(unittest.TestCase):
 
     # no metainfo.xml
     def test_metainfo_missing(self):
-        arc = _archive_create()
+        arc = GCab.Cabinet.new()
         _archive_add(arc, 'firmware.bin', _get_valid_firmware())
         with self.assertRaises(MetadataInvalid):
             ufile = UploadedFile()
@@ -91,7 +79,7 @@ class TestStringMethods(unittest.TestCase):
 
     # trying to upload the wrong type
     def test_invalid_type(self):
-        arc = _archive_create()
+        arc = GCab.Cabinet.new()
         _archive_add(arc, 'firmware.bin', _get_valid_firmware())
         with self.assertRaises(FileNotSupported):
             ufile = UploadedFile()
@@ -99,7 +87,7 @@ class TestStringMethods(unittest.TestCase):
 
     # invalid metainfo
     def test_metainfo_invalid(self):
-        arc = _archive_create()
+        arc = GCab.Cabinet.new()
         _archive_add(arc, 'firmware.bin', _get_valid_firmware())
         _archive_add(arc, 'firmware.metainfo.xml', '<compoXXXXnent/>')
         with self.assertRaises(MetadataInvalid):
@@ -108,7 +96,7 @@ class TestStringMethods(unittest.TestCase):
 
     # invalid .inf file
     def test_inf_invalid(self):
-        arc = _archive_create()
+        arc = GCab.Cabinet.new()
         _archive_add(arc, 'firmware.bin', _get_valid_firmware())
         _archive_add(arc, 'firmware.metainfo.xml', '<component/>')
         _archive_add(arc, 'firmware.inf', 'fubar')
@@ -118,7 +106,7 @@ class TestStringMethods(unittest.TestCase):
 
     # archive .cab with firmware.bin of the wrong name
     def test_missing_firmware(self):
-        arc = _archive_create()
+        arc = GCab.Cabinet.new()
         _archive_add(arc, 'firmware123.bin', _get_valid_firmware())
         _archive_add(arc, 'firmware.metainfo.xml', _get_valid_metainfo())
         with self.assertRaises(MetadataInvalid):
@@ -127,7 +115,7 @@ class TestStringMethods(unittest.TestCase):
 
     # valid firmware
     def test_valid(self):
-        arc = _archive_create()
+        arc = GCab.Cabinet.new()
         _archive_add(arc, 'firmware.bin', _get_valid_firmware())
         _archive_add(arc, 'firmware.metainfo.xml', _get_valid_metainfo())
         ufile = UploadedFile()
@@ -138,7 +126,7 @@ class TestStringMethods(unittest.TestCase):
 
     # archive .cab with path with forward-slashes
     def test_valid_path(self):
-        arc = _archive_create()
+        arc = GCab.Cabinet.new()
         _archive_add(arc, 'DriverPackage/firmware.bin', _get_valid_firmware())
         _archive_add(arc, 'DriverPackage/firmware.metainfo.xml', _get_valid_metainfo())
         ufile = UploadedFile()
@@ -149,7 +137,7 @@ class TestStringMethods(unittest.TestCase):
 
     # archive .cab with path with backslashes
     def test_valid_path_back(self):
-        arc = _archive_create()
+        arc = GCab.Cabinet.new()
         _archive_add(arc, 'DriverPackage\\firmware.bin', _get_valid_firmware())
         _archive_add(arc, 'DriverPackage\\firmware.metainfo.xml', _get_valid_metainfo())
         ufile = UploadedFile()
@@ -160,7 +148,7 @@ class TestStringMethods(unittest.TestCase):
 
     # archive with extra files
     def test_extra_files(self):
-        arc = _archive_create()
+        arc = GCab.Cabinet.new()
         _archive_add(arc, 'firmware.bin', _get_valid_firmware())
         _archive_add(arc, 'firmware.metainfo.xml', _get_valid_metainfo())
         _archive_add(arc, 'README.txt', 'fubar')

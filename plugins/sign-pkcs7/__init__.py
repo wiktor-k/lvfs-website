@@ -11,13 +11,9 @@ import shutil
 import subprocess
 import tempfile
 
-from gi.repository import Gio
-from gi.repository import GLib
-from gi.repository import GCab
-
 from app.pluginloader import PluginBase, PluginError, PluginSettingText, PluginSettingBool
 from app import db, ploader
-from app.util import _get_basename_safe
+from app.util import _get_basename_safe, _archive_add
 
 class Plugin(PluginBase):
     def __init__(self):
@@ -107,11 +103,5 @@ class Plugin(PluginBase):
             return
 
         # add it to the archive
-        folders = arc.get_folders()
-        if not folders:
-            print('archive has no folders')
-            return
-        contents_bytes = GLib.Bytes.new(blob_p7b.encode('utf-8'))
         detached_fn = _get_basename_safe(firmware_cff.get_name() + '.p7b')
-        p7b_cff = GCab.File.new_with_bytes(detached_fn, contents_bytes)
-        folders[0].add_file(p7b_cff, False)
+        _archive_add(arc, detached_fn, blob_p7b)

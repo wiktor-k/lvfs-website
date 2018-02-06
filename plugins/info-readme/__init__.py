@@ -9,13 +9,9 @@ from __future__ import print_function
 import os
 import datetime
 
-from gi.repository import Gio
-from gi.repository import GLib
-from gi.repository import GCab
-
 from app.pluginloader import PluginBase, PluginError, PluginSettingText, PluginSettingBool
 from app import db, ploader
-from app.util import _archive_get_files_from_glob
+from app.util import _archive_get_files_from_glob, _archive_add
 
 class Plugin(PluginBase):
     def __init__(self):
@@ -61,10 +57,4 @@ class Plugin(PluginBase):
             template = template.replace(key, metadata[key])
 
         # add it to the archive
-        folders = arc.get_folders()
-        if not folders:
-            print('archive has no folders')
-            return
-        template_bytes = GLib.Bytes.new(template.encode('utf-8'))
-        readme_cff = GCab.File.new_with_bytes(settings['filename'], template_bytes)
-        folders[0].add_file(readme_cff, False)
+        _archive_add(arc, settings['filename'], template)
