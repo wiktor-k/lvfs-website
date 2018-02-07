@@ -128,8 +128,11 @@ def index():
     default_admin_password = False
     if user and user.password == '5459dbe5e9aa80e077bfa40f3fb2ca8368ed09b4':
         default_admin_password = True
+    server_warning = ''
+    if 'server_warning' in settings:
+        server_warning = settings['server_warning']
     return render_template('index.html',
-                           server_warning=settings['server_warning'],
+                           server_warning=server_warning,
                            default_admin_password=default_admin_password)
 
 @app.route('/lvfs/newaccount')
