@@ -44,6 +44,8 @@ def device_guid(guid):
     # get all the guids we can target
     fws = []
     for fw in db.firmware.get_all():
+        if not fw.mds:
+            continue
         for md in fw.mds:
             if md.guids[0] != guid:
                 continue
