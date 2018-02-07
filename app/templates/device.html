@@ -4,6 +4,13 @@
 {% block content %}
 <div class="container mt-3">
 <h1>Device Details</h1>
+
+{% if fws|length == 0 %}
+
+<p>No firmware is available for this device.</p>
+
+{% else %}
+
 <p>This page show all the firmware releases for a specific device.</p>
 <table class="table">
   <tr><th>Name</th><td>{{fws[0].mds[0].name}}</td></tr>
@@ -40,6 +47,8 @@
 {% endfor %}
 
 <hr/>
+
+{% endif %}
 
 {% endblock %}
 
