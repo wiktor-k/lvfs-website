@@ -159,6 +159,19 @@ class TestStringMethods(unittest.TestCase):
         self.assertTrue(_archive_get_files_from_glob(arc2, 'firmware.metainfo.xml'))
         self.assertFalse(_archive_get_files_from_glob(arc2, 'README.txt'))
 
+    # archive with multiple metainfo files pointing to the same firmware
+    def test_extra_files(self):
+        arc = GCab.Cabinet.new()
+        _archive_add(arc, 'firmware.bin', _get_valid_firmware())
+        _archive_add(arc, 'firmware1.metainfo.xml', _get_valid_metainfo())
+        _archive_add(arc, 'firmware2.metainfo.xml', _get_valid_metainfo())
+        ufile = UploadedFile()
+        ufile.parse('foo.cab', _archive_to_contents(arc))
+        arc2 = ufile.get_repacked_cabinet()
+        self.assertTrue(_archive_get_files_from_glob(arc2, 'firmware.bin'))
+        self.assertTrue(_archive_get_files_from_glob(arc2, 'firmware1.metainfo.xml'))
+        self.assertTrue(_archive_get_files_from_glob(arc2, 'firmware2.metainfo.xml'))
+
     # windows .zip with path with backslashes
     def test_valid_zipfile(self):
         imz = InMemoryZip()

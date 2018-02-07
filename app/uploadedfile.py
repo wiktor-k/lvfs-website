@@ -171,8 +171,15 @@ class UploadedFile(object):
             self._verify_inf(contents)
 
     def _add_cf_to_repacked_folder(self, cf):
-        cf_safe = GCab.File.new_with_bytes(_get_basename_safe(cf.get_name()),
-                                           cf.get_bytes())
+
+        # check for duplicate name
+        basename = _get_basename_safe(cf.get_name())
+        for cffile in self._repacked_cffolder.get_files():
+            if basename == cffile.get_name():
+                return
+
+        # add file to archive with new safe filename
+        cf_safe = GCab.File.new_with_bytes(basename, cf.get_bytes())
         self._repacked_cffolder.add_file(cf_safe, False)
 
     def _load_metainfo(self, cf):
