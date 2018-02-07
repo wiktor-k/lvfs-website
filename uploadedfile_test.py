@@ -160,7 +160,7 @@ class TestStringMethods(unittest.TestCase):
         self.assertFalse(_archive_get_files_from_glob(arc2, 'README.txt'))
 
     # archive with multiple metainfo files pointing to the same firmware
-    def test_extra_files(self):
+    def test_multiple_metainfo_same_firmware(self):
         arc = GCab.Cabinet.new()
         _archive_add(arc, 'firmware.bin', _get_valid_firmware())
         _archive_add(arc, 'firmware1.metainfo.xml', _get_valid_metainfo())
