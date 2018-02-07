@@ -104,4 +104,4 @@ class Plugin(PluginBase):
 
         # add it to the archive
         detached_fn = _get_basename_safe(firmware_cff.get_name() + '.p7b')
-        _archive_add(arc, detached_fn, blob_p7b)
+        _archive_add(arc, detached_fn, blob_p7b.encode('utf-8'))

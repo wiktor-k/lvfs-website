@@ -117,4 +117,4 @@ class Plugin(PluginBase):
         detached_fn = _get_basename_safe(firmware_cff.get_name() + '.asc')
 
         # add it to the archive
-        _archive_add(arc, detached_fn, contents_asc)
+        _archive_add(arc, detached_fn, contents_asc.encode('utf-8'))

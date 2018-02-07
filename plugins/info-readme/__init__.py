@@ -57,4 +57,4 @@ class Plugin(PluginBase):
             template = template.replace(key, metadata[key])
 
         # add it to the archive
-        _archive_add(arc, settings['filename'], template)
+        _archive_add(arc, settings['filename'], template.encode('utf-8'))
