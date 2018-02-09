@@ -260,13 +260,11 @@ def firmware_show(firmware_id):
         elif r.state == 3:
             reports_failure += 1
 
-    cnt_fn = db.clients.get_firmware_count_filename(fw.filename)
     return render_template('firmware-details.html',
                            fw=fw,
                            orig_filename='-'.join(fw.filename.split('-')[1:]),
                            embargo_url=embargo_url,
                            group_id=fw.group_id,
-                           cnt_fn=cnt_fn,
                            reports_success=reports_success,
                            reports_failure=reports_failure)
 
