@@ -21,6 +21,8 @@ if os.path.exists('app/custom.cfg'):
     app.config.from_pyfile('custom.cfg')
 else:
     app.config.from_pyfile('flaskapp.cfg')
+if 'LVFS_CUSTOM_SETTINGS' in os.environ:
+    app.config.from_envvar('LVFS_CUSTOM_SETTINGS')
 
 lm = LoginManager()
 lm.init_app(app)
