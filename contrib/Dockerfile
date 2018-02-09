@@ -15,8 +15,8 @@ RUN yum -y install \
 	python-requests \
 	python-flask \
 	python-flask-wft
-RUN yum -y install https://kojipkgs.fedoraproject.org//work/tasks/1429/24421429/libappstream-glib-0.7.5-2.fc28.x86_64.rpm
-RUN yum -y install https://kojipkgs.fedoraproject.org//packages/gcab/1.0/1.fc27/x86_64/libgcab1-1.0-1.fc27.x86_64.rpm
+RUN yum -y install https://kojipkgs.fedoraproject.org//packages/libappstream-glib/0.7.6/1.fc27/x86_64/libappstream-glib-0.7.6-1.fc27.x86_64.rpm
+RUN yum -y install https://kojipkgs.fedoraproject.org//packages/gcab/1.1/1.fc27/x86_64/libgcab1-1.1-1.fc27.x86_64.rpm
 
 RUN mkdir /build
 WORKDIR /build
