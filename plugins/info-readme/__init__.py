@@ -32,26 +32,26 @@ class Plugin(PluginBase):
     def archive_finalize(self, arc, metadata):
 
         # get settings
-        settings = db.settings.get_filtered('info_readme_')
-        if settings['enable'] != 'enabled':
+        settings = db.settings.get_all()
+        if settings['info_readme_enable'] != 'enabled':
             return None
-        if not settings['filename']:
+        if not settings['info_readme_filename']:
             raise PluginError('No filename set')
-        if not settings['template']:
+        if not settings['info_readme_template']:
             raise PluginError('No template set')
 
         # does the readme file already exist?
-        if _archive_get_files_from_glob(arc, settings['filename']):
-            print("archive already has %s" % settings['filename'])
+        if _archive_get_files_from_glob(arc, settings['info_readme_filename']):
+            print("archive already has %s" % settings['info_readme_filename'])
             return
 
         # read in the file and do substititons
         try:
-            template = open(settings['template'], 'rb').read()
+            template = open(settings['info_readme_template'], 'rb').read()
         except IOError as e:
             raise PluginError(e)
         for key in metadata:
             template = template.replace(key, metadata[key])
 
         # add it to the archive
-        _archive_add(arc, settings['filename'], template.encode('utf-8'))
+        _archive_add(arc, settings['info_readme_filename'], template.encode('utf-8'))

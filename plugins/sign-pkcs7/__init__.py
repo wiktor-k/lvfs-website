@@ -35,12 +35,12 @@ class Plugin(PluginBase):
     def _sign_blob(self, contents):
 
         # get settings
-        settings = db.settings.get_filtered('sign_pkcs7_')
-        if settings['enable'] != 'enabled':
+        settings = db.settings.get_all()
+        if settings['sign_pkcs7_enable'] != 'enabled':
             return None
-        if not settings['privkey']:
+        if not settings['sign_pkcs7_privkey']:
             raise PluginError('No private key set')
-        if not settings['certificate']:
+        if not settings['sign_pkcs7_certificate']:
             raise PluginError('No certificate set')
 
         # write firmware to temp file
@@ -61,8 +61,8 @@ class Plugin(PluginBase):
 
         # sign
         argv = ['certtool', '--p7-detached-sign', '--p7-time',
-                '--load-privkey', settings['privkey'],
-                '--load-certificate', settings['certificate'],
+                '--load-privkey', settings['sign_pkcs7_privkey'],
+                '--load-certificate', settings['sign_pkcs7_certificate'],
                 '--infile', src.name,
                 '--outfile', dst.name]
         ps = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE)

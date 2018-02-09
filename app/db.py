@@ -1039,12 +1039,3 @@ class DatabaseSettings(object):
         for e in res:
             settings[e[0]] = e[1]
         return settings
-
-    def get_filtered(self, prefix):
-        settings_filtered = {}
-        settings = self.get_all()
-        for key in settings:
-            if not key.startswith(prefix):
-                continue
-            settings_filtered[key[len(prefix):]] = settings[key]
-        return settings_filtered

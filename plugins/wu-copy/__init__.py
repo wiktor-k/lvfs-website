@@ -26,9 +26,9 @@ class Plugin(PluginBase):
 
     def archive_copy(self, arc, firmware_cff):
 
-        settings = db.settings.get_filtered('wu_copy_')
+        settings = db.settings.get_all()
         fn = _get_basename_safe(firmware_cff.get_name())
-        if fn.endswith('.inf') and settings['inf'] == 'enabled':
+        if fn.endswith('.inf') and settings['wu_copy_inf'] == 'enabled':
             _archive_add(arc, fn, firmware_cff.get_bytes().get_data())
-        if fn.endswith('.cat') and settings['cat'] == 'enabled':
+        if fn.endswith('.cat') and settings['wu_copy_cat'] == 'enabled':
             _archive_add(arc, fn, firmware_cff.get_bytes().get_data())
