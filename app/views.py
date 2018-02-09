@@ -203,6 +203,8 @@ def upload():
         return _error_internal('No target')
     if not 'file' in request.files:
         return _error_internal('No file')
+    if request.form['target'] not in ['private', 'embargo', 'testing', 'stable']:
+        return _error_internal('Target not valid')
 
     # can the user upload directly to stable
     if request.form['target'] in ['stable', 'testing']:
