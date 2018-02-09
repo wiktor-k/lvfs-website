@@ -268,8 +268,7 @@ def firmware_show(firmware_id):
                            group_id=fw.group_id,
                            cnt_fn=cnt_fn,
                            reports_success=reports_success,
-                           reports_failure=reports_failure,
-                           firmware_id=firmware_id)
+                           reports_failure=reports_failure)
 
 @app.route('/lvfs/firmware/<firmware_id>/analytics/year')
 @login_required
