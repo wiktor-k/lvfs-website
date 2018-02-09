@@ -194,6 +194,7 @@ def firmware_delete_force(firmware_id):
     elif fw.target == 'testing':
         _metadata_update_targets(targets=['testing'])
 
+    flash('Firmware deleted', 'info')
     _event_log("Deleted firmware %s" % firmware_id)
     return redirect(url_for('.firmware_list'))
 
