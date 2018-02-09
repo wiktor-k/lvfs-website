@@ -466,6 +466,7 @@ def login():
     # this is signed, not encrypted
     session['username'] = user.username
     login_user(user, remember=False)
+    g.user = user
 
     # log success
     _event_log('Logged on')
