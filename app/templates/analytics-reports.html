@@ -49,7 +49,7 @@
       <p class="text-success">Success</p>
 {% elif r.state == 3 %}
 {% if r.issue_id > 0 %}
-      <p class="text-info">Triaged <a class="text-muted" href="/lvfs/issue/{{r.issue_id}}/modify">[issue]</a></p>
+      <a class="text-info" href="/lvfs/issue/{{r.issue_id}}/details">Triaged</a>
 {% else %}
       <p class="text-danger">Failed</p>
 {% endif %}

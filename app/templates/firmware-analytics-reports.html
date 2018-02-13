@@ -59,7 +59,11 @@ Chart.defaults.global.animation = false;
 {% elif r.state == 2 %}
       <p class="text-success">Success</p>
 {% elif r.state == 3 %}
+{% if r.issue_id > 0 %}
+      <a class="text-info" href="/lvfs/issue/{{r.issue_id}}/details">Triaged</a>
+{% else %}
       <p class="text-danger">Failed</p>
+{% endif %}
 {% else %}
       <p class="text-danger">Invalid!</p>
 {% endif %}
