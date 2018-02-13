@@ -140,6 +140,38 @@ def issue_delete(issue_id):
     flash('Deleted issue', 'info')
     return redirect(url_for('.issue_all'))
 
+def _issue_fix_report_failures(issue):
+
+    # process each report
+    change_cnt = 0
+    for report in db.session.query(Report).all():
+
+        # already has a report
+        if report.issue_id != 0:
+            continue
+
+        # it matches the new issue
+        data = report.to_flat_dict()
+        if not issue.matches(data):
+            continue
+
+        # check we can apply changes to this firmware
+        fw = db.session.query(Firmware).\
+                filter(Firmware.firmware_id == report.firmware_id).first()
+        if not g.user.check_for_firmware(fw):
+            continue
+
+        # fix issue ID so we look better in the analytics pages
+        report.issue_id = issue.issue_id
+        change_cnt += 1
+
+    # save changes
+    if change_cnt:
+        db.session.commit()
+
+    # return number of changes
+    return change_cnt
+
 @app.route('/lvfs/issue/<int:issue_id>/modify', methods=['POST'])
 @login_required
 def issue_modify(issue_id):
@@ -167,8 +199,16 @@ def issue_modify(issue_id):
             setattr(issue, key, request.form[key])
     db.session.commit()
 
+    # if we enabled a new issue try to tag failures as known-failures
+    cnt_fixed = 0
+    if issue.enabled:
+        cnt_fixed = _issue_fix_report_failures(issue)
+
     # success
-    flash('Modified issue', 'info')
+    if cnt_fixed > 0:
+        flash('Modified issue (fixing %i reports)' % cnt_fixed, 'info')
+    else:
+        flash('Modified issue', 'info')
     return redirect(url_for('.issue_details', issue_id=issue_id))
 
 @app.route('/lvfs/issue/<int:issue_id>/details')
