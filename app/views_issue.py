@@ -133,6 +133,8 @@ def issue_delete(issue_id):
         return _error_permission_denied('Unable to delete report')
 
     # delete
+    for condition in issue.conditions:
+        db.session.delete(condition)
     db.session.delete(issue)
     db.session.commit()
     flash('Deleted issue', 'info')
