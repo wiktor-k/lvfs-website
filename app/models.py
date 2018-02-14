@@ -221,7 +221,7 @@ class Vendor(db.Base):
     def __repr__(self):
         return "Vendor object %s" % self.group_id
 
-class EventLogItem(db.Base):
+class Event(db.Base):
 
     # sqlalchemy metadata
     __tablename__ = 'event_log'
@@ -245,7 +245,7 @@ class EventLogItem(db.Base):
         self.request = request
         self.is_important = is_important
     def __repr__(self):
-        return "EventLogItem object %s" % self.message
+        return "Event object %s" % self.message
 
 class Requirement(db.Base):
 

@@ -64,14 +64,14 @@ def _event_log(msg, is_important=False):
         group_id = g.user.group_id
     if request:
         request_path = request.path
-    from .models import EventLogItem
+    from .models import Event
     from app import db
-    event = EventLogItem(username=username,
-                         message=msg,
-                         group_id=group_id,
-                         address=_get_client_address(),
-                         request=request_path,
-                         is_important=is_important)
+    event = Event(username=username,
+                  message=msg,
+                  group_id=group_id,
+                  address=_get_client_address(),
+                  request=request_path,
+                  is_important=is_important)
     db.session.add(event)
     db.session.commit()
 

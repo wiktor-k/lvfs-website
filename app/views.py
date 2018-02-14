@@ -18,7 +18,7 @@ from app import app, db, lm
 from .db import _execute_count_star
 
 from .models import Firmware, DownloadKind, UserCapability
-from .models import User, Analytic, Client, EventLogItem, _get_datestr_from_datetime
+from .models import User, Analytic, Client, Event, _get_datestr_from_datetime
 from .hash import _qa_hash, _password_hash, _addr_hash
 from .util import _event_log, _get_client_address, _get_settings
 from .util import _error_internal, _error_permission_denied
@@ -201,21 +201,21 @@ def eventlog(start=0, length=20):
 
     # get the page selection correct
     if g.user.check_capability('admin'):
-        eventlog_len = _execute_count_star(db.session.query(EventLogItem))
+        eventlog_len = _execute_count_star(db.session.query(Event))
     else:
-        eventlog_len = _execute_count_star(db.session.query(EventLogItem).\
-                            filter(EventLogItem.group_id == g.user.group_id))
+        eventlog_len = _execute_count_star(db.session.query(Event).\
+                            filter(Event.group_id == g.user.group_id))
     nr_pages = int(math.ceil(eventlog_len / float(length)))
 
     # table contents
     if g.user.check_capability(UserCapability.Admin):
-        events = db.session.query(EventLogItem).\
-                        order_by(EventLogItem.id.desc()).\
+        events = db.session.query(Event).\
+                        order_by(Event.id.desc()).\
                         offset(start).limit(length).all()
     else:
-        events = db.session.query(EventLogItem).\
-                        filter(EventLogItem.group_id == g.user.group_id).\
-                        order_by(EventLogItem.id.desc()).\
+        events = db.session.query(Event).\
+                        filter(Event.group_id == g.user.group_id).\
+                        order_by(Event.id.desc()).\
                         offset(start).limit(length).all()
     if len(events) == 0:
         return _error_internal('No event log available!')
