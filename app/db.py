@@ -35,7 +35,7 @@ class Database(object):
     def modify_db(self):
 
         # get current schema version
-        from .models import Setting, Component, Requirement, Firmware, Guid, EventLogItem
+        from .models import Setting
         setting = self.session.query(Setting).filter(Setting.key == 'db_schema_version').first()
         if not setting:
             print('Setting initial schema version')
