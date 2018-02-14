@@ -18,7 +18,7 @@ from app import app, db, lm
 from .db import _execute_count_star
 
 from .models import Firmware, DownloadKind, UserCapability
-from .models import User, Analytic, Client, EventLogItem
+from .models import User, Analytic, Client, EventLogItem, _get_datestr_from_datetime
 from .hash import _qa_hash, _password_hash, _addr_hash
 from .util import _event_log, _get_client_address, _get_settings
 from .util import _error_internal, _error_permission_denied
@@ -46,15 +46,15 @@ def serveStaticResource(resource):
         fw.download_cnt += 1
 
         # either update the analytics counter, or create one for that day
-        analytic_tmp = Analytic(DownloadKind.FIRMWARE)
+        datestr = _get_datestr_from_datetime(datetime.date.today())
         analytic = db.session.query(Analytic).\
-                        filter(Analytic.kind == analytic_tmp.kind).\
-                        filter(Analytic.datestr == analytic_tmp.datestr).\
+                        filter(Analytic.kind == DownloadKind.FIRMWARE).\
+                        filter(Analytic.datestr == datestr).\
                         first()
         if analytic:
             analytic.cnt += 1
         else:
-            db.session.add(analytic_tmp)
+            db.session.add(Analytic(DownloadKind.FIRMWARE, datestr))
 
         # log the client request
         db.session.add(Client(addr=_addr_hash(_get_client_address()),

@@ -567,11 +567,11 @@ class Analytic(db.Base):
     kind = Column(Integer, primary_key=True, default=0)
     cnt = Column(Integer, default=1)
 
-    def __init__(self, kind, timestamp=datetime.date.today()):
+    def __init__(self, kind, datestr=0):
         """ Constructor for object """
         self.kind = kind
         self.cnt = 1
-        self.datestr = _get_datestr_from_datetime(timestamp)
+        self.datestr = datestr
 
     def __repr__(self):
         return "Analytic object %i:%s" % (self.kind, self.datestr)
