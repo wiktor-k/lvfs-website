@@ -300,11 +300,9 @@ class Component(db.Base):
     firmware_id = Column(String(40), ForeignKey('firmware.firmware_id'), nullable=False)
     metainfo_id = Column(String(40), nullable=False)
     checksum_contents = Column(String(40), nullable=False)
-    unused_checksum_container = Column('checksum_container', String(40))
     appstream_id = Column(Text)
     name = Column(Text)
     summary = Column(Text)
-    unused_guid = Column('guid', Text)
     description = Column(Text)
     release_description = Column(Text)
     url_homepage = Column(Text)
@@ -319,7 +317,6 @@ class Component(db.Base):
     release_urgency = Column(String(16))
     screenshot_url = Column(Text)
     screenshot_caption = Column(Text)
-    unused_requirements = Column('requirements', Text)
 
     # link back to parent
     fw = relationship("Firmware", back_populates="mds")
