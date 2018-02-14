@@ -35,7 +35,8 @@ def firmware(show_all=False):
 
     # group by the firmware name
     names = {}
-    for fw in db.session.query(Firmware).all():
+    for fw in db.session.query(Firmware).\
+                order_by(Firmware.timestamp.desc()).all():
         if not g.user.check_for_firmware(fw, readonly=True):
             continue
         if len(fw.mds) == 0:
