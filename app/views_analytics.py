@@ -120,7 +120,9 @@ def analytics_clients():
     # security check
     if not g.user.check_capability(UserCapability.Admin):
         return _error_permission_denied('Unable to view analytics')
-    clients = db.session.query(Client).limit(25).all()
+    clients = db.session.query(Client).\
+                    order_by(Client.timestamp.desc()).\
+                    limit(25).all()
     return render_template('analytics-clients.html', clients=clients)
 
 @app.route('/lvfs/analytics/reports')
