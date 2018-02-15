@@ -153,9 +153,9 @@ def analytics_user_agents(timespan_days=30):
             key = str(datestr) + value
             dataval = 'NaN'
             if key in cached_cnt:
-                dataval = int(cached_cnt[key])
+                dataval = str(cached_cnt[key])
             data.append(dataval)
-        dataset['data'] = data[::-1]
+        dataset['data'] = '[' + ', '.join(data[::-1]) + ']'
         datasets.append(dataset)
     return render_template('analytics-user-agent.html',
                            labels_user_agent=_get_chart_labels_days(timespan_days)[::-1],
