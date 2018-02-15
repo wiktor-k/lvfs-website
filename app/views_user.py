@@ -117,10 +117,8 @@ def user_modify_by_admin(username):
         setattr(user, key, True if key in request.form else False)
 
     # password is optional, and hashed
-    if 'password' in request.form:
-        request.form['password'] = request.form['password']
-        if request.form['password']:
-            user.password = _password_hash(request.form['password'])
+    if 'password' in request.form and request.form['password']:
+        user.password = _password_hash(request.form['password'])
 
     db.session.commit()
     flash('Updated profile', 'info')
