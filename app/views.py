@@ -18,7 +18,7 @@ from app import app, db, lm
 from .db import _execute_count_star
 
 from .models import Firmware, DownloadKind, UserCapability
-from .models import User, Analytic, Client, Event, _get_datestr_from_datetime
+from .models import User, Analytic, Client, Event, Useragent, _get_datestr_from_datetime
 from .hash import _qa_hash, _password_hash, _addr_hash
 from .util import _get_client_address, _get_settings
 from .util import _error_internal, _error_permission_denied
@@ -55,6 +55,17 @@ def serveStaticResource(resource):
             analytic.cnt += 1
         else:
             db.session.add(Analytic(DownloadKind.FIRMWARE, datestr))
+
+        # update the user-agent counter
+        user_agent_safe = user_agent.split(' ')[0]
+        ug = db.session.query(Useragent).\
+                        filter(Useragent.value == user_agent_safe).\
+                        filter(Useragent.datestr == datestr).\
+                        first()
+        if ug:
+            ug.cnt += 1
+        else:
+            db.session.add(Useragent(user_agent_safe, datestr))
 
         # log the client request
         db.session.add(Client(addr=_addr_hash(_get_client_address()),

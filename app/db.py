@@ -35,12 +35,43 @@ class Database(object):
     def modify_db(self):
 
         # get current schema version
-        from .models import Setting
+        from .models import Setting, Client, Useragent, _get_datestr_from_datetime
         setting = self.session.query(Setting).filter(Setting.key == 'db_schema_version').first()
         if not setting:
             print('Setting initial schema version')
             setting = Setting('db_schema_version', str(0))
             self.session.add(setting)
+
+        # version 15 splits out the useragents table
+        if int(setting.value) == 15:
+            print('Creating Useragents table')
+            self.Base.metadata.tables['useragents'].create(bind=self.engine, checkfirst=True)
+            print('Getting all Clients (slow...)')
+            clients = self.session.query(Client).all()
+            print('Counting useragents')
+            dedupe = {}
+            for c in clients:
+                if not c.user_agent:
+                    continue
+                datestr = _get_datestr_from_datetime(c.timestamp)
+                user_agent_safe = c.user_agent.split(' ')[0]
+                key = (user_agent_safe, datestr)
+                if key not in dedupe:
+                    dedupe[key] = 1
+                    continue
+                dedupe[key] += 1
+            print('Migrating content to Useragents')
+            ordered = []
+            for key in dedupe:
+                ordered.append((key[0], key[1], dedupe[key]))
+            ordered.sort(key=lambda x: x[1])
+            for item in ordered:
+                self.session.add(Useragent(item[0], item[1], item[2]))
+            setting.value = 16
+            print('Committing transaction')
+            self.session.commit()
+            return
+
         print('No schema changes required')
 
     def init_db(self):

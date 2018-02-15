@@ -585,6 +585,24 @@ class Analytic(db.Base):
     def __repr__(self):
         return "Analytic object %i:%s" % (self.kind, self.datestr)
 
+class Useragent(db.Base):
+
+    # sqlalchemy metadata
+    __tablename__ = 'useragents'
+    condition_id = Column(Integer, primary_key=True, nullable=False, unique=True)
+    datestr = Column(Integer, default=0)
+    value = Column(Text, default=None)
+    cnt = Column(Integer, default=1)
+
+    def __init__(self, value, datestr=0, cnt=1):
+        """ Constructor for object """
+        self.value = value
+        self.cnt = cnt
+        self.datestr = datestr
+
+    def __repr__(self):
+        return "Useragent object %i:%s" % (self.kind, self.datestr)
+
 class DownloadKind(object):
     METADATA = 0
     FIRMWARE = 1

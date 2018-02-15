@@ -11,7 +11,7 @@ from flask_login import login_required
 
 from app import app, db
 
-from .models import UserCapability, DownloadKind, Analytic, Client, Report
+from .models import UserCapability, DownloadKind, Analytic, Client, Report, Useragent
 from .models import _get_datestr_from_datetime
 from .util import _error_permission_denied
 from .util import _get_chart_labels_months, _get_chart_labels_days
@@ -90,21 +90,18 @@ def analytics_user_agents():
 
     # dedupe
     dedupe = {}
-    for user_agent in db.session.query(Client).\
-                            with_entities(Client.user_agent).\
-                            filter(Client.user_agent != None).all():
-        chunk = user_agent[0].split(' ')[0]
-        if not chunk in dedupe:
-            dedupe[chunk] = 1
+    for ug in db.session.query(Useragent).all():
+        if not ug.value in dedupe:
+            dedupe[ug.value] = ug.cnt
             continue
-        dedupe[chunk] += 1
+        dedupe[ug.value] += ug.cnt
 
     # get top user_agent strings
     labels = []
     data = []
     for key, value in sorted(dedupe.iteritems(), key=lambda (k, v): (v, k), reverse=True):
         labels.append(str(key.replace('/', ' ')))
-        data.append(value)
+        data.append(int(value))
         if len(data) >= 7:
             break
 
