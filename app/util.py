@@ -111,20 +111,3 @@ def _get_chart_labels_hours():
     for i in range(0, 24):
         labels.append("%02i" % i)
     return labels
-
-def _validate_guid(guid):
-    """ Validates if the string is a valid GUID """
-    split = guid.split('-')
-    if len(split) != 5:
-        return False
-    if len(split[0]) != 8:
-        return False
-    if len(split[1]) != 4:
-        return False
-    if len(split[2]) != 4:
-        return False
-    if len(split[3]) != 4:
-        return False
-    if len(split[4]) != 12:
-        return False
-    return True

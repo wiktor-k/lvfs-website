@@ -10,7 +10,24 @@ from flask_login import login_required
 from app import app, db
 
 from .models import Requirement, Component
-from .util import _error_internal, _error_permission_denied, _validate_guid
+from .util import _error_internal, _error_permission_denied
+
+def _validate_guid(guid):
+    """ Validates if the string is a valid GUID """
+    split = guid.split('-')
+    if len(split) != 5:
+        return False
+    if len(split[0]) != 8:
+        return False
+    if len(split[1]) != 4:
+        return False
+    if len(split[2]) != 4:
+        return False
+    if len(split[3]) != 4:
+        return False
+    if len(split[4]) != 12:
+        return False
+    return True
 
 @app.route('/lvfs/component/<int:component_id>')
 @app.route('/lvfs/component/<int:component_id>/<page>')
