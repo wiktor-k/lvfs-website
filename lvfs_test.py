@@ -742,7 +742,6 @@ class LvfsTestCase(unittest.TestCase):
                 '/lvfs/device/2082b5e0-7a64-478a-b1b2-e3404fab6dad',
                ]
         for uri in uris:
-            print('GET', uri)
             rv = self.app.get(uri, follow_redirects=True)
             assert b'favicon.ico' in rv.data, rv.data
             assert b'LVFS: Error' not in rv.data, rv.data
@@ -752,7 +751,6 @@ class LvfsTestCase(unittest.TestCase):
         # all these are an error when not logged in
         uris = ['/lvfs/firmware']
         for uri in uris:
-            print('GET', uri)
             rv = self.app.get(uri)
             assert b'favicon.ico' in rv.data, rv.data
             assert b'LVFS: Error' in rv.data, rv.data

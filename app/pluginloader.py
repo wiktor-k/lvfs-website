@@ -110,7 +110,6 @@ class Pluginloader(object):
                 if not plugin2:
                     continue
                 if plugin2.priority <= plugin.priority:
-                    print("raising priority of", plugin_name)
                     plugin.priority = plugin2.priority + 1
 
         # sort by priority
