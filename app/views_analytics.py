@@ -151,10 +151,10 @@ def analytics_user_agents(timespan_days=30):
         for i in range(timespan_days):
             datestr = _get_datestr_from_datetime(yesterday - datetime.timedelta(days=i))
             key = str(datestr) + value
-            cnt = 'NaN'
+            dataval = 'NaN'
             if key in cached_cnt:
-                cnt = int(cached_cnt[key])
-            data.append(cnt)
+                dataval = int(cached_cnt[key])
+            data.append(dataval)
         dataset['data'] = data[::-1]
         datasets.append(dataset)
     return render_template('analytics-user-agent.html',
