@@ -10,7 +10,7 @@ from flask_login import login_required
 from app import app, db
 
 from .models import Requirement, Component
-from .util import _event_log, _error_internal, _error_permission_denied, _validate_guid
+from .util import _error_internal, _error_permission_denied, _validate_guid
 
 @app.route('/lvfs/component/<int:component_id>')
 @app.route('/lvfs/component/<int:component_id>/<page>')
@@ -59,8 +59,7 @@ def firmware_requirement_delete(requirement_id):
     db.session.commit()
 
     # log
-    flash('Removed requirement', 'info')
-    _event_log('Removed requirement %s on %s' % (rq.value, fw.firmware_id))
+    flash('Removed requirement %s' % rq.value, 'info')
     return redirect(url_for('.firmware_component_show',
                             component_id=md.component_id,
                             page='requires'))
@@ -92,7 +91,7 @@ def firmware_requirement_add():
 
     # validate CHID is a valid GUID
     if request.form['kind'] == 'hardware' and not _validate_guid(request.form['value']):
-        flash('%s was not a valid GUID' % request.form['value'], 'danger')
+        flash('Cannot add requirement: %s is not a valid GUID' % request.form['value'], 'warning')
         return redirect(url_for('.firmware_component_show',
                                 component_id=md.component_id,
                                 page='requires'))
@@ -106,13 +105,13 @@ def firmware_requirement_add():
             if request.form['compare'] == 'any':
                 db.session.delete(rq)
                 db.session.commit()
-                flash('Deleted requirement', 'info')
+                flash('Deleted requirement %s' % rq.value, 'info')
                 return redirect(url_for('.firmware_component_show',
                                         component_id=md.component_id,
                                         page='requires'))
             rq.compare = request.form['compare']
         db.session.commit()
-        flash('Modified requirement', 'info')
+        flash('Modified requirement %s' % rq.value, 'info')
         return redirect(url_for('.firmware_component_show',
                                 component_id=md.component_id,
                                 page='requires'))
@@ -127,7 +126,6 @@ def firmware_requirement_add():
     md.requirements.append(rq)
     db.session.commit()
     flash('Added requirement', 'info')
-    _event_log('Added requirement %s on %s' % (request.form['value'], fw.firmware_id))
     return redirect(url_for('.firmware_component_show',
                             component_id=md.component_id,
                             page='requires'))

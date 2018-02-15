@@ -20,7 +20,7 @@ from app import app, db, ploader
 
 from .models import Firmware, Component, Requirement, UserCapability, Guid, Group
 from .uploadedfile import UploadedFile, FileTooLarge, FileTooSmall, FileNotSupported, MetadataInvalid
-from .util import _event_log, _get_client_address, _get_settings
+from .util import _get_client_address, _get_settings
 from .util import _error_internal, _error_permission_denied
 from .metadata import _metadata_update_group, _metadata_update_targets, _metadata_update_pulp
 
@@ -76,9 +76,9 @@ def upload():
     fw = db.session.query(Firmware).filter(Firmware.firmware_id == ufile.firmware_id).first()
     if fw:
         if g.user.check_for_firmware(fw):
-            flash('A firmware file with hash %s already exists' % fw.firmware_id, 'warning')
+            flash('Failed to upload file: A file with hash %s already exists' % fw.firmware_id, 'warning')
             return redirect('/lvfs/firmware/%s' % fw.firmware_id)
-        flash('Another user has already uploaded this firmware', 'warning')
+        flash('Failed to upload file: Another user has already uploaded this firmware', 'warning')
         return redirect('/lvfs/upload')
 
     # check the guid and version does not already exist
@@ -91,7 +91,8 @@ def upload():
             for md in fw.mds:
                 for guid in md.guids:
                     if guid.value == provides_value and md.version == release_version:
-                        flash('A firmware file for version %s already exists' % release_version, 'danger')
+                        flash('Failed to upload file: A firmware file for '
+                              'version %s already exists' % release_version, 'danger')
                         return redirect('/lvfs/firmware/%s' % fw.firmware_id)
 
     # check if the file dropped a GUID previously supported
@@ -199,10 +200,7 @@ def upload():
     # add to database
     db.session.add(fw)
     db.session.commit()
-
-    # set correct response code
-    flash('Uploaded firmware to %s' % target, 'info')
-    _event_log("Uploaded file %s to %s" % (ufile.filename_new, target))
+    flash('Uploaded file %s to %s' % (ufile.filename_new, target), 'info')
 
     # ensure up to date
     if target == 'embargo':

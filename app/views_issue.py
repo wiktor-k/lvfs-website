@@ -43,7 +43,7 @@ def issue_add():
     # already exists
     if db.session.query(Issue).\
             filter(Issue.url == request.form['url']).first():
-        flash('An issue already exists with that url', 'info')
+        flash('Failed to add issue: The URL already exists', 'info')
         return redirect(url_for('.issue_all'))
 
     # add issue
@@ -75,7 +75,7 @@ def issue_condition_add(issue_id):
     if db.session.query(Condition).\
             filter(Condition.key == request.form['key']).\
             filter(Condition.issue_id == issue_id).first():
-        flash('A condition already exists for this issue with key %s' % request.form['key'], 'info')
+        flash('Failed to add condition to issue: Key %s already exists' % request.form['key'], 'info')
         return redirect(url_for('.issue_conditions', issue_id=issue_id))
 
     # add condition

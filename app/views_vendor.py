@@ -9,7 +9,7 @@ from flask_login import login_required
 
 from app import app, db
 
-from .util import _event_log, _error_permission_denied
+from .util import _error_permission_denied
 from .models import UserCapability, Vendor
 
 # sort by awesomeness
@@ -46,13 +46,11 @@ def vendor_add():
     if not 'group_id' in request.form:
         return _error_permission_denied('Unable to add vendor as no data')
     if db.session.query(Vendor).filter(Vendor.group_id == request.form['group_id']).first():
-        flash('Already a vendor with that group ID', 'warning')
+        flash('Failed to add vendor: Group ID already exists', 'warning')
         return redirect(url_for('.vendor_list'), 302)
     db.session.add(Vendor(request.form['group_id']))
     db.session.commit()
-
-    _event_log("Created vendor %s" % request.form['group_id'])
-    flash('Added vendor', 'info')
+    flash('Added vendor %s' % request.form['group_id'], 'info')
     return redirect(url_for('.vendor_details', group_id=request.form['group_id']), 302)
 
 @app.route('/lvfs/vendor/<group_id>/delete')
@@ -65,12 +63,10 @@ def vendor_delete(group_id):
         return _error_permission_denied('Unable to remove vendor as non-admin')
     vendor = db.session.query(Vendor).filter(Vendor.group_id == group_id).first()
     if not vendor:
-        flash('No a vendor with that group ID', 'warning')
+        flash('Failed to delete vendor: No a vendor with that group ID', 'warning')
         return redirect(url_for('.vendor_list'), 302)
     db.session.delete(vendor)
     db.session.commit()
-
-    _event_log("Removed vendor %s" % group_id)
     flash('Removed vendor', 'info')
     return redirect(url_for('.vendor_list'), 302)
 
@@ -84,7 +80,7 @@ def vendor_details(group_id):
         return _error_permission_denied('Unable to edit vendor as non-admin')
     vendor = db.session.query(Vendor).filter(Vendor.group_id == group_id).first()
     if not vendor:
-        flash('No a vendor with that group ID', 'warning')
+        flash('Failed to get vendor details: No a vendor with that group ID', 'warning')
         return redirect(url_for('.vendor_list'), 302)
     return render_template('vendor-details.html', v=vendor)
 
@@ -105,7 +101,7 @@ def vendor_modify_by_admin(group_id):
     # save to database
     vendor = db.session.query(Vendor).filter(Vendor.group_id == group_id).first()
     if not vendor:
-        flash('No a vendor with that group ID', 'warning')
+        flash('Failed to modify vendor: No a vendor with that group ID', 'warning')
         return redirect(url_for('.vendor_list'), 302)
     vendor.display_name = request.form['display_name']
     vendor.plugins = request.form['plugins']
@@ -116,7 +112,5 @@ def vendor_modify_by_admin(group_id):
     vendor.is_uploading = request.form['is_uploading']
     vendor.comments = request.form['comments']
     db.session.commit()
-
-    _event_log('Changed vendor %s properties' % group_id)
     flash('Updated vendor', 'info')
     return redirect(url_for('.vendor_list'))

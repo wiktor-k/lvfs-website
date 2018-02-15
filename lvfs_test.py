@@ -65,6 +65,7 @@ class LvfsTestCase(unittest.TestCase):
 
     def logout(self):
         rv = self._logout()
+        assert b'Logged out' in rv.data, rv.data
         assert b'/lvfs/upload' not in rv.data, rv.data
 
     def delete_firmware(self, firmware_id='e133637179fa7c37d7a36657c7e302edce3d0fce'):
@@ -105,7 +106,7 @@ class LvfsTestCase(unittest.TestCase):
 
     def upload(self, target='private'):
         rv = self._upload('contrib/hughski-colorhug2-2.0.3.cab', target)
-        assert b'Uploaded firmware' in rv.data, rv.data
+        assert b'Uploaded file' in rv.data, rv.data
         assert b'com.hughski.ColorHug2.firmware' in rv.data, rv.data
         assert b'e133637179fa7c37d7a36657c7e302edce3d0fce' in rv.data, rv.data
 
@@ -297,7 +298,7 @@ class LvfsTestCase(unittest.TestCase):
         self.upload()
         rv = self.app.get('/lvfs/eventlog')
         assert b'Uploaded file' in rv.data, rv.data
-        assert b'Logged on' in rv.data, rv.data
+        assert b'Logged in' in rv.data, rv.data
         assert b'>anonymous<' not in rv.data, rv.data
 
     def test_groups(self):
@@ -354,7 +355,7 @@ class LvfsTestCase(unittest.TestCase):
         # create duplicate
         rv = self.app.post('/lvfs/vendorlist/add', data=dict(group_id='testvendor'),
                            follow_redirects=True)
-        assert b'Already a vendor with that group ID' in rv.data, rv.data
+        assert b'Group ID already exists' in rv.data, rv.data
 
         # show the details page
         rv = self.app.get('/lvfs/vendor/testvendor/details')
@@ -639,7 +640,7 @@ class LvfsTestCase(unittest.TestCase):
             urgency='critical',
             description='Not enough cats!',
         ), follow_redirects=True)
-        assert b'Update text edited successfully' in rv.data, rv.data
+        assert b'Update text updated' in rv.data, rv.data
 
         # verify the new update info
         rv = self.app.get('/lvfs/component/1/update')
@@ -663,8 +664,7 @@ class LvfsTestCase(unittest.TestCase):
 
         # remove the CHID requirement
         rv = self.app.get('/lvfs/component/requirement/delete/3', follow_redirects=True)
-        assert b'Removed requirement' in rv.data, rv.data
-        assert b'85d38fda-fc0e-5c6f-808f-076984ae7978' not in rv.data, rv.data
+        assert b'Removed requirement 85d38fda-fc0e-5c6f-808f-076984ae7978' in rv.data, rv.data
 
         # add an invalid CHID
         rv = self.app.post('/lvfs/component/requirement/add', data=dict(
@@ -672,7 +672,7 @@ class LvfsTestCase(unittest.TestCase):
             kind='hardware',
             value='NOVALIDGUID',
         ), follow_redirects=True)
-        assert b'NOVALIDGUID was not a valid GUID' in rv.data, rv.data
+        assert b'NOVALIDGUID is not a valid GUID' in rv.data, rv.data
 
         # add a valid CHID
         rv = self.app.post('/lvfs/component/requirement/add', data=dict(
@@ -814,7 +814,7 @@ class LvfsTestCase(unittest.TestCase):
         # add Condition
         self.add_issue_condition()
         rv = self._add_issue_condition()
-        assert b'condition already exists for this issue' in rv.data, rv.data
+        assert b'Key DistroId already exists' in rv.data, rv.data
 
         # enable the issue
         self.enable_issue()

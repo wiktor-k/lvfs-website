@@ -19,7 +19,7 @@ from .db import _execute_count_star
 from .hash import _qa_hash
 from .metadata import _metadata_update_group, _metadata_update_targets
 from .models import UserCapability, Firmware, Report, Client
-from .util import _event_log, _error_internal, _error_permission_denied
+from .util import _error_internal, _error_permission_denied
 from .util import _get_chart_labels_months, _get_chart_labels_days
 
 @app.route('/lvfs/firmware')
@@ -104,11 +104,7 @@ def firmware_modify(firmware_id):
 
     # modify
     db.session.commit()
-
-    # log
-    flash('Update text edited successfully', 'info')
-    _event_log('Changed update description on %s' % firmware_id)
-
+    flash('Update text updated', 'info')
     return redirect(url_for('.firmware_show', firmware_id=firmware_id))
 
 @app.route('/lvfs/firmware/<firmware_id>/delete_force')
@@ -150,7 +146,6 @@ def firmware_delete_force(firmware_id):
         _metadata_update_targets(targets=['testing'])
 
     flash('Firmware deleted', 'info')
-    _event_log("Deleted firmware %s" % firmware_id)
     return redirect(url_for('.firmware'))
 
 @app.route('/lvfs/firmware/<firmware_id>/promote/<target>')
@@ -174,7 +169,7 @@ def firmware_promote(firmware_id, target):
 
     # same as before
     if fw.target == target:
-        flash('Firmware already in that target', 'info')
+        flash('Cannot move firmware: Firmware already in that target', 'info')
         return redirect(url_for('.firmware_show', firmware_id=firmware_id))
 
     # anything -> testing,stable = QA
@@ -195,10 +190,7 @@ def firmware_promote(firmware_id, target):
     # all okay
     fw.target = target
     db.session.commit()
-
-    # set correct response code
     flash('Moved firmware', 'info')
-    _event_log("Moved firmware %s to %s" % (firmware_id, target))
 
     # update everything
     _metadata_update_group(fw.group_id)

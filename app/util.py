@@ -77,13 +77,11 @@ def _event_log(msg, is_important=False):
 
 def _error_internal(msg=None, errcode=402):
     """ Error handler: Internal """
-    _event_log("Internal error: %s" % msg, is_important=True)
     flash("Internal error: %s" % msg, 'danger')
     return render_template('error.html'), errcode
 
 def _error_permission_denied(msg=None):
     """ Error handler: Permission Denied """
-    _event_log("Permission denied: %s" % msg, is_important=True)
     flash("Permission denied: %s" % msg, 'danger')
     return render_template('error.html'), 401
 

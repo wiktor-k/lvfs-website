@@ -9,14 +9,14 @@
 import os
 import sqlalchemy
 
-from flask import Flask, flash, render_template, g
+from flask import Flask, flash, render_template, message_flashed, g
 from flask_login import LoginManager
 from werkzeug.local import LocalProxy
 
 from .db import Database
 from .response import SecureResponse
 from .pluginloader import Pluginloader
-from .util import _error_internal
+from .util import _error_internal, _event_log
 
 app = Flask(__name__)
 if os.path.exists('app/custom.cfg'):
@@ -42,6 +42,14 @@ def dropdb_command():
 def modifydb_command():
     db.modify_db()
 
+def flash_save_eventlog(unused_sender, message, category, **unused_extra):
+    is_important = False
+    if category in ['danger', 'warning']:
+        is_important = True
+    _event_log(message, is_important)
+
+message_flashed.connect(flash_save_eventlog, app)
+
 lm = LoginManager()
 lm.init_app(app)
 
@@ -60,7 +68,7 @@ def load_user(user_id):
 @app.errorhandler(404)
 def error_page_not_found(msg=None):
     """ Error handler: File not found """
-    flash(msg)
+    flash(str(msg))
     return render_template('error.html'), 404
 
 from app import views

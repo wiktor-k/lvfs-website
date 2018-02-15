@@ -9,7 +9,7 @@ from flask_login import login_required
 
 from app import app, db
 
-from .util import _event_log, _error_internal, _error_permission_denied
+from .util import _error_internal, _error_permission_denied
 from .models import UserCapability, User, Group
 from .hash import _password_hash
 
@@ -65,7 +65,7 @@ def user_modify(username):
             filter(User.username == username).\
             filter(User.password == old_password_hash).first()
     if not user:
-        flash('Incorrect existing password', 'danger')
+        flash('Failed to modify profile: Incorrect existing password', 'danger')
         return redirect(url_for('.profile'), 302)
 
     # check password
@@ -76,13 +76,13 @@ def user_modify(username):
     # check email
     email = request.form['email']
     if not _email_check(email):
-        flash('Invalid email address', 'warning')
+        flash('Failed to modify profile: Invalid email address', 'warning')
         return redirect(url_for('.profile'))
 
     # verify name
     name = request.form['name']
     if len(name) < 3:
-        flash('Name invalid', 'warning')
+        flash('Failed to modify profile: Name invalid', 'warning')
         return redirect(url_for('.profile'), 302)
 
     # save to database
@@ -90,7 +90,6 @@ def user_modify(username):
     user.display_name = name
     user.email = email
     db.session.commit()
-    _event_log('Changed password')
     flash('Updated profile', 'info')
     return redirect(url_for('.profile'))
 
@@ -124,7 +123,6 @@ def user_modify_by_admin(username):
             user.password = _password_hash(request.form['password'])
 
     db.session.commit()
-    _event_log('Changed user %s properties' % username)
     flash('Updated profile', 'info')
     return redirect(url_for('.user_admin', username=username))
 
@@ -163,25 +161,25 @@ def user_add():
     # verify email
     email = request.form['email']
     if not _email_check(email):
-        flash('Invalid email address', 'warning')
+        flash('Failed to add user: Invalid email address', 'warning')
         return redirect(url_for('.user_list'), 302)
 
     # verify group_id
     group_id = request.form['group_id']
     if len(group_id) < 3:
-        flash('QA group invalid', 'warning')
+        flash('Failed to add user: QA group invalid', 'warning')
         return redirect(url_for('.user_list'), 302)
 
     # verify name
     name = request.form['name']
     if len(name) < 3:
-        flash('Name invalid', 'warning')
+        flash('Failed to add user: Name invalid', 'warning')
         return redirect(url_for('.user_list'), 302)
 
     # verify username
     username_new = request.form['username_new']
     if len(username_new) < 3:
-        flash('Username invalid', 'warning')
+        flash('Failed to add user: Username invalid', 'warning')
         return redirect(url_for('.user_list'), 302)
 
     db.session.add(User(username=username_new,
@@ -192,9 +190,7 @@ def user_add():
     if not db.session.query(Group).filter(Group.group_id == group_id).first():
         db.session.add(Group(group_id))
     db.session.commit()
-
-    _event_log("Created user %s" % username_new)
-    flash('Added user', 'info')
+    flash('Added user %s' % username_new, 'info')
     return redirect(url_for('.user_list'), 302)
 
 @app.route('/lvfs/user/<username>/delete')
@@ -209,11 +205,10 @@ def user_delete(username):
     # check whether exists in database
     user = db.session.query(User).filter(User.username == username).first()
     if not user:
-        flash("No entry with username %s" % username, 'danger')
+        flash("Failed to delete user: No entry with username %s" % username, 'danger')
         return redirect(url_for('.user_list'), 422)
     db.session.delete(user)
     db.session.commit()
-    _event_log("Deleted user %s" % username)
     flash('Deleted user', 'info')
     return redirect(url_for('.user_list'), 302)
 

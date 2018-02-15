@@ -20,7 +20,7 @@ from .db import _execute_count_star
 from .models import Firmware, DownloadKind, UserCapability
 from .models import User, Analytic, Client, Event, _get_datestr_from_datetime
 from .hash import _qa_hash, _password_hash, _addr_hash
-from .util import _event_log, _get_client_address, _get_settings
+from .util import _get_client_address, _get_settings
 from .util import _error_internal, _error_permission_denied
 
 @app.route('/<path:resource>')
@@ -161,28 +161,24 @@ def login():
             filter(User.username == request.form['username']).\
             filter(User.password == _password_hash(request.form['password'])).first()
     if not user:
-        # log failure
-        _event_log('Failed login attempt for %s' % request.form['username'])
-        flash('Incorrect username or password', 'danger')
+        flash('Failed to log in: Incorrect username or password for %s' % request.form['username'], 'danger')
         return redirect(url_for('.index'))
     if not user.is_enabled:
-        # log failure
-        _event_log('Failed login attempt for %s (user disabled)' % request.form['username'])
-        flash('User account is disabled', 'danger')
+        flash('Failed to log in: User account %s is disabled' % request.form['username'], 'danger')
         return redirect(url_for('.index'))
 
     # this is signed, not encrypted
     session['username'] = user.username
     login_user(user, remember=False)
     g.user = user
-
-    # log success
-    _event_log('Logged on')
+    flash('Logged in', 'info')
     return redirect(url_for('.index'))
 
 @app.route('/lvfs/logout')
+@login_required
 def logout():
     # remove the username from the session
+    flash('Logged out from %s' % g.user.username, 'info')
     session.pop('username', None)
     logout_user()
     return redirect(url_for('.index'))

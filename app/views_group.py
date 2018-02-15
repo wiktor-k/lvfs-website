@@ -9,7 +9,7 @@ from flask_login import login_required
 
 from app import app, db
 
-from .util import _event_log, _error_internal, _error_permission_denied
+from .util import _error_internal, _error_permission_denied
 from .models import UserCapability, User, Group
 
 @app.route('/lvfs/group/<group_id>/modify_by_admin', methods=['POST'])
@@ -30,7 +30,6 @@ def group_modify_by_admin(group_id):
     if 'vendor_ids' in request.form:
         group.vendor_ids = request.form['vendor_ids'].split(',')
     db.session.commit()
-    _event_log('Changed group %s properties' % group_id)
     flash('Updated group', 'info')
     return redirect(url_for('.group_admin', group_id=group_id))
 
@@ -53,9 +52,7 @@ def group_add():
         return _error_internal('Already a entry with that group', 422)
     db.session.add(Group(request.form['group_id']))
     db.session.commit()
-
-    _event_log("Created group %s" % request.form['group_id'])
-    flash('Added group', 'info')
+    flash('Added group %s' % request.form['group_id'], 'info')
     return redirect(url_for('.group_list'), 302)
 
 @app.route('/lvfs/group/<group_id>/delete')
@@ -70,11 +67,10 @@ def group_delete(group_id):
     # check whether exists in database
     group = db.session.query(Group).filter(Group.group_id == group_id).first()
     if not group:
-        flash("No entry with group_id %s" % group_id, 'warning')
+        flash("Cannot delete group: No entry with group_id %s" % group_id, 'warning')
         return redirect(url_for('.group_list'), 302)
     db.session.delete(group)
     db.session.commit()
-    _event_log("Deleted group %s" % group_id)
     flash('Deleted group', 'info')
     return redirect(url_for('.group_list'), 302)
 
