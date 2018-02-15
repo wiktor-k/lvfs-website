@@ -12,6 +12,7 @@ RUN yum -y install \
 	python2-flask-login \
 	python2-gnupg \
 	python2-pylint \
+	python-blinker \
 	python-requests \
 	python-sqlalchemy \
 	python-flask \
