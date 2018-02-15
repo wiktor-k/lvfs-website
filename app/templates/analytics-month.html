@@ -4,7 +4,7 @@
 {% block content %}
 <div class="container mt-3">
 
-<script src="/Chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.1/Chart.js" integrity="sha256-t3+U9BqykoMN9cqZmJ5Z53TvPv4V7S9AmjUcIWNNyxo=" crossorigin="anonymous"></script>
 <script>
 Chart.defaults.global.animation = false;
 </script>
@@ -40,17 +40,23 @@ var data = {
     datasets: [
         {
             label: "Firmware",
-            fillColor: "rgba(20,120,220,0.2)",
-            strokeColor: "rgba(20,120,120,0.1)",
-            pointColor: "rgba(20,120,120,0.3)",
-            pointStrokeColor: "#fff",
-            pointHighlightFill: "#fff",
-            pointHighlightStroke: "rgba(220,220,220,1)",
+            borderColor: "rgba(20,120,220,0.2)",
+            backgroundColor: "rgba(20,120,220,0.2)",
             data: {{data_days|safe}}
         },
     ]
 };
-var myLineChartDays = new Chart(ctx).Line(data, null);
+
+new Chart(ctx, {
+    type: 'line',
+    data: data,
+    options: {
+        legend: {
+            display: false
+        }
+    }
+});
+
 </script>
 
 </div>
