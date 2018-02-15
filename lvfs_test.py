@@ -26,7 +26,6 @@ class LvfsTestCase(unittest.TestCase):
         cfgfile.write('\n'.join([
             "DATABASE = '%s'" % self.db_uri,
             "DOWNLOAD_DIR = '/tmp'",
-            "TESTING = True",
             ]))
         cfgfile.close()
         os.environ['LVFS_CUSTOM_SETTINGS'] = self.cfg_filename
