@@ -9,7 +9,7 @@
 import os
 import sqlalchemy
 
-from flask import Flask, flash, render_template, message_flashed, g
+from flask import Flask, flash, render_template, message_flashed, request, Response, g
 from flask_login import LoginManager
 from werkzeug.local import LocalProxy
 
@@ -68,6 +68,12 @@ def load_user(user_id):
 @app.errorhandler(404)
 def error_page_not_found(msg=None):
     """ Error handler: File not found """
+
+    # the world is a horrible place
+    if request.path in ['/wp-login.php']:
+        return Response(response='bad karma', status=404, mimetype="text/plain")
+
+    # flash, recording to the eventlog too
     flash(str(msg))
     return render_template('error.html'), 404
 
