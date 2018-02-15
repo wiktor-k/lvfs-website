@@ -96,11 +96,11 @@ def _get_chart_labels_months():
         labels.append(calendar.month_name[now.month - i - offset])
     return labels
 
-def _get_chart_labels_days():
+def _get_chart_labels_days(limit=30):
     """ Gets the chart labels """
     now = datetime.date.today()
     labels = []
-    for i in range(0, 30):
+    for i in range(0, limit):
         then = now - datetime.timedelta(i)
         labels.append("%02i-%02i-%02i" % (then.year, then.month, then.day))
     return labels

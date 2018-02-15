@@ -6,6 +6,8 @@
 
 import datetime
 
+from sqlalchemy import and_
+
 from flask import render_template, g
 from flask_login import login_required
 
@@ -79,35 +81,85 @@ def analytics_year():
                            labels_months=_get_chart_labels_months()[::-1],
                            data_months=data[::-1])
 
+def _user_agent_wildcard(user_agent):
+    tokens = user_agent.split('/')
+    if len(tokens) != 2:
+        return user_agent
+    if tokens[0] == 'Mozilla':
+        return 'browser'
+    if tokens[0] == 'Java':
+        return 'bot'
+    versplt = tokens[1].split('.')
+    if len(versplt) != 3:
+        return user_agent
+    return tokens[0] + ' ' + '.'.join((versplt[0], versplt[1], 'x'))
+
 @app.route('/lvfs/analytics/user_agent')
+@app.route('/lvfs/analytics/user_agent/<int:timespan_days>')
 @login_required
-def analytics_user_agents():
+def analytics_user_agents(timespan_days=30):
     """ A analytics screen to show information about users """
 
     # security check
     if not g.user.check_capability(UserCapability.Admin):
         return _error_permission_denied('Unable to view analytics')
 
-    # dedupe
-    dedupe = {}
-    for ug in db.session.query(Useragent).all():
-        if not ug.value in dedupe:
-            dedupe[ug.value] = ug.cnt
+    # get data for this time period
+    cnt_total = {}
+    cached_cnt = {}
+    yesterday = datetime.date.today() - datetime.timedelta(days=timespan_days)
+    datestr_start = _get_datestr_from_datetime(yesterday - datetime.timedelta(days=timespan_days))
+    datestr_end = _get_datestr_from_datetime(yesterday)
+    for ug in db.session.query(Useragent).\
+                    filter(and_(Useragent.datestr > datestr_start,
+                                Useragent.datestr <= datestr_end)).all():
+        user_agent_safe = _user_agent_wildcard(ug.value)
+        key = str(ug.datestr) + user_agent_safe
+        if key not in cached_cnt:
+            cached_cnt[key] = ug.cnt
+        else:
+            cached_cnt[key] += ug.cnt
+        if not user_agent_safe in cnt_total:
+            cnt_total[user_agent_safe] = ug.cnt
             continue
-        dedupe[ug.value] += ug.cnt
+        cnt_total[user_agent_safe] += ug.cnt
 
-    # get top user_agent strings
-    labels = []
-    data = []
-    for key, value in sorted(dedupe.iteritems(), key=lambda (k, v): (v, k), reverse=True):
-        labels.append(str(key.replace('/', ' ')))
-        data.append(int(value))
-        if len(data) >= 7:
+    # find most popular user agent strings
+    most_popular = []
+    for key, value in sorted(cnt_total.iteritems(), key=lambda (k, v): (v, k), reverse=True):
+        most_popular.append(key)
+        if len(most_popular) >= 6:
             break
 
+    # generate enough for the template
+    datasets = []
+    palette = [
+        'ef4760',   # red
+        'ffd160',   # yellow
+        '06c990',   # green
+        '2f8ba0',   # teal
+        '845f80',   # purple
+        'ee8510',   # orange
+    ]
+    idx = 0
+    for value in sorted(most_popular):
+        dataset = {}
+        dataset['label'] = value
+        dataset['color'] = palette[idx % 6]
+        idx += 1
+        data = []
+        for i in range(timespan_days):
+            datestr = _get_datestr_from_datetime(yesterday - datetime.timedelta(days=i))
+            key = str(datestr) + value
+            cnt = 'NaN'
+            if key in cached_cnt:
+                cnt = int(cached_cnt[key])
+            data.append(cnt)
+        dataset['data'] = data[::-1]
+        datasets.append(dataset)
     return render_template('analytics-user-agent.html',
-                           labels_user_agent=labels,
-                           data_user_agent=data)
+                           labels_user_agent=_get_chart_labels_days(timespan_days)[::-1],
+                           datasets=datasets)
 
 @app.route('/lvfs/analytics/clients')
 @login_required
