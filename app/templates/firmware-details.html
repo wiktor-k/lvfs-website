@@ -69,9 +69,7 @@
     <td class="col-sm-4">{{fw.download_cnt}}</td>
     <td class="col-sm-4 text-right">
 {% if g.user.check_capability('analyst') %}
-      <form method="get" action="/lvfs/firmware/{{fw.firmware_id}}/analytics">
-        <button class="btn btn-info">Analytics</button>
-      </form>
+      <a class="btn btn-info" href="/lvfs/firmware/{{fw.firmware_id}}/analytics">Analytics</a>
 {% endif %}
     </td>
   </tr>
@@ -79,9 +77,9 @@
     <th class="col-sm-4">Reports</th>
     <td class="col-sm-4">👍 {{reports_success}} 👎 {{reports_failure}} 👋 {{reports_issue}}</td>
     <td class="col-sm-4 text-right">
-      <form method="get" action="/lvfs/firmware/{{fw.firmware_id}}/analytics/reports/2">
-        <button class="btn btn-info">View</button>
-      </form>
+{% if g.user.check_capability('analyst') %}
+      <a class="btn btn-info" href="/lvfs/firmware/{{fw.firmware_id}}/analytics/reports/2">View</a>
+{% endif %}
     </td>
   </tr>
 </table>

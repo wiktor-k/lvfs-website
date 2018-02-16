@@ -45,9 +45,7 @@
     <td class="col-sm-3">{{fw.timestamp}}</td>
     <td class="col-sm-3">{{fw.target}}</td>
     <td class="col-sm-3 text-right">
-      <form method="get" action="/lvfs/firmware/{{fw.firmware_id}}">
-      <button class="btn btn-info">Details</button>
-      </form>
+      <a class="btn btn-info" href="/lvfs/firmware/{{fw.firmware_id}}">Details</a>
     </td>
   </tr>
 {% endif %}
