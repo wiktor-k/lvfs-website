@@ -107,7 +107,7 @@ def analytics_user_agents(timespan_days=30):
     # get data for this time period
     cnt_total = {}
     cached_cnt = {}
-    yesterday = datetime.date.today() - datetime.timedelta(days=timespan_days)
+    yesterday = datetime.date.today() - datetime.timedelta(days=1)
     datestr_start = _get_datestr_from_datetime(yesterday - datetime.timedelta(days=timespan_days))
     datestr_end = _get_datestr_from_datetime(yesterday)
     for ug in db.session.query(Useragent).\
