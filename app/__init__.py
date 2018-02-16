@@ -70,7 +70,8 @@ def error_page_not_found(msg=None):
     """ Error handler: File not found """
 
     # the world is a horrible place
-    if request.path in ['/wp-login.php']:
+    if request.path in ['/wp-login.php',
+                        '/a2billing/common/javascript/misc.js']:
         return Response(response='bad karma', status=404, mimetype="text/plain")
 
     # flash, recording to the eventlog too
