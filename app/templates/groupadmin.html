@@ -33,27 +33,43 @@
 <form method="post" action="/lvfs/group/{{q.group_id}}/modify_by_admin" class="form-horizontal">
   <input type="text" size="80" name="vendor_ids" value="{{','.join(q.vendor_ids)}}">
   <input type="submit" class="btn btn-primary" value="Modify">
-</form>
-
-{% if not g.user.check_capability('admin') %}
-<h2>Delete Group</h2>
-<p>
-  Unless you are required to delete a group for legal or compliance reasons,
-  removing a group is not recommended for the following reasons:
-</p>
-<ul>
-  <li class="confirm">
-    Any users in this QA group will be disabled.
-  </li>
-  <li class="confirm">
-    Any statistics and logs for this group are also deleted.
-  </li>
-</ul>
-
-<form method="get" action="/lvfs/group/{{q.group_id}}/delete">
-  <button class="btn btn-danger">Delete</button>
-</form>
+{% if g.user.check_capability('admin') %}
+  <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#deleteModal">Delete</button>
 {% endif %}
+</form>
 
 </div> <!-- container -->
+
+<!-- modal dialog -->
+<div class="modal" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="deleteModalLabel">Really Delete Group?</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p>
+          Unless you are required to delete a group for legal or compliance reasons,
+          removing a group is not recommended for the following reasons:
+        </p>
+        <ul>
+          <li class="confirm">
+            Any users in this QA group will be disabled.
+          </li>
+          <li class="confirm">
+            Any statistics and logs for this group are also deleted.
+          </li>
+        </ul>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+        <a class="btn btn-danger" href="/lvfs/group/{{q.group_id}}/delete">Delete</a>
+      </div>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
