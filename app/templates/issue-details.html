@@ -45,7 +45,7 @@
   </div>
 {% if g.user.check_for_issue(issue) %}
   <input type="submit" class="btn btn-primary btn-large" class="submit" value="Modify">
-  <a class="btn btn-danger" href="/lvfs/issue/{{issue.issue_id}}/delete" role="button">Delete</a>
+  <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#deleteModal">Delete</button>
 {% endif %}
 </form>
 </div>
@@ -53,4 +53,26 @@
 <a class="btn btn-info mt-3" href="/lvfs/issue/all" role="button">&laquo; Back to issues</a>
 
 </div> <!-- container -->
+
+<!-- modal dialog -->
+<div class="modal" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="deleteModalLabel">Really Delete Issue?</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        Once deleted, issues can not be recovered.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+        <a class="btn btn-danger" href="/lvfs/issue/{{issue.issue_id}}/delete" role="button">Delete</a>
+      </div>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
