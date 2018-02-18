@@ -35,12 +35,14 @@
       <h3 class="text-center"><span class="badge badge-secondary">{{issue.priority}}</span></h3>
 {% if g.user.check_for_issue(issue) %}
 {% if issue == issues[0] %}
-      <a class="btn btn-outline-dark btn-block" href="/lvfs/issue/{{issue.issue_id}}/priority/down">▼</a>
+      <a class="btn btn-sm btn-outline-dark btn-block" href="/lvfs/issue/{{issue.issue_id}}/priority/down">▼</a>
 {% elif issue == issues[issues|length-1] %}
-      <a class="btn btn-outline-dark btn-block" href="/lvfs/issue/{{issue.issue_id}}/priority/up">▲</a>
+      <a class="btn btn-sm btn-outline-dark btn-block" href="/lvfs/issue/{{issue.issue_id}}/priority/up">▲</a>
 {% else %}
-      <a class="btn btn-outline-dark mt-1 btn-block" href="/lvfs/issue/{{issue.issue_id}}/priority/up">▲</a>
-      <a class="btn btn-outline-dark btn-block" href="/lvfs/issue/{{issue.issue_id}}/priority/down">▼</a>
+      <div class="btn-group-vertical btn-block" role="group" aria-label="Basic example">
+        <a class="btn btn-sm btn-outline-dark mt-1" href="/lvfs/issue/{{issue.issue_id}}/priority/up">▲</a>
+        <a class="btn btn-sm btn-outline-dark" href="/lvfs/issue/{{issue.issue_id}}/priority/down">▼</a>
+      </div>
 {% endif %}
 {% endif %}
     </td>
