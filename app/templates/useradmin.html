@@ -49,30 +49,43 @@
   </div>
 {% endif %}
   <input type="submit" class="btn btn-primary btn-large" class="submit" value="Modify">
+  {% if u.group_id != 'admin' %}
+  <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#deleteModal">Delete</button>
+  {% endif %}
 </form>
-
-{% if u.group_id != 'admin' %}
-<h1>Delete User</h1>
-<p>
-  Unless you are required to delete a user for legal or compliance reasons,
-  removing a user is not recommended for the following reasons:
-</p>
-<ul>
-  <li class="confirm">
-    All firmware uploaded by the user will be deleted.
-  </li>
-  <li class="confirm">
-    A new user cannot be added with the same name as the old user.
-  </li>
-  <li class="confirm">
-    Any statistics and logs for this user are also deleted.
-  </li>
-</ul>
-
-<form method="get" action="/lvfs/user/{{u.username}}/delete">
-  <button class="btn btn-danger btn-large">Delete</button>
-</form>
-{% endif %}
 
 </div> <!-- container -->
+
+<!-- modal dialog -->
+<div class="modal" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="deleteModalLabel">Really Delete User?</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p>
+          Unless you are required to delete a user for legal or compliance reasons,
+          removing a user is not recommended for the following reasons:
+        </p>
+        <ul>
+          <li class="confirm">
+            All firmware uploaded by the user will be deleted.
+          </li>
+          <li class="confirm">
+            Any statistics and logs for this user are deleted.
+          </li>
+        </ul>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+        <a class="btn btn-danger" href="/lvfs/user/{{u.username}}/delete">Delete</a>
+      </div>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
