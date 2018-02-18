@@ -68,11 +68,6 @@ def firmware(show_all=False):
 def firmware_all():
     return firmware(True)
 
-@app.route('/lvfs/firmware/<firmware_id>/delete')
-def firmware_delete(firmware_id):
-    """ Confirms deletion of firmware """
-    return render_template('firmware-delete.html', firmware_id=firmware_id), 406
-
 @app.route('/lvfs/firmware/<firmware_id>/modify', methods=['GET', 'POST'])
 @login_required
 def firmware_modify(firmware_id):
@@ -107,9 +102,9 @@ def firmware_modify(firmware_id):
     flash('Update text updated', 'info')
     return redirect(url_for('.firmware_show', firmware_id=firmware_id))
 
-@app.route('/lvfs/firmware/<firmware_id>/delete_force')
+@app.route('/lvfs/firmware/<firmware_id>/delete')
 @login_required
-def firmware_delete_force(firmware_id):
+def firmware_delete(firmware_id):
     """ Delete a firmware entry and also delete the file from disk """
 
     # check firmware exists in database

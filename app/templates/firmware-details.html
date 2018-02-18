@@ -11,9 +11,7 @@
     <td class="col-sm-4 align-middle"><a href="/downloads/{{fw.filename}}">{{orig_filename}}</a></td>
     <td class="col-sm-4 text-right">
 {% if fw.target != 'stable' or g.user.is_qa %}
-      <form method="get" action="/lvfs/firmware/{{fw.firmware_id}}/delete">
-      <button class="btn btn-danger">Delete</button>
-      </form>
+      <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#deleteModal">Delete</button>
 {% endif %}
     </td>
   </tr>
@@ -108,4 +106,59 @@
 </table>
 
 </div> <!-- container -->
+
+<!-- modal dialog -->
+<div class="modal" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="deleteModalLabel">Really Remove Firmare?</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p>
+          Unless you are required to delete this file for legal or compliance reasons,
+          removing a firmware is not recommended for the following reasons:
+        </p>
+        <ul>
+          <li class="confirm">
+            Users will only see the update descriptions for the latest released update,
+            rather than all the details for unapplied updates.
+          </li>
+          <li class="confirm">
+            Users who have installed this firmware will be unable to verify the hardware
+            checksum as the information will be gone from the metadata.
+          </li>
+          <li class="confirm">
+            Client tools have to take into account <b>all</b> the update severities of
+            updates not yet installed.
+            If the user has version 1.2.3 installed, 1.2.4 is a security update,
+            and 1.2.5 is a low priority update we want to show the update from
+            1.2.3&#8594;1.2.5 as high importance in a GUI.
+          </li>
+          <li class="confirm">
+            Users cannot downgrade firmware versions if they encounter problems
+            with the latest update.
+            If downgrading to specific versions needs to be disabled for technical
+            reasons, this can be handled inside the UEFI UpdateCapsule.
+          </li>
+          <li class="confirm">
+            Anyone using old metadata and trying to download the firmware will
+            get a &lsquo;404: File not found&rsquo; warning.
+          </li>
+          <li class="confirm">
+            Any statistics for how many times the update was downloaded are also deleted.
+          </li>
+        </ul>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+        <a class="btn btn-danger" href="/lvfs/firmware/{{firmware_id}}/delete">Irrevocably Remove Firmware</a>
+      </div>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
