@@ -56,7 +56,7 @@
 {% endif %}
     </td>
     <td class="col-sm-4">
-      <code>{{format_truncate(condition.value,39)}}</code>
+      <code>{{condition.value|truncate(40, False, '…')}}</code>
     </td>
     <td class="col-sm-2">
 {% if g.user.check_for_issue(issue) %}

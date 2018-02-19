@@ -123,11 +123,6 @@ def serveStaticResource(resource):
 @app.context_processor
 def utility_processor():
 
-    def format_truncate(tmp, length):
-        if len(tmp) <= length:
-            return tmp
-        return tmp[:length] + u'…'
-
     def format_timestamp(tmp):
         if not tmp:
             return 'n/a'
@@ -146,7 +141,6 @@ def utility_processor():
         return _qa_hash(tmp)
 
     return dict(format_size=format_size,
-                format_truncate=format_truncate,
                 format_qa_hash=format_qa_hash,
                 format_timestamp=format_timestamp)
 
