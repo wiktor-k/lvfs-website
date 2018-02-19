@@ -68,7 +68,7 @@ class LvfsTestCase(unittest.TestCase):
         assert b'/lvfs/upload' not in rv.data, rv.data
 
     def delete_firmware(self, firmware_id='e133637179fa7c37d7a36657c7e302edce3d0fce'):
-        rv = self.app.get('/lvfs/firmware/%s/delete_force' % firmware_id,
+        rv = self.app.get('/lvfs/firmware/%s/delete' % firmware_id,
                           follow_redirects=True)
         assert b'Firmware deleted' in rv.data, rv.data
 
@@ -192,8 +192,6 @@ class LvfsTestCase(unittest.TestCase):
         self.login()
 
         # test deleting the firmware
-        rv = self.app.get('/lvfs/firmware/e133637179fa7c37d7a36657c7e302edce3d0fce/delete')
-        assert b'Irrevocably Remove Firmware' in rv.data, rv.data
         self.delete_firmware()
 
     def test_user_delete_wrong_user(self):
@@ -211,7 +209,7 @@ class LvfsTestCase(unittest.TestCase):
 
         # try to delete as otheruser
         self.login('otheruser')
-        rv = self.app.get('/lvfs/firmware/e133637179fa7c37d7a36657c7e302edce3d0fce/delete_force',
+        rv = self.app.get('/lvfs/firmware/e133637179fa7c37d7a36657c7e302edce3d0fce/delete',
                           follow_redirects=True)
         assert b'Firmware deleted' not in rv.data, rv.data
         assert b'Insufficient permissions to delete firmware' in rv.data, rv.data
@@ -231,7 +229,7 @@ class LvfsTestCase(unittest.TestCase):
 
         # try to delete as otheruser
         self.login('otheruser')
-        rv = self.app.get('/lvfs/firmware/e133637179fa7c37d7a36657c7e302edce3d0fce/delete_force',
+        rv = self.app.get('/lvfs/firmware/e133637179fa7c37d7a36657c7e302edce3d0fce/delete',
                           follow_redirects=True)
         assert b'Firmware deleted' not in rv.data, rv.data
         assert b'Insufficient permissions to delete firmware' in rv.data, rv.data
