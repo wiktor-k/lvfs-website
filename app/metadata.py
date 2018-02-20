@@ -62,11 +62,11 @@ def _generate_metadata_kind(filename, fws, firmware_baseuri=''):
                 component.add_release(rel)
 
                 # add container checksum
-                if fw.checksum:
+                if fw.checksum_signed:
                     csum = AppStreamGlib.Checksum.new()
                     csum.set_kind(GLib.ChecksumType.SHA1)
                     csum.set_target(AppStreamGlib.ChecksumTarget.CONTAINER)
-                    csum.set_value(fw.checksum)
+                    csum.set_value(fw.checksum_signed)
                     csum.set_filename(fw.filename)
                     rel.add_checksum(csum)
 

@@ -140,7 +140,7 @@ def upload():
     fw.filename = ufile.filename_new
     fw.firmware_id = ufile.firmware_id
     fw.target = target
-    fw.checksum = hashlib.sha1(cab_data).hexdigest()
+    fw.checksum_signed = hashlib.sha1(cab_data).hexdigest()
     if ufile.version_display:
         fw.version_display = ufile.version_display
 

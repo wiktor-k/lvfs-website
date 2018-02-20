@@ -120,7 +120,7 @@ def firmware_report():
         report_metadata = report['Metadata']
 
         # try to find the firmware_id (which might not exist on this server)
-        fw = db.session.query(Firmware).filter(Firmware.checksum == checksum).first()
+        fw = db.session.query(Firmware).filter(Firmware.checksum_signed == checksum).first()
         if not fw:
             msgs.append('%s did not match any known firmware archive' % checksum)
             continue
