@@ -532,17 +532,21 @@ class Report(db.Base):
     state = Column(Integer, default=0)
     json = Column(Text)
     machine_id = Column(String(64), nullable=False)
-    checksum_upload = Column(String(40), nullable=False)
+    firmware_id = Column(Integer, ForeignKey('firmware.firmware_id'), nullable=False)
+    unused_checksum_upload = Column('checksum_upload', String(40))
     checksum = Column(String(64), nullable=False)
     issue_id = Column(Integer, default=0)
 
-    def __init__(self, checksum_upload=None, machine_id=None, state=0, checksum=None, json_raw=None, issue_id=0):
+    # link using foreign keys
+    fw = relationship('Firmware', foreign_keys=[firmware_id])
+
+    def __init__(self, firmware_id, machine_id=None, state=0, checksum=None, json_raw=None, issue_id=0):
         """ Constructor for object """
         self.timestamp = None
         self.state = state
         self.json = json_raw
         self.machine_id = machine_id
-        self.checksum_upload = checksum_upload
+        self.firmware_id = firmware_id
         self.issue_id = issue_id
         self.checksum = checksum
 

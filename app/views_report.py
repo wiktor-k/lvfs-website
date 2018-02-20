@@ -158,7 +158,7 @@ def firmware_report():
 
         # save a new report in the database
         db.session.add(Report(machine_id=machine_id,
-                              checksum_upload=fw.checksum_upload,
+                              firmware_id=fw.firmware_id,
                               issue_id=issue_id,
                               state=report['UpdateState'],
                               checksum=checksum,

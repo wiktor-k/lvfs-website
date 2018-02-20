@@ -218,7 +218,7 @@ def firmware_show(checksum_upload):
     reports_success = 0
     reports_failure = 0
     reports_issue = 0
-    reports = db.session.query(Report).filter(Report.checksum_upload == checksum_upload).all()
+    reports = db.session.query(Report).filter(Report.firmware_id == fw.firmware_id).all()
     for r in reports:
         if r.state == 2:
             reports_success += 1
@@ -322,11 +322,11 @@ def firmware_analytics_reports(checksum_upload, state=None):
         return _error_permission_denied('Insufficient permissions to view analytics')
     if state:
         reports = db.session.query(Report).\
-                    filter(Report.checksum_upload == checksum_upload).\
+                    filter(Report.firmware_id == fw.firmware_id).\
                     filter(Report.state == state).all()
     else:
         reports = db.session.query(Report).\
-                    filter(Report.checksum_upload == checksum_upload).all()
+                    filter(Report.firmware_id == fw.firmware_id).all()
     return render_template('firmware-analytics-reports.html',
                            fw=fw,
                            state=state,

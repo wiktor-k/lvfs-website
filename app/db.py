@@ -35,7 +35,7 @@ class Database(object):
     def modify_db(self):
 
         # get current schema version
-        from .models import Setting, Component, Firmware
+        from .models import Setting, Component, Firmware, Report
         setting = self.session.query(Setting).filter(Setting.key == 'db_schema_version').first()
         if not setting:
             print('Setting initial schema version')
@@ -51,6 +51,20 @@ class Database(object):
                     continue
                 c.firmware_id = fw.firmware_id
             setting.value = 17
+            print('Committing transaction')
+            self.session.commit()
+            return
+
+        # use the firmware_id on the reports table
+        if int(setting.value) == 17:
+            print('Setting the firmware_id on each report')
+            for c in self.session.query(Report).all():
+                fw = self.session.query(Firmware).\
+                        filter(Firmware.checksum_upload == c.unused_checksum_upload).first()
+                if not fw:
+                    continue
+                c.firmware_id = fw.firmware_id
+            setting.value = 18
             print('Committing transaction')
             self.session.commit()
             return
