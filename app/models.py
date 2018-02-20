@@ -368,12 +368,13 @@ class Firmware(db.Base):
 
     # sqlalchemy metadata
     __tablename__ = 'firmware'
+    firmware_id = Column(Integer, primary_key=True, unique=True, nullable=False)
     group_id = Column(String(40), nullable=False)
     addr = Column(String(40), nullable=False)
     timestamp = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
     filename = Column(String(255), nullable=False)
     download_cnt = Column(Integer, default=0)
-    checksum_upload = Column(String(40), primary_key=True, unique=True)
+    checksum_upload = Column(String(40), nullable=False)
     version_display = Column(String(255), nullable=True, default=None)
     target = Column(String(255), nullable=False)
     checksum_signed = Column(String(40), nullable=False)
