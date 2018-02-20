@@ -590,7 +590,7 @@ class Useragent(db.Base):
 
     # sqlalchemy metadata
     __tablename__ = 'useragents'
-    condition_id = Column(Integer, primary_key=True, nullable=False, unique=True)
+    useragent_id = Column(Integer, primary_key=True, nullable=False, unique=True)
     datestr = Column(Integer, default=0)
     value = Column(Text, default=None)
     cnt = Column(Integer, default=1)
