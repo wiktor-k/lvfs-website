@@ -73,11 +73,11 @@ def upload():
         return redirect(request.url)
 
     # check the file does not already exist
-    fw = db.session.query(Firmware).filter(Firmware.firmware_id == ufile.firmware_id).first()
+    fw = db.session.query(Firmware).filter(Firmware.checksum_upload == ufile.checksum_upload).first()
     if fw:
         if g.user.check_for_firmware(fw):
-            flash('Failed to upload file: A file with hash %s already exists' % fw.firmware_id, 'warning')
-            return redirect('/lvfs/firmware/%s' % fw.firmware_id)
+            flash('Failed to upload file: A file with hash %s already exists' % fw.checksum_upload, 'warning')
+            return redirect('/lvfs/firmware/%s' % fw.checksum_upload)
         flash('Failed to upload file: Another user has already uploaded this firmware', 'warning')
         return redirect('/lvfs/upload')
 
@@ -93,7 +93,7 @@ def upload():
                     if guid.value == provides_value and md.version == release_version:
                         flash('Failed to upload file: A firmware file for '
                               'version %s already exists' % release_version, 'danger')
-                        return redirect('/lvfs/firmware/%s' % fw.firmware_id)
+                        return redirect('/lvfs/firmware/%s' % fw.checksum_upload)
 
     # check if the file dropped a GUID previously supported
     for component in ufile.get_components():
@@ -138,7 +138,7 @@ def upload():
     fw.username = g.user.username
     fw.addr = _get_client_address()
     fw.filename = ufile.filename_new
-    fw.firmware_id = ufile.firmware_id
+    fw.checksum_upload = ufile.checksum_upload
     fw.target = target
     fw.checksum_signed = hashlib.sha1(cab_data).hexdigest()
     if ufile.version_display:
@@ -147,7 +147,7 @@ def upload():
     # create child metadata object for the component
     for component in ufile.get_components():
         md = Component()
-        md.firmware_id = ufile.firmware_id
+        md.checksum_upload = ufile.checksum_upload
         md.metainfo_id = component.get_metadata_item('metainfo_id')
         md.appstream_id = component.get_id()
         md.name = component.get_name()
@@ -211,4 +211,4 @@ def upload():
     elif target == 'testing':
         _metadata_update_targets(['testing'])
 
-    return redirect(url_for('.firmware_show', firmware_id=ufile.firmware_id))
+    return redirect(url_for('.firmware_show', checksum_upload=ufile.checksum_upload))

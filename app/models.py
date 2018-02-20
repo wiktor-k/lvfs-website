@@ -299,7 +299,7 @@ class Component(db.Base):
     # sqlalchemy metadata
     __tablename__ = 'components'
     component_id = Column(Integer, primary_key=True, unique=True, nullable=False)
-    firmware_id = Column(String(40), ForeignKey('firmware.firmware_id'), nullable=False)
+    checksum_upload = Column(String(40), ForeignKey('firmware.checksum_upload'), nullable=False)
     metainfo_id = Column(String(40), nullable=False)
     checksum_contents = Column(String(40), nullable=False)
     appstream_id = Column(Text)
@@ -329,7 +329,7 @@ class Component(db.Base):
 
     def __init__(self):
         """ Constructor for object """
-        self.firmware_id = None             # this maps the object back to Firmware
+        self.checksum_upload = None         # this maps the object back to Firmware
         self.appstream_id = None            # e.g. com.hughski.ColorHug.firmware
         self.guids = []
         self.version = None
@@ -362,7 +362,7 @@ class Component(db.Base):
         return None
 
     def __repr__(self):
-        return "Component object %s" % self.firmware_id
+        return "Component object %s" % self.checksum_upload
 
 class Firmware(db.Base):
 
@@ -373,7 +373,7 @@ class Firmware(db.Base):
     timestamp = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
     filename = Column(String(255), nullable=False)
     download_cnt = Column(Integer, default=0)
-    firmware_id = Column(String(40), primary_key=True, unique=True)
+    checksum_upload = Column(String(40), primary_key=True, unique=True)
     version_display = Column(String(255), nullable=True, default=None)
     target = Column(String(255), nullable=False)
     checksum_signed = Column(String(40), nullable=False)
@@ -388,7 +388,7 @@ class Firmware(db.Base):
         self.addr = None
         self.timestamp = None
         self.filename = None        # filename of the original .cab file
-        self.firmware_id = None     # SHA1 of the original .cab file
+        self.checksum_upload = None # SHA1 of the original .cab file
         self.target = None          # pivate, embargo, testing, etc.
         self.version_display = None # from the firmware.inf file
         self.download_cnt = 0       # generated from the client database
@@ -397,7 +397,7 @@ class Firmware(db.Base):
         self.mds = []
 
     def __repr__(self):
-        return "Firmware object %s" % self.firmware_id
+        return "Firmware object %s" % self.checksum_upload
 
 class Client(db.Base):
 
@@ -531,17 +531,17 @@ class Report(db.Base):
     state = Column(Integer, default=0)
     json = Column(Text)
     machine_id = Column(String(64), nullable=False)
-    firmware_id = Column(String(40), nullable=False)
+    checksum_upload = Column(String(40), nullable=False)
     checksum = Column(String(64), nullable=False)
     issue_id = Column(Integer, default=0)
 
-    def __init__(self, firmware_id=None, machine_id=None, state=0, checksum=None, json_raw=None, issue_id=0):
+    def __init__(self, checksum_upload=None, machine_id=None, state=0, checksum=None, json_raw=None, issue_id=0):
         """ Constructor for object """
         self.timestamp = None
         self.state = state
         self.json = json_raw
         self.machine_id = machine_id
-        self.firmware_id = firmware_id
+        self.checksum_upload = checksum_upload
         self.issue_id = issue_id
         self.checksum = checksum
 

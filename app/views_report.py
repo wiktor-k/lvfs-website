@@ -119,7 +119,7 @@ def firmware_report():
         checksum = report['Checksum']
         report_metadata = report['Metadata']
 
-        # try to find the firmware_id (which might not exist on this server)
+        # try to find the checksum_upload (which might not exist on this server)
         fw = db.session.query(Firmware).filter(Firmware.checksum_signed == checksum).first()
         if not fw:
             msgs.append('%s did not match any known firmware archive' % checksum)
@@ -158,7 +158,7 @@ def firmware_report():
 
         # save a new report in the database
         db.session.add(Report(machine_id=machine_id,
-                              firmware_id=fw.firmware_id,
+                              checksum_upload=fw.checksum_upload,
                               issue_id=issue_id,
                               state=report['UpdateState'],
                               checksum=checksum,

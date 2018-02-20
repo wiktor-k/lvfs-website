@@ -63,7 +63,7 @@
     <td class="col-sm-4">
 {% for n in f['names'] %}
       <div>
-        <a href="/lvfs/firmware/{{f['firmware_id']}}">{{n}}</a>
+        <a href="/lvfs/firmware/{{f['checksum_upload']}}">{{n}}</a>
       </div>
 {% endfor %}
 {% if f['target'] == 'testing' %}

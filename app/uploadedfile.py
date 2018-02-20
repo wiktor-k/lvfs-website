@@ -93,7 +93,7 @@ class UploadedFile(object):
     def __init__(self, ploader=None):
         """ default public attributes """
 
-        self.firmware_id = None
+        self.checksum_upload = None
         self.filename_new = None
         self.fwupd_min_version = '0.8.0'    # a guess, but everyone should have this
         self.version_display = None
@@ -295,8 +295,8 @@ class UploadedFile(object):
             raise FileTooSmall('File too small, mimimum is 1k')
 
         # get new filename
-        self.firmware_id = hashlib.sha1(data).hexdigest()
-        self.filename_new = self.firmware_id + '-' + filename.replace('.zip', '.cab')
+        self.checksum_upload = hashlib.sha1(data).hexdigest()
+        self.filename_new = self.checksum_upload + '-' + filename.replace('.zip', '.cab')
 
         # parse the file
         self._load_archive(filename, data)

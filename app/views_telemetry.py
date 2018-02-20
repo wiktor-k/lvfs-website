@@ -76,7 +76,7 @@ def telemetry(age=0, sort_key='downloads', sort_direction='up'):
         if age == 0:
             cnt_download = fw.download_cnt
             rpts = db.session.query(Report).\
-                        filter(Report.firmware_id == fw.firmware_id).all()
+                        filter(Report.checksum_upload == fw.checksum_upload).all()
         else:
             cnt_download = _execute_count_star(db.session.query(Client).\
                                 filter(Client.filename == fw.filename).\
@@ -84,7 +84,7 @@ def telemetry(age=0, sort_key='downloads', sort_direction='up'):
                                                           Client.timestamp,
                                                           func.current_timestamp()) < age))
             rpts = db.session.query(Report).\
-                        filter(Report.firmware_id == fw.firmware_id).\
+                        filter(Report.checksum_upload == fw.checksum_upload).\
                         filter(func.timestampdiff(text('DAY'),
                                                   Report.timestamp,
                                                   func.current_timestamp()) < age).all()
@@ -116,7 +116,7 @@ def telemetry(age=0, sort_key='downloads', sort_direction='up'):
         if not res['version']:
             res['version'] = fw.mds[0].version
         res['nameversion'] = res['names'][0] + ' ' + res['version']
-        res['firmware_id'] = fw.firmware_id
+        res['checksum_upload'] = fw.checksum_upload
         res['target'] = fw.target
         res['duplicate'] = len(fw.mds)
         fwlines.append(res)

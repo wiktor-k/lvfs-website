@@ -67,8 +67,8 @@ class LvfsTestCase(unittest.TestCase):
         assert b'Logged out' in rv.data, rv.data
         assert b'/lvfs/upload' not in rv.data, rv.data
 
-    def delete_firmware(self, firmware_id='e133637179fa7c37d7a36657c7e302edce3d0fce'):
-        rv = self.app.get('/lvfs/firmware/%s/delete' % firmware_id,
+    def delete_firmware(self, checksum_upload='e133637179fa7c37d7a36657c7e302edce3d0fce'):
+        rv = self.app.get('/lvfs/firmware/%s/delete' % checksum_upload,
                           follow_redirects=True)
         assert b'Firmware deleted' in rv.data, rv.data
 
