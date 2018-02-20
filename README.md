@@ -18,6 +18,7 @@ The official instance is set up using puppet on RHEL 7, on which you could use:
     yum install https://kojipkgs.fedoraproject.org//work/tasks/1429/24421429/libappstream-glib-0.7.5-2.fc28.x86_64.rpm
     yum install https://kojipkgs.fedoraproject.org//packages/gcab/1.0/1.fc27/x86_64/libgcab1-1.0-1.fc27.x86_64.rpm
     yum install https://kojipkgs.fedoraproject.org//packages/python-flask/0.11.1/6.fc27/noarch/python2-flask-0.11.1-6.fc27.noarch.rpm
+    yum install https://kojipkgs.fedoraproject.org//packages/python-jinja2/2.9.6/2.fc27/noarch/python2-jinja2-2.9.6-2.fc27.noarch.rpm https://kojipkgs.fedoraproject.org//packages/babel/2.3.4/6.fc27/noarch/python2-babel-2.3.4-6.fc27.noarch.rpm
     yum install puppet
     git clone https://github.com/hughsie/lvfs-puppet.git
     cd lvfs-puppet
