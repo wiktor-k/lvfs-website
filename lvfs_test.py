@@ -4,7 +4,7 @@
 # Copyright (C) 2018 Richard Hughes <richard@hughsie.com>
 # Licensed under the GNU General Public License Version 2
 #
-# pylint: disable=fixme,too-many-public-methods
+# pylint: disable=fixme,too-many-public-methods,line-too-long
 
 from __future__ import print_function
 
@@ -532,6 +532,7 @@ class LvfsTestCase(unittest.TestCase):
                              '    {'
                              '      "Checksum" : "%s",'
                              '      "UpdateState" : %i,'
+                             '      "UpdateError" : "UEFI firmware update failed: failed to make /boot/efi/EFI/arch/fw: No such file or directory",'
                              '      "Guid" : "e133637179fa7c37d7a36657c7e302edce3d0fce",'
                              '      "Plugin" : "colorhug",'
                              '      "VersionOld" : "2.0.0",'
@@ -820,6 +821,10 @@ class LvfsTestCase(unittest.TestCase):
 
         # add another condition on the fwupd version
         rv = self._add_issue_condition(key='FwupdVersion', compare='gt', value='0.8.0')
+        assert b'Added condition' in rv.data, rv.data
+
+        # add another condition on the update string
+        rv = self._add_issue_condition(key='UpdateError', compare='glob', value='*failed to make /boot/efi/EFI*')
         assert b'Added condition' in rv.data, rv.data
 
         # enable the issue
