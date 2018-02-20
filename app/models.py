@@ -299,7 +299,8 @@ class Component(db.Base):
     # sqlalchemy metadata
     __tablename__ = 'components'
     component_id = Column(Integer, primary_key=True, unique=True, nullable=False)
-    checksum_upload = Column(String(40), ForeignKey('firmware.checksum_upload'), nullable=False)
+    unused_checksum_upload = Column('checksum_upload', String(40))
+    firmware_id = Column(Integer, ForeignKey('firmware.firmware_id'), nullable=False)
     metainfo_id = Column(String(40), nullable=False)
     checksum_contents = Column(String(40), nullable=False)
     appstream_id = Column(Text)
@@ -329,7 +330,6 @@ class Component(db.Base):
 
     def __init__(self):
         """ Constructor for object """
-        self.checksum_upload = None         # this maps the object back to Firmware
         self.appstream_id = None            # e.g. com.hughski.ColorHug.firmware
         self.guids = []
         self.version = None
@@ -362,7 +362,7 @@ class Component(db.Base):
         return None
 
     def __repr__(self):
-        return "Component object %s" % self.checksum_upload
+        return "Component object %s" % self.appstream_id
 
 class Firmware(db.Base):
 

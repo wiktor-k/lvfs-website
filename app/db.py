@@ -35,12 +35,25 @@ class Database(object):
     def modify_db(self):
 
         # get current schema version
-        from .models import Setting
+        from .models import Setting, Component, Firmware
         setting = self.session.query(Setting).filter(Setting.key == 'db_schema_version').first()
         if not setting:
             print('Setting initial schema version')
             setting = Setting('db_schema_version', str(0))
             self.session.add(setting)
+
+        # version 16 adds a primary key on the Firmware table
+        if int(setting.value) == 16:
+            print('Setting the firmware_id on each component')
+            for c in self.session.query(Component).all():
+                fw = self.session.query(Firmware).filter(Firmware.checksum_upload == c.unused_checksum_upload).first()
+                if not fw:
+                    continue
+                c.firmware_id = fw.firmware_id
+            setting.value = 17
+            print('Committing transaction')
+            self.session.commit()
+            return
 
         print('No schema changes required')
 

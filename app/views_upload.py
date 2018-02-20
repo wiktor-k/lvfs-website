@@ -147,7 +147,6 @@ def upload():
     # create child metadata object for the component
     for component in ufile.get_components():
         md = Component()
-        md.checksum_upload = ufile.checksum_upload
         md.metainfo_id = component.get_metadata_item('metainfo_id')
         md.appstream_id = component.get_id()
         md.name = component.get_name()
