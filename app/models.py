@@ -301,7 +301,7 @@ class Component(db.Base):
     component_id = Column(Integer, primary_key=True, unique=True, nullable=False)
     unused_checksum_upload = Column('checksum_upload', String(40))
     firmware_id = Column(Integer, ForeignKey('firmware.firmware_id'), nullable=False)
-    metainfo_id = Column(String(40), nullable=False)
+    unused_metainfo_id = Column('metainfo_id', String(40))
     checksum_contents = Column(String(40), nullable=False)
     appstream_id = Column(Text)
     name = Column(Text)
@@ -349,7 +349,6 @@ class Component(db.Base):
         self.release_urgency = None
         self.screenshot_url = None
         self.screenshot_caption = None
-        self.metainfo_id = None              # SHA1 of the metainfo.xml file
 
     def find_req(self, kind=None, value=None):
         """ Find a Requirement from the kind and/or value """

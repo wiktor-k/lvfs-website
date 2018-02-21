@@ -199,11 +199,8 @@ class UploadedFile(object):
         # add to the archive
         self._add_cf_to_repacked_folder(cf)
 
-        # get the metadata ID
-        contents = cf.get_bytes().get_data()
-        component.add_metadata('metainfo_id', hashlib.sha1(contents).hexdigest())
-
         # check the file does not have any missing request.form
+        contents = cf.get_bytes().get_data()
         if contents.decode('utf-8', 'ignore').find('FIXME') != -1:
             raise MetadataInvalid('The metadata file was not complete; '
                                   'Any FIXME text must be replaced with the correct values.')
