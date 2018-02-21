@@ -37,7 +37,7 @@ def telemetry_repair():
     if not g.user.check_capability(UserCapability.Admin):
         return _error_permission_denied('Not admin user')
     for fw in db.session.query(Firmware).all():
-        q = db.session.query(Client).filter(Client.filename == fw.filename)
+        q = db.session.query(Client).filter(Client.firmware_id == fw.firmware_id)
         count_q = q.statement.with_only_columns([func.count()]).order_by(None)
         fw.download_cnt = q.session.execute(count_q).scalar()
     db.session.commit()
@@ -79,7 +79,7 @@ def telemetry(age=0, sort_key='downloads', sort_direction='up'):
                         filter(Report.firmware_id == fw.firmware_id).all()
         else:
             cnt_download = _execute_count_star(db.session.query(Client).\
-                                filter(Client.filename == fw.filename).\
+                                filter(Client.firmware_id == fw.firmware_id).\
                                 filter(func.timestampdiff(text('DAY'),
                                                           Client.timestamp,
                                                           func.current_timestamp()) < age))

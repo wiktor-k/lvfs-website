@@ -35,7 +35,7 @@ class Database(object):
     def modify_db(self):
 
         # get current schema version
-        from .models import Setting, Component, Firmware, Report
+        from .models import Setting, Component, Firmware, Report, Client
         setting = self.session.query(Setting).filter(Setting.key == 'db_schema_version').first()
         if not setting:
             print('Setting initial schema version')
@@ -65,6 +65,29 @@ class Database(object):
                     continue
                 c.firmware_id = fw.firmware_id
             setting.value = 18
+            print('Committing transaction')
+            self.session.commit()
+            return
+
+        # delete any Client objects with no firmware object and use firmware_id
+        if int(setting.value) == 18:
+            print('Fixing invalid client objects')
+            lookup = {}
+            for fw in self.session.query(Firmware).all():
+                lookup[fw.filename] = fw.firmware_id
+            cnt = 0
+            limit = 250000
+            for c in self.session.query(Client).filter(Client.firmware_id == 0).limit(limit).all():
+                cnt += 1
+                if cnt >= limit - 1:
+                    print('Too many results, try again for the next set!')
+                    self.session.commit()
+                    return
+                if c.unused_filename not in lookup:
+                    self.session.delete(c)
+                    continue
+                c.firmware_id = lookup[c.unused_filename]
+            setting.value = 19
             print('Committing transaction')
             self.session.commit()
             return

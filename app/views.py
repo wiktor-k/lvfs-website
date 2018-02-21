@@ -108,7 +108,7 @@ def serveStaticResource(resource):
 
         # log the client request
         db.session.add(Client(addr=_addr_hash(_get_client_address()),
-                              filename=fw.filename,
+                              firmware_id=fw.firmware_id,
                               user_agent=user_agent))
         db.session.commit()
 

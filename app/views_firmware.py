@@ -236,7 +236,7 @@ def firmware_show(checksum_upload):
                            reports_issue=reports_issue,
                            reports_failure=reports_failure)
 
-def _get_stats_for_fn(size, interval, filename):
+def _get_stats_for_fw(size, interval, fw):
     """ Gets stats data """
 
     # yes, there's probably a way to do this in one query...
@@ -246,7 +246,7 @@ def _get_stats_for_fn(size, interval, filename):
         start = now - datetime.timedelta((i * interval) + interval - 1)
         end = now - datetime.timedelta((i * interval) - 1)
         cnt = _execute_count_star(db.session.query(Client).\
-                    filter(Client.filename == filename).\
+                    filter(Client.firmware_id == fw.firmware_id).\
                     filter(Client.timestamp >= start).\
                     filter(Client.timestamp < end))
         data.append(int(cnt))
@@ -270,7 +270,7 @@ def firmware_analytics_year(checksum_upload):
     if not g.user.check_for_firmware(fw, readonly=True):
         return _error_permission_denied('Insufficient permissions to view analytics')
 
-    data_fw = _get_stats_for_fn(12, 30, fw.filename)
+    data_fw = _get_stats_for_fw(12, 30, fw)
     return render_template('firmware-analytics-year.html',
                            fw=fw,
                            checksum_upload=checksum_upload,
@@ -295,7 +295,7 @@ def firmware_analytics_clients(checksum_upload):
     # we can only view our own firmware, unless admin
     if not g.user.check_for_firmware(fw, readonly=True):
         return _error_permission_denied('Insufficient permissions to view analytics')
-    clients = db.session.query(Client).filter(Client.filename == fw.filename).\
+    clients = db.session.query(Client).filter(Client.firmware_id == fw.firmware_id).\
                 order_by(Client.id.desc()).limit(10).all()
     return render_template('firmware-analytics-clients.html',
                            fw=fw,
@@ -351,7 +351,7 @@ def firmware_analytics_month(checksum_upload):
     if not g.user.check_for_firmware(fw, readonly=True):
         return _error_permission_denied('Insufficient permissions to view analytics')
 
-    data_fw = _get_stats_for_fn(30, 1, fw.filename)
+    data_fw = _get_stats_for_fw(30, 1, fw)
     return render_template('firmware-analytics-month.html',
                            fw=fw,
                            checksum_upload=checksum_upload,

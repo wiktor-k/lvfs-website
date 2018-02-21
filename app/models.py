@@ -13,7 +13,7 @@ import json
 
 from gi.repository import AppStreamGlib
 
-from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey, Index
+from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 
 from app import db
@@ -407,17 +407,18 @@ class Client(db.Base):
     id = Column(Integer, primary_key=True, nullable=False, unique=True)
     timestamp = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
     addr = Column(String(40), nullable=False)
-    filename = Column(String(256), index=True)
+    unused_filename = Column('filename', String(256))
+    firmware_id = Column(Integer, ForeignKey('firmware.firmware_id'), nullable=False)
     user_agent = Column(String(256), default=None)
 
-    # create indexes
-    Index('idx_filename', 'filename', unique=True)
+    # link using foreign keys
+    fw = relationship('Firmware', foreign_keys=[firmware_id])
 
-    def __init__(self, addr=None, filename=None, user_agent=None, timestamp=None):
+    def __init__(self, addr=None, firmware_id=None, user_agent=None, timestamp=None):
         """ Constructor for object """
         self.timestamp = timestamp
         self.addr = addr
-        self.filename = filename
+        self.firmware_id = firmware_id
         self.user_agent = user_agent
 
     def __repr__(self):
