@@ -77,7 +77,7 @@ def upload():
     if fw:
         if g.user.check_for_firmware(fw):
             flash('Failed to upload file: A file with hash %s already exists' % fw.checksum_upload, 'warning')
-            return redirect('/lvfs/firmware/%s' % fw.checksum_upload)
+            return redirect('/lvfs/firmware/%s' % fw.firmware_id)
         flash('Failed to upload file: Another user has already uploaded this firmware', 'warning')
         return redirect('/lvfs/upload')
 
@@ -93,7 +93,7 @@ def upload():
                     if guid.value == provides_value and md.version == release_version:
                         flash('Failed to upload file: A firmware file for '
                               'version %s already exists' % release_version, 'danger')
-                        return redirect('/lvfs/firmware/%s' % fw.checksum_upload)
+                        return redirect('/lvfs/firmware/%s' % fw.firmware_id)
 
     # check if the file dropped a GUID previously supported
     for component in ufile.get_components():
@@ -209,4 +209,4 @@ def upload():
     elif target == 'testing':
         _metadata_update_targets(['testing'])
 
-    return redirect(url_for('.firmware_show', checksum_upload=ufile.checksum_upload))
+    return redirect(url_for('.firmware_show', firmware_id=fw.firmware_id))

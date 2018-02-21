@@ -116,7 +116,7 @@ def telemetry(age=0, sort_key='downloads', sort_direction='up'):
         if not res['version']:
             res['version'] = fw.mds[0].version
         res['nameversion'] = res['names'][0] + ' ' + res['version']
-        res['checksum_upload'] = fw.checksum_upload
+        res['firmware_id'] = fw.firmware_id
         res['target'] = fw.target
         res['duplicate'] = len(fw.mds)
         fwlines.append(res)

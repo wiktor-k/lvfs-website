@@ -157,7 +157,7 @@ def _issue_fix_report_failures(issue):
 
         # check we can apply changes to this firmware
         fw = db.session.query(Firmware).\
-                filter(Firmware.checksum_upload == report.checksum_upload).first()
+                filter(Firmware.firmware_id == report.firmware_id).first()
         if not g.user.check_for_firmware(fw):
             continue
 
@@ -284,7 +284,7 @@ def issue_reports(issue_id):
         # limit this to the latest 10 reports
         if reports_cnt < 10:
             fw = db.session.query(Firmware).\
-                    filter(Firmware.checksum_upload == report.checksum_upload).first()
+                    filter(Firmware.firmware_id == report.firmware_id).first()
             if not g.user.check_for_firmware(fw, readonly=True):
                 reports_hidden.append(report)
                 continue

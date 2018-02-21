@@ -60,8 +60,8 @@
     <td class="col-sm-2"><code>{{r.machine_id|truncate(13, False, '…')}}</code></td>
     <td class="col-sm-2"><code>{{r.checksum|truncate(13, False, '…')}}</code></td>
     <td class="col-sm-2">
-{% if r.fw %}
-      <a href="/lvfs/firmware/{{r.fw.checksum_upload}}"><code>{{r.fw.checksum_upload|truncate(13, False, '…')}}</code></a></td>
+{% if r.firmware_id %}
+      <a href="/lvfs/firmware/{{r.firmware_id}}"><code>{{r.fw.checksum_upload|truncate(13, False, '…')}}</code></a></td>
 {% else %}
       <p class="text-danger">Not known!</p>
 {% endif %}

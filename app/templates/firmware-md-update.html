@@ -42,7 +42,7 @@
     firmware changes state, e.g. from <em>testing</em> to <em>stable</em>.
   </div>
 {% endif %}
-  <form method="post" action="/lvfs/firmware/{{fw.checksum_upload}}/modify">
+  <form method="post" action="/lvfs/firmware/{{fw.firmware_id}}/modify">
     <div class="form-group">
       <label for="urgency">Urgency</label>
       <select class="form-control" id="urgency" name="urgency" required>
@@ -61,7 +61,7 @@
         AppStream XML description markup</a>.
       </p>
     </div>
-    <a class="btn btn-info" href="/lvfs/firmware/{{fw.checksum_upload}}" role="button">&laquo; Back to firmware file</a>
+    <a class="btn btn-info" href="/lvfs/firmware/{{fw.firmware_id}}" role="button">&laquo; Back to firmware file</a>
     <input class="btn btn-primary" type="submit" value="Save"/>
   </form>
 </div>

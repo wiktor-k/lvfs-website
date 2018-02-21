@@ -68,18 +68,18 @@ def firmware(show_all=False):
 def firmware_all():
     return firmware(True)
 
-@app.route('/lvfs/firmware/<checksum_upload>/modify', methods=['GET', 'POST'])
+@app.route('/lvfs/firmware/<int:firmware_id>/modify', methods=['GET', 'POST'])
 @login_required
-def firmware_modify(checksum_upload):
+def firmware_modify(firmware_id):
     """ Modifies the update urgency and release notes for the update """
 
     if request.method != 'POST':
         return redirect(url_for('.firmware'))
 
     # find firmware
-    fw = db.session.query(Firmware).filter(Firmware.checksum_upload == checksum_upload).first()
+    fw = db.session.query(Firmware).filter(Firmware.firmware_id == firmware_id).first()
     if not fw:
-        return _error_internal("No firmware %s" % checksum_upload)
+        return _error_internal("No firmware %s" % firmware_id)
     if not g.user.check_for_firmware(fw):
         return _error_permission_denied('Insufficient permissions to modify firmware')
 
@@ -100,17 +100,17 @@ def firmware_modify(checksum_upload):
     # modify
     db.session.commit()
     flash('Update text updated', 'info')
-    return redirect(url_for('.firmware_show', checksum_upload=checksum_upload))
+    return redirect(url_for('.firmware_show', firmware_id=firmware_id))
 
-@app.route('/lvfs/firmware/<checksum_upload>/delete')
+@app.route('/lvfs/firmware/<int:firmware_id>/delete')
 @login_required
-def firmware_delete(checksum_upload):
+def firmware_delete(firmware_id):
     """ Delete a firmware entry and also delete the file from disk """
 
     # check firmware exists in database
-    fw = db.session.query(Firmware).filter(Firmware.checksum_upload == checksum_upload).first()
+    fw = db.session.query(Firmware).filter(Firmware.firmware_id == firmware_id).first()
     if not fw:
-        return _error_internal("No firmware file with hash %s exists" % checksum_upload)
+        return _error_internal("No firmware file with ID %s exists" % firmware_id)
     if not g.user.check_for_firmware(fw):
         return _error_permission_denied('Insufficient permissions to delete firmware')
 
@@ -143,9 +143,9 @@ def firmware_delete(checksum_upload):
     flash('Firmware deleted', 'info')
     return redirect(url_for('.firmware'))
 
-@app.route('/lvfs/firmware/<checksum_upload>/promote/<target>')
+@app.route('/lvfs/firmware/<int:firmware_id>/promote/<target>')
 @login_required
-def firmware_promote(checksum_upload, target):
+def firmware_promote(firmware_id, target):
     """
     Promote or demote a firmware file from one target to another,
     for example from testing to stable, or stable to testing.
@@ -156,16 +156,16 @@ def firmware_promote(checksum_upload, target):
         return _error_internal("Target %s invalid" % target)
 
     # check firmware exists in database
-    fw = db.session.query(Firmware).filter(Firmware.checksum_upload == checksum_upload).first()
+    fw = db.session.query(Firmware).filter(Firmware.firmware_id == firmware_id).first()
     if not fw:
         return _error_internal('No firmware matched!')
     if not g.user.check_for_firmware(fw):
-        return _error_permission_denied("No QA access to %s" % checksum_upload)
+        return _error_permission_denied("No QA access to %s" % fw.firmware_id)
 
     # same as before
     if fw.target == target:
         flash('Cannot move firmware: Firmware already in that target', 'info')
-        return redirect(url_for('.firmware_show', checksum_upload=checksum_upload))
+        return redirect(url_for('.firmware_show', firmware_id=firmware_id))
 
     # anything -> testing,stable = QA
     if target in ['testing', 'stable']:
@@ -196,15 +196,15 @@ def firmware_promote(checksum_upload, target):
         targets.append('testing')
     if len(targets) > 0:
         _metadata_update_targets(targets)
-    return redirect(url_for('.firmware_show', checksum_upload=checksum_upload))
+    return redirect(url_for('.firmware_show', firmware_id=firmware_id))
 
-@app.route('/lvfs/firmware/<checksum_upload>')
+@app.route('/lvfs/firmware/<int:firmware_id>')
 @login_required
-def firmware_show(checksum_upload):
+def firmware_show(firmware_id):
     """ Show firmware information """
 
     # get details about the firmware
-    fw = db.session.query(Firmware).filter(Firmware.checksum_upload == checksum_upload).first()
+    fw = db.session.query(Firmware).filter(Firmware.firmware_id == firmware_id).first()
     if not fw:
         return _error_internal('No firmware matched!')
 
@@ -218,7 +218,7 @@ def firmware_show(checksum_upload):
     reports_success = 0
     reports_failure = 0
     reports_issue = 0
-    reports = db.session.query(Report).filter(Report.firmware_id == fw.firmware_id).all()
+    reports = db.session.query(Report).filter(Report.firmware_id == firmware_id).all()
     for r in reports:
         if r.state == 2:
             reports_success += 1
@@ -252,9 +252,9 @@ def _get_stats_for_fw(size, interval, fw):
         data.append(int(cnt))
     return data
 
-@app.route('/lvfs/firmware/<checksum_upload>/analytics/year')
+@app.route('/lvfs/firmware/<int:firmware_id>/analytics/year')
 @login_required
-def firmware_analytics_year(checksum_upload):
+def firmware_analytics_year(firmware_id):
     """ Show firmware analytics information """
 
     # only analysts can see this data
@@ -262,7 +262,7 @@ def firmware_analytics_year(checksum_upload):
         return _error_permission_denied('Insufficient permissions to view analytics')
 
     # get details about the firmware
-    fw = db.session.query(Firmware).filter(Firmware.checksum_upload == checksum_upload).first()
+    fw = db.session.query(Firmware).filter(Firmware.firmware_id == firmware_id).first()
     if not fw:
         return _error_internal('No firmware matched!')
 
@@ -273,14 +273,13 @@ def firmware_analytics_year(checksum_upload):
     data_fw = _get_stats_for_fw(12, 30, fw)
     return render_template('firmware-analytics-year.html',
                            fw=fw,
-                           checksum_upload=checksum_upload,
                            graph_labels=_get_chart_labels_months()[::-1],
                            graph_data=data_fw[::-1])
 
-@app.route('/lvfs/firmware/<checksum_upload>/analytics')
-@app.route('/lvfs/firmware/<checksum_upload>/analytics/clients')
+@app.route('/lvfs/firmware/<int:firmware_id>/analytics')
+@app.route('/lvfs/firmware/<int:firmware_id>/analytics/clients')
 @login_required
-def firmware_analytics_clients(checksum_upload):
+def firmware_analytics_clients(firmware_id):
     """ Show firmware clients information """
 
     # only analysts can see this data
@@ -288,7 +287,7 @@ def firmware_analytics_clients(checksum_upload):
         return _error_permission_denied('Insufficient permissions to view analytics')
 
     # get details about the firmware
-    fw = db.session.query(Firmware).filter(Firmware.checksum_upload == checksum_upload).first()
+    fw = db.session.query(Firmware).filter(Firmware.firmware_id == firmware_id).first()
     if not fw:
         return _error_internal('No firmware matched!')
 
@@ -299,13 +298,12 @@ def firmware_analytics_clients(checksum_upload):
                 order_by(Client.id.desc()).limit(10).all()
     return render_template('firmware-analytics-clients.html',
                            fw=fw,
-                           checksum_upload=checksum_upload,
                            clients=clients)
 
-@app.route('/lvfs/firmware/<checksum_upload>/analytics/reports')
-@app.route('/lvfs/firmware/<checksum_upload>/analytics/reports/<int:state>')
+@app.route('/lvfs/firmware/<int:firmware_id>/analytics/reports')
+@app.route('/lvfs/firmware/<int:firmware_id>/analytics/reports/<int:state>')
 @login_required
-def firmware_analytics_reports(checksum_upload, state=None):
+def firmware_analytics_reports(firmware_id, state=None):
     """ Show firmware clients information """
 
     # only analysts can see this data
@@ -313,7 +311,7 @@ def firmware_analytics_reports(checksum_upload, state=None):
         return _error_permission_denied('Insufficient permissions to view analytics')
 
     # get reports about the firmware
-    fw = db.session.query(Firmware).filter(Firmware.checksum_upload == checksum_upload).first()
+    fw = db.session.query(Firmware).filter(Firmware.firmware_id == firmware_id).first()
     if not fw:
         return _error_internal('No firmware matched!')
 
@@ -322,20 +320,19 @@ def firmware_analytics_reports(checksum_upload, state=None):
         return _error_permission_denied('Insufficient permissions to view analytics')
     if state:
         reports = db.session.query(Report).\
-                    filter(Report.firmware_id == fw.firmware_id).\
+                    filter(Report.firmware_id == firmware_id).\
                     filter(Report.state == state).all()
     else:
         reports = db.session.query(Report).\
-                    filter(Report.firmware_id == fw.firmware_id).all()
+                    filter(Report.firmware_id == firmware_id).all()
     return render_template('firmware-analytics-reports.html',
                            fw=fw,
                            state=state,
-                           checksum_upload=checksum_upload,
                            reports=reports)
 
-@app.route('/lvfs/firmware/<checksum_upload>/analytics/month')
+@app.route('/lvfs/firmware/<int:firmware_id>/analytics/month')
 @login_required
-def firmware_analytics_month(checksum_upload):
+def firmware_analytics_month(firmware_id):
     """ Show firmware analytics information """
 
     # only analysts can see this data
@@ -343,7 +340,7 @@ def firmware_analytics_month(checksum_upload):
         return _error_permission_denied('Insufficient permissions to view analytics')
 
     # get details about the firmware
-    fw = db.session.query(Firmware).filter(Firmware.checksum_upload == checksum_upload).first()
+    fw = db.session.query(Firmware).filter(Firmware.firmware_id == firmware_id).first()
     if not fw:
         return _error_internal('No firmware matched!')
 
@@ -354,6 +351,5 @@ def firmware_analytics_month(checksum_upload):
     data_fw = _get_stats_for_fw(30, 1, fw)
     return render_template('firmware-analytics-month.html',
                            fw=fw,
-                           checksum_upload=checksum_upload,
                            graph_labels=_get_chart_labels_days()[::-1],
                            graph_data=data_fw[::-1])

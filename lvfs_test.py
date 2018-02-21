@@ -67,8 +67,8 @@ class LvfsTestCase(unittest.TestCase):
         assert b'Logged out' in rv.data, rv.data
         assert b'/lvfs/upload' not in rv.data, rv.data
 
-    def delete_firmware(self, checksum_upload='e133637179fa7c37d7a36657c7e302edce3d0fce'):
-        rv = self.app.get('/lvfs/firmware/%s/delete' % checksum_upload,
+    def delete_firmware(self, firmware_id=1):
+        rv = self.app.get('/lvfs/firmware/%i/delete' % firmware_id,
                           follow_redirects=True)
         assert b'Firmware deleted' in rv.data, rv.data
 
@@ -144,11 +144,11 @@ class LvfsTestCase(unittest.TestCase):
         assert len(rv.data) == 10942, len(rv.data)
 
         # check analytics works
-        uris = ['/lvfs/firmware/e133637179fa7c37d7a36657c7e302edce3d0fce/analytics',
-                '/lvfs/firmware/e133637179fa7c37d7a36657c7e302edce3d0fce/analytics/clients',
-                '/lvfs/firmware/e133637179fa7c37d7a36657c7e302edce3d0fce/analytics/month',
-                '/lvfs/firmware/e133637179fa7c37d7a36657c7e302edce3d0fce/analytics/reports',
-                '/lvfs/firmware/e133637179fa7c37d7a36657c7e302edce3d0fce/analytics/year']
+        uris = ['/lvfs/firmware/1/analytics',
+                '/lvfs/firmware/1/analytics/clients',
+                '/lvfs/firmware/1/analytics/month',
+                '/lvfs/firmware/1/analytics/reports',
+                '/lvfs/firmware/1/analytics/year']
         for uri in uris:
             rv = self.app.get(uri)
             assert b'favicon.ico' in rv.data, rv.data
@@ -176,11 +176,11 @@ class LvfsTestCase(unittest.TestCase):
         self.login()
 
         # promote the firmware to testing then stable
-        rv = self.app.get('/lvfs/firmware/e133637179fa7c37d7a36657c7e302edce3d0fce/promote/testing',
+        rv = self.app.get('/lvfs/firmware/1/promote/testing',
                           follow_redirects=True)
         assert b'>testing<' in rv.data, rv.data
         assert b'>stable<' not in rv.data, rv.data
-        rv = self.app.get('/lvfs/firmware/e133637179fa7c37d7a36657c7e302edce3d0fce/promote/stable',
+        rv = self.app.get('/lvfs/firmware/1/promote/stable',
                           follow_redirects=True)
         assert b'>stable<' in rv.data, rv.data
         assert b'>testing<' not in rv.data, rv.data
@@ -191,8 +191,16 @@ class LvfsTestCase(unittest.TestCase):
         assert b'ColorHug' in rv.data, rv.data
         self.login()
 
+        # download it
+        rv = self.app.get('/downloads/e133637179fa7c37d7a36657c7e302edce3d0fce-hughski-colorhug2-2.0.3.cab')
+        assert rv.status_code == 200, rv.status_code
+
         # test deleting the firmware
         self.delete_firmware()
+
+        # download missing file
+        rv = self.app.get('/downloads/e133637179fa7c37d7a36657c7e302edce3d0fce-hughski-colorhug2-2.0.3.cab')
+        assert rv.status_code == 404, rv.status_code
 
     def test_user_delete_wrong_user(self):
 
@@ -209,7 +217,7 @@ class LvfsTestCase(unittest.TestCase):
 
         # try to delete as otheruser
         self.login('otheruser')
-        rv = self.app.get('/lvfs/firmware/e133637179fa7c37d7a36657c7e302edce3d0fce/delete',
+        rv = self.app.get('/lvfs/firmware/1/delete',
                           follow_redirects=True)
         assert b'Firmware deleted' not in rv.data, rv.data
         assert b'Insufficient permissions to delete firmware' in rv.data, rv.data
@@ -229,7 +237,7 @@ class LvfsTestCase(unittest.TestCase):
 
         # try to delete as otheruser
         self.login('otheruser')
-        rv = self.app.get('/lvfs/firmware/e133637179fa7c37d7a36657c7e302edce3d0fce/delete',
+        rv = self.app.get('/lvfs/firmware/1/delete',
                           follow_redirects=True)
         assert b'Firmware deleted' not in rv.data, rv.data
         assert b'Insufficient permissions to delete firmware' in rv.data, rv.data
@@ -247,11 +255,11 @@ class LvfsTestCase(unittest.TestCase):
         # let alice upload a file to embargo
         self.login('alice')
         self.upload('embargo')
-        rv = self.app.get('/lvfs/firmware/e133637179fa7c37d7a36657c7e302edce3d0fce')
+        rv = self.app.get('/lvfs/firmware/1')
         assert b'/downloads/e133637179fa7c37d7a36657c7e302edce3d0fce' in rv.data, rv.data
         rv = self.app.get('/lvfs/firmware')
-        assert b'e133637179fa7c37d7a36657c7e302edce3d0fce' in rv.data, rv.data
-        rv = self.app.get('/lvfs/firmware/e133637179fa7c37d7a36657c7e302edce3d0fce/analytics/clients')
+        assert b'/lvfs/firmware/1' in rv.data, rv.data
+        rv = self.app.get('/lvfs/firmware/1/analytics/clients')
         assert b'Insufficient permissions to view analytics' in rv.data, rv.data
         self.logout()
 
@@ -259,36 +267,36 @@ class LvfsTestCase(unittest.TestCase):
         self.login('bob')
         rv = self._upload('contrib/hughski-colorhug2-2.0.3.cab', 'embargo')
         assert b'Another user has already uploaded this firmware' in rv.data, rv.data
-        rv = self.app.get('/lvfs/firmware/e133637179fa7c37d7a36657c7e302edce3d0fce')
+        rv = self.app.get('/lvfs/firmware/1')
         assert b'Insufficient permissions to view firmware' in rv.data, rv.data
         rv = self.app.get('/lvfs/firmware')
         assert b'No firmware has been uploaded' in rv.data, rv.data
-        rv = self.app.get('/lvfs/firmware/e133637179fa7c37d7a36657c7e302edce3d0fce/analytics/clients')
+        rv = self.app.get('/lvfs/firmware/1/analytics/clients')
         assert b'Insufficient permissions to view analytics' in rv.data, rv.data
         self.logout()
 
         # clara can see all firmwares, but can't promote them
         self.login('clara')
-        rv = self.app.get('/lvfs/firmware/e133637179fa7c37d7a36657c7e302edce3d0fce')
+        rv = self.app.get('/lvfs/firmware/1')
         assert b'/downloads/e133637179fa7c37d7a36657c7e302edce3d0fce' in rv.data, rv.data
         rv = self.app.get('/lvfs/firmware')
-        assert b'e133637179fa7c37d7a36657c7e302edce3d0fce' in rv.data, rv.data
-        rv = self.app.get('/lvfs/firmware/e133637179fa7c37d7a36657c7e302edce3d0fce/analytics/clients')
+        assert b'/lvfs/firmware/1' in rv.data, rv.data
+        rv = self.app.get('/lvfs/firmware/1/analytics/clients')
         assert b'Recent Activity' in rv.data, rv.data
-        rv = self.app.get('/lvfs/firmware/e133637179fa7c37d7a36657c7e302edce3d0fce/promote/testing',
+        rv = self.app.get('/lvfs/firmware/1/promote/testing',
                           follow_redirects=True)
         assert b'Permission denied: No QA access' in rv.data, rv.data
         self.logout()
 
         # mario can see things from both users and promote
         self.login('mario')
-        rv = self.app.get('/lvfs/firmware/e133637179fa7c37d7a36657c7e302edce3d0fce')
+        rv = self.app.get('/lvfs/firmware/1')
         assert b'/downloads/e133637179fa7c37d7a36657c7e302edce3d0fce' in rv.data, rv.data
         rv = self.app.get('/lvfs/firmware')
-        assert b'e133637179fa7c37d7a36657c7e302edce3d0fce' in rv.data, rv.data
-        rv = self.app.get('/lvfs/firmware/e133637179fa7c37d7a36657c7e302edce3d0fce/analytics/clients')
+        assert b'/lvfs/firmware/1' in rv.data, rv.data
+        rv = self.app.get('/lvfs/firmware/1/analytics/clients')
         assert b'Recent Activity' in rv.data, rv.data
-        rv = self.app.get('/lvfs/firmware/e133637179fa7c37d7a36657c7e302edce3d0fce/promote/testing',
+        rv = self.app.get('/lvfs/firmware/1/promote/testing',
                           follow_redirects=True)
         assert b'>testing<' in rv.data, rv.data
         self.logout()
@@ -469,23 +477,23 @@ class LvfsTestCase(unittest.TestCase):
         # login as user, upload file, then promote
         self.login('testuser')
         self.upload()
-        rv = self.app.get('/lvfs/firmware/e133637179fa7c37d7a36657c7e302edce3d0fce/promote/embargo',
+        rv = self.app.get('/lvfs/firmware/1/promote/embargo',
                           follow_redirects=True)
         assert b'Moved firmware' in rv.data, rv.data
         assert b'>embargo<' in rv.data, rv.data
-        rv = self.app.get('/lvfs/firmware/e133637179fa7c37d7a36657c7e302edce3d0fce/promote/embargo',
+        rv = self.app.get('/lvfs/firmware/1/promote/embargo',
                           follow_redirects=True)
         assert b'Firmware already in that target' in rv.data, rv.data
         assert b'>embargo<' in rv.data, rv.data
-        rv = self.app.get('/lvfs/firmware/e133637179fa7c37d7a36657c7e302edce3d0fce/promote/testing',
+        rv = self.app.get('/lvfs/firmware/1/promote/testing',
                           follow_redirects=True)
         assert b'Unable to promote as not QA' in rv.data, rv.data
-        rv = self.app.get('/lvfs/firmware/e133637179fa7c37d7a36657c7e302edce3d0fce/promote/stable',
+        rv = self.app.get('/lvfs/firmware/1/promote/stable',
                           follow_redirects=True)
         assert b'Unable to promote as not QA' in rv.data, rv.data
 
         # demote back to private
-        rv = self.app.get('/lvfs/firmware/e133637179fa7c37d7a36657c7e302edce3d0fce/promote/private',
+        rv = self.app.get('/lvfs/firmware/1/promote/private',
                           follow_redirects=True)
         assert b'>private<' in rv.data, rv.data
         assert b'Moved firmware' in rv.data, rv.data
@@ -495,25 +503,25 @@ class LvfsTestCase(unittest.TestCase):
         # login as user, upload file, then promote FIXME: do as QA user, not admin
         self.login()
         self.upload()
-        rv = self.app.get('/lvfs/firmware/e133637179fa7c37d7a36657c7e302edce3d0fce/promote/embargo',
+        rv = self.app.get('/lvfs/firmware/1/promote/embargo',
                           follow_redirects=True)
         assert b'Moved firmware' in rv.data, rv.data
         assert b'>embargo<' in rv.data, rv.data
-        rv = self.app.get('/lvfs/firmware/e133637179fa7c37d7a36657c7e302edce3d0fce/promote/testing',
+        rv = self.app.get('/lvfs/firmware/1/promote/testing',
                           follow_redirects=True)
         assert b'Moved firmware' in rv.data, rv.data
         assert b'>testing<' in rv.data, rv.data
-        rv = self.app.get('/lvfs/firmware/e133637179fa7c37d7a36657c7e302edce3d0fce/promote/stable',
+        rv = self.app.get('/lvfs/firmware/1/promote/stable',
                           follow_redirects=True)
         assert b'Moved firmware' in rv.data, rv.data
         assert b'>stable<' in rv.data, rv.data
 
         # demote back to testing then private
-        rv = self.app.get('/lvfs/firmware/e133637179fa7c37d7a36657c7e302edce3d0fce/promote/testing',
+        rv = self.app.get('/lvfs/firmware/1/promote/testing',
                           follow_redirects=True)
         assert b'Moved firmware' in rv.data, rv.data
         assert b'>testing<' in rv.data, rv.data
-        rv = self.app.get('/lvfs/firmware/e133637179fa7c37d7a36657c7e302edce3d0fce/promote/private',
+        rv = self.app.get('/lvfs/firmware/1/promote/private',
                           follow_redirects=True)
         assert b'Moved firmware' in rv.data, rv.data
         assert b'>private<' in rv.data, rv.data
@@ -639,7 +647,7 @@ class LvfsTestCase(unittest.TestCase):
         assert b'value="low" selected' in rv.data, rv.data
 
         # edit the description and severity
-        rv = self.app.post('/lvfs/firmware/e133637179fa7c37d7a36657c7e302edce3d0fce/modify', data=dict(
+        rv = self.app.post('/lvfs/firmware/1/modify', data=dict(
             urgency='critical',
             description='Not enough cats!',
         ), follow_redirects=True)

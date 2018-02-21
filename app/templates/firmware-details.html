@@ -21,16 +21,16 @@
     <td class="col-sm-2 align-middle text-right">
 {% if g.user.is_qa %}
 {% if fw.target == 'private' %}
-      <form method="get" action="/lvfs/firmware/{{fw.checksum_upload}}/promote/embargo">
+      <form method="get" action="/lvfs/firmware/{{fw.firmware_id}}/promote/embargo">
         <button class="btn btn-block btn-primary">&#8594; Embargo</button>
       </form>
 {% endif %}
 {% if fw.target == 'embargo' %}
-      <a class="btn btn-block btn-secondary" href="/lvfs/firmware/{{fw.checksum_upload}}/promote/private" role="button">&#8592; Private</a>
-      <a class="btn btn-block btn-primary" href="/lvfs/firmware/{{fw.checksum_upload}}/promote/testing" role="button">&#8594; Testing</a>
+      <a class="btn btn-block btn-secondary" href="/lvfs/firmware/{{fw.firmware_id}}/promote/private" role="button">&#8592; Private</a>
+      <a class="btn btn-block btn-primary" href="/lvfs/firmware/{{fw.firmware_id}}/promote/testing" role="button">&#8594; Testing</a>
 {% endif %}
 {% if fw.target == 'testing' %}
-      <a class="btn btn-block btn-secondary" href="/lvfs/firmware/{{fw.checksum_upload}}/promote/embargo" role="button">&#8592; Embargo</a>
+      <a class="btn btn-block btn-secondary" href="/lvfs/firmware/{{fw.firmware_id}}/promote/embargo" role="button">&#8592; Embargo</a>
       <button type="button" class="btn btn-block btn-primary" data-toggle="modal" data-target="#promoteStableModal">&#8594; Stable</button>
 {% endif %}
 {% if fw.target == 'stable' %}
@@ -67,7 +67,7 @@
     <td class="col-sm-6">{{fw.download_cnt}}</td>
     <td class="col-sm-2 text-right">
 {% if g.user.check_capability('analyst') %}
-      <a class="btn btn-block btn-info" href="/lvfs/firmware/{{fw.checksum_upload}}/analytics">Analytics</a>
+      <a class="btn btn-block btn-info" href="/lvfs/firmware/{{fw.firmware_id}}/analytics">Analytics</a>
 {% endif %}
     </td>
   </tr>
@@ -76,7 +76,7 @@
     <td class="col-sm-6">👍 {{reports_success}} 👎 {{reports_failure}} 👋 {{reports_issue}}</td>
     <td class="col-sm-2 text-right">
 {% if g.user.check_capability('analyst') %}
-      <a class="btn btn-block btn-info" href="/lvfs/firmware/{{fw.checksum_upload}}/analytics/reports/2">View</a>
+      <a class="btn btn-block btn-info" href="/lvfs/firmware/{{fw.firmware_id}}/analytics/reports/2">View</a>
 {% endif %}
     </td>
   </tr>
@@ -156,7 +156,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-        <a class="btn btn-danger" href="/lvfs/firmware/{{checksum_upload}}/delete">Irrevocably Remove Firmware</a>
+        <a class="btn btn-danger" href="/lvfs/firmware/{{fw.firmware_id}}/delete">Irrevocably Remove Firmware</a>
       </div>
     </div>
   </div>
@@ -184,7 +184,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-        <a class="btn btn-danger" href="/lvfs/firmware/{{fw.checksum_upload}}/promote/testing" role="button">Demote back to testing</a>
+        <a class="btn btn-danger" href="/lvfs/firmware/{{fw.firmware_id}}/promote/testing" role="button">Demote back to testing</a>
       </div>
     </div>
   </div>
@@ -211,7 +211,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-        <a class="btn btn-primary" href="/lvfs/firmware/{{fw.checksum_upload}}/promote/stable" role="button">Promote to stable</a>
+        <a class="btn btn-primary" href="/lvfs/firmware/{{fw.firmware_id}}/promote/stable" role="button">Promote to stable</a>
       </div>
     </div>
   </div>
