@@ -143,6 +143,7 @@ def firmware_report():
                     issue_data[key] = report[key]
             issue = _find_issue_for_report_data(issue_data, fw)
             if issue:
+                issue_id = issue.issue_id
                 msgs.append('The failure is a known issue')
                 uris.append(issue.url)
 
