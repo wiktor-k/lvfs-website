@@ -553,8 +553,16 @@ class Report(db.Base):
 
     def to_flat_dict(self):
         data = {}
-        if self.state:
-            data['UpdateState'] = self.state
+        if self.state == 1:
+            data['UpdateState'] = 'pending'
+        elif self.state == 2:
+            data['UpdateState'] = 'success'
+        elif self.state == 3:
+            data['UpdateState'] = 'failed'
+        elif self.state == 4:
+            data['UpdateState'] = 'needs-reboot'
+        else:
+            data['UpdateState'] = 'unknown'
         if self.machine_id:
             data['MachineId'] = self.machine_id
         if self.firmware_id:
