@@ -9,7 +9,6 @@
 import datetime
 import fnmatch
 import re
-import json
 
 from gi.repository import AppStreamGlib
 
@@ -508,18 +507,6 @@ class Issue(db.Base):
     def __repr__(self):
         return "Issue object %s" % self.url
 
-def _get_flat_dict_from_json(txt):
-    data = {}
-    items = json.loads(txt)
-    for key in items:
-        if key == 'Metadata':
-            items2 = items[key]
-            for key2 in items2:
-                data[key2] = items2[key2]
-            continue
-        data[key] = unicode(items[key]).encode('ascii', 'ignore')
-    return data
-
 class ReportAttribute(db.Base):
     __tablename__ = 'report_attributes'
     report_attribute_id = Column(Integer, primary_key=True, nullable=False, unique=True)
@@ -546,7 +533,6 @@ class Report(db.Base):
     report_id = Column(Integer, primary_key=True, nullable=False, unique=True)
     timestamp = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
     state = Column(Integer, default=0)
-    unused_json = Column('json', Text)
     machine_id = Column(String(64), nullable=False)
     firmware_id = Column(Integer, ForeignKey('firmware.firmware_id'), nullable=False)
     checksum = Column(String(64), nullable=False) #fixme remove?
