@@ -568,7 +568,7 @@ class Report(db.Base):
         kv_array = []
         for key in flat_dict:
             kv_array.append('%s=%s' % (key, flat_dict[key]))
-        return ', '.join(kv_array)
+        return ', '.join(sorted(kv_array))
 
     def __repr__(self):
         return "Report object %s" % self.report_id
