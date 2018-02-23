@@ -58,7 +58,7 @@
     </td>
     <td class="col-sm-2"><code>{{r.machine_id|truncate(13, False, '…')}}</code></td>
     <td class="col-sm-5">
-{% if r.firmware_id %}
+{% if r.fw %}
       <a href="/lvfs/firmware/{{r.firmware_id}}"><code>{{r.fw.filename[41:]}}</code></a></td>
 {% else %}
       <p class="text-danger">Not known!</p>
