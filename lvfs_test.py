@@ -723,6 +723,36 @@ class LvfsTestCase(unittest.TestCase):
         assert b'>alice<' in rv.data, rv.data
         assert b'>colorimeter<' not in rv.data, rv.data
 
+    def test_anon_search(self):
+
+        # upload file with keywords
+        self.login()
+        self.upload(target='testing')
+        self.logout()
+
+        # search for something that does not exist
+        rv = self.app.get('/lvfs/search?value=Edward')
+        assert b'No results found for' in rv.data, rv.data
+
+        # search for one defined keyword
+        rv = self.app.get('/lvfs/search?value=Alice')
+        assert b'ColorHug2 Device Update' in rv.data, rv.data
+
+        # search for a keyword and a name match
+        rv = self.app.get('/lvfs/search?value=Alice+Edward+ColorHug2')
+        assert b'ColorHug2 Device Update' in rv.data, rv.data
+
+    def test_anon_search_not_promoted(self):
+
+        # upload file with keywords
+        self.login()
+        self.upload(target='embargo')
+        self.logout()
+
+        # search for something that does not exist
+        rv = self.app.get('/lvfs/search?value=alice')
+        assert b'No results found for' in rv.data, rv.data
+
     def test_metadata_rebuild(self):
 
         # create ODM user as admin
