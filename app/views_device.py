@@ -43,7 +43,8 @@ def device_guid(guid):
 
     # get all the guids we can target
     fws = []
-    for fw in db.session.query(Firmware).all():
+    for fw in db.session.query(Firmware).\
+                    order_by(Firmware.timestamp.desc()).all():
         if not fw.mds:
             continue
         for md in fw.mds:
