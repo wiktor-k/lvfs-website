@@ -23,9 +23,8 @@
 {% for fw in fws %}
 
 {% if (session['username'] and g.user.check_capability('admin')) or fw.target == 'stable' or fw.target == 'testing' %}
-<hr/>
 {% if fw.version_display %}
-<h2>Version {{fw.version_display}}:</h2>
+<h2 class="mt-3">Version {{fw.version_display}}:</h2>
 {% else %}
 <h2>Version {{fw.mds[0].version}}:</h2>
 {% endif %}
@@ -35,13 +34,30 @@
   production systems.
 </p>
 {% endif %}
+<div class="container mt-3">
 <table class="table">
-  <tr><th>Uploaded</th><td>{{fw.timestamp}}</td></tr>
-  <tr><th>State</th><td>{{fw.target}}</td></tr>
-  <tr><th>Urgency</th><td>{{fw.mds[0].release_urgency}}</td></tr>
-  <tr><th>Filename</th><td><a href="/downloads/{{fw.filename}}">{{fw.filename}}</a></td></tr>
-  <tr><th>Description</th><td>{{fw.mds[0].release_description|safe}}</td></tr>
+  <tr class="row">
+    <th class="col-sm-2">Uploaded</th>
+    <td class="col-sm-10">{{fw.timestamp}}</td>
+  </tr>
+  <tr class="row">
+    <th class="col-sm-2">State</th>
+    <td class="col-sm-10">{{fw.target}}</td>
+  </tr>
+  <tr class="row">
+    <th class="col-sm-2">Urgency</th>
+    <td class="col-sm-10">{{fw.mds[0].release_urgency}}</td>
+  </tr>
+  <tr class="row">
+    <th class="col-sm-2">Filename</th>
+    <td class="col-sm-10"><a href="/downloads/{{fw.filename}}">{{fw.filename}}</a></td>
+  </tr>
+  <tr class="row">
+    <th class="col-sm-2">Description</th>
+    <td class="col-sm-10">{{fw.mds[0].release_description|safe}}</td>
+  </tr>
 </table>
+</div>
 {% endif %}
 
 {% endfor %}
