@@ -403,7 +403,7 @@ class Firmware(db.Base):
     username = Column(String(40), default=None)
 
     # include all Component objects
-    mds = relationship("Component", back_populates="fw")
+    mds = relationship("Component", back_populates="fw", lazy='joined')
     events = relationship("FirmwareEvent", back_populates="fw")
 
     def __init__(self):
