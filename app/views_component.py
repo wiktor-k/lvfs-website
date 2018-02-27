@@ -84,7 +84,7 @@ def firmware_requirement_delete(requirement_id):
 @app.route('/lvfs/component/requirement/add', methods=['POST'])
 @login_required
 def firmware_requirement_add():
-    """ Modifies the update urgency and release notes for the update """
+    """ Adds a requirement to a component """
 
     # check we have data
     for key in ['component_id', 'kind', 'value']:
