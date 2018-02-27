@@ -405,6 +405,7 @@ class Firmware(db.Base):
     # include all Component objects
     mds = relationship("Component", back_populates="fw", lazy='joined')
     events = relationship("FirmwareEvent", back_populates="fw")
+    reports = relationship("Report", back_populates="fw")
 
     def __init__(self):
         """ Constructor for object """

@@ -9,6 +9,7 @@ import datetime
 
 from flask import request, url_for, redirect, render_template, flash, g
 from flask_login import login_required
+from sqlalchemy.orm import joinedload
 
 from gi.repository import AppStreamGlib
 from gi.repository import GLib
@@ -207,7 +208,10 @@ def firmware_show(firmware_id):
     """ Show firmware information """
 
     # get details about the firmware
-    fw = db.session.query(Firmware).filter(Firmware.firmware_id == firmware_id).first()
+    fw = db.session.query(Firmware).\
+            filter(Firmware.firmware_id == firmware_id).\
+            options(joinedload('reports')).\
+            first()
     if not fw:
         return _error_internal('No firmware matched!')
 
@@ -221,8 +225,7 @@ def firmware_show(firmware_id):
     reports_success = 0
     reports_failure = 0
     reports_issue = 0
-    reports = db.session.query(Report).filter(Report.firmware_id == firmware_id).all()
-    for r in reports:
+    for r in fw.reports:
         if r.state == 2:
             reports_success += 1
         if r.state == 3:
