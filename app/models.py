@@ -320,7 +320,7 @@ class Component(db.Base):
     screenshot_caption = Column(Text)
 
     # link back to parent
-    fw = relationship("Firmware", back_populates="mds")
+    fw = relationship("Firmware", back_populates="mds", lazy='joined')
 
     # include all Component objects
     requirements = relationship("Requirement", back_populates="md")
