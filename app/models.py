@@ -191,6 +191,7 @@ class Vendor(db.Base):
     is_account_holder = Column(String(16), nullable=False, default='no')
     is_uploading = Column(String(16), nullable=False, default='no')
     comments = Column(String(255), nullable=False, default='')
+    icon = Column(Text, default=None)
 
     def __init__(self, group_id=None):
         """ Constructor for object """
@@ -203,6 +204,7 @@ class Vendor(db.Base):
         self.is_account_holder = None
         self.is_uploading = None
         self.comments = None
+        self.icon = None
 
     def get_sort_key(self):
         val = 0

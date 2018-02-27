@@ -13,20 +13,28 @@
 
 <table class="table">
   <tr class="row">
+    <th class="col-sm-1">Logo</th>
     <th class="col-sm-2">Vendor</th>
     <th class="col-sm-3">fwupd support</th>
     <th class="col-sm-1">LVFS account</th>
     <th class="col-sm-1">Uploaded firmware</th>
 {% if session['username'] and g.user.check_capability('admin') %}
-    <th class="col-sm-4">Comments</th>
+    <th class="col-sm-3">Comments</th>
     <th class="col-sm-1">&nbsp;</th>
 {% else %}
-    <th class="col-sm-5">Comments</th>
+    <th class="col-sm-4">Comments</th>
 {% endif %}
   </tr>
 {% for v in vendors %}
 {% if v.visible or (session['username'] and g.user.check_capability('admin')) %}
   <tr class="row" id="{{v.group_id}}">
+    <td class="col-sm-1">
+{% if v.icon %}
+      <img class="img-thumbnail" src="/uploads/{{v.icon}}" height="32"/>
+{% else %}
+      <img class="img-thumbnail" src="/uploads/vendor-unknown.png" height="32"/>
+{% endif %}
+    </td>
     <td class="col-sm-2">
 {% if v.visible %}
       {{v.display_name}}
@@ -74,10 +82,10 @@
     </td>
 {% endif %}
 {% if session['username'] and g.user.check_capability('admin') %}
-    <td class="col-sm-4">{{v.description}}</td>
+    <td class="col-sm-3">{{v.description}}</td>
     <td class="col-sm-1"><a class="btn btn-secondary" href="/lvfs/vendor/{{v.group_id}}/details">Edit</a></td>
 {% else %}
-    <td class="col-sm-5">{{v.description}}</td>
+    <td class="col-sm-4">{{v.description}}</td>
 {% endif %}
   </tr>
 {% endif %}

@@ -4,12 +4,14 @@
 # Copyright (C) 2017 Richard Hughes <richard@hughsie.com>
 # Licensed under the GNU General Public License Version 2
 
+import os
+
 from flask import request, flash, url_for, redirect, render_template, g
 from flask_login import login_required
 
 from app import app, db
 
-from .util import _error_permission_denied
+from .util import _error_permission_denied, _error_internal
 from .models import UserCapability, Vendor
 
 # sort by awesomeness
@@ -84,7 +86,6 @@ def vendor_details(group_id):
         return redirect(url_for('.vendor_list'), 302)
     return render_template('vendor-details.html', v=vendor)
 
-
 @app.route('/lvfs/vendor/<group_id>/modify_by_admin', methods=['GET', 'POST'])
 @login_required
 def vendor_modify_by_admin(group_id):
@@ -114,3 +115,32 @@ def vendor_modify_by_admin(group_id):
     db.session.commit()
     flash('Updated vendor', 'info')
     return redirect(url_for('.vendor_list'))
+
+@app.route('/lvfs/vendor/<group_id>/upload', methods=['POST'])
+@login_required
+def vendor_upload(group_id):
+
+    # security check
+    if not g.user.check_capability(UserCapability.Admin):
+        return _error_permission_denied('Unable to modify vendor as non-admin')
+
+    # check exists
+    vendor = db.session.query(Vendor).filter(Vendor.group_id == group_id).first()
+    if not vendor:
+        flash('Failed to modify vendor: No a vendor with that group ID', 'warning')
+        return redirect(url_for('.vendor_list'), 302)
+
+    # not correct parameters
+    if not 'file' in request.files:
+        return _error_internal('No file')
+
+    # write the pixmap
+    buf = request.files['file'].read()
+    fn = os.path.join(app.config['UPLOAD_DIR'], 'vendor-%s.png' % group_id)
+    open(fn, 'wb').write(buf)
+
+    vendor.icon = os.path.basename(fn)
+    db.session.commit()
+    flash('Modified vendor', 'info')
+
+    return redirect(url_for('.vendor_details', group_id=group_id), 302)

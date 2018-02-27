@@ -115,6 +115,8 @@ def serveStaticResource(resource):
     # firmware blobs
     if resource.startswith('downloads/'):
         return send_from_directory(app.config['DOWNLOAD_DIR'], os.path.basename(resource))
+    if resource.startswith('uploads/'):
+        return send_from_directory(app.config['UPLOAD_DIR'], os.path.basename(resource))
 
     # static files served locally
     return send_from_directory(os.path.join(app.root_path, 'static'), resource)

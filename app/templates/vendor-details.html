@@ -5,6 +5,13 @@
 <div class="container mt-3">
 <h1>Details of user ‘{{v.group_id}}’</h1>
 
+{% if v.icon %}
+<img class="img-thumbnail" src="/uploads/{{v.icon}}" width=128 height="128"/>
+{% else %}
+<img class="img-thumbnail" src="/uploads/vendor-unknown.png" width=128 height="128"/>
+{% endif %}
+<button type="button" class="btn" data-toggle="modal" data-target="#iconModal">Change...</button>
+
 <form method="post" action="/lvfs/vendor/{{v.group_id}}/modify_by_admin">
   <div class="form-group">
     <label for="group_id">Group ID:</label>
@@ -68,6 +75,32 @@
 <form method="get" action="/lvfs/vendor/{{v.group_id}}/delete">
   <button class="btn btn-danger">Delete</button>
 </form>
+
+<!-- modal dialog -->
+<div class="modal" id="iconModal" tabindex="-1" role="dialog" aria-labelledby="loginModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="loginModalLabel">Upload new icon?</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <form action="/lvfs/vendor/{{v.group_id}}/upload" method="post" enctype="multipart/form-data" class="form">
+        <div class="modal-body">
+          <p>
+            Upload a new 128x128 PNG below:
+          </p>
+          <input class="form-control" type="file" name="file" required/>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+          <button class="btn btn-primary" type="submit">Upload</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 
 </div> <!-- container -->
 {% endblock %}
