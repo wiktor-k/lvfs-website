@@ -324,7 +324,7 @@ class Component(db.Base):
 
     # include all Component objects
     requirements = relationship("Requirement", back_populates="md")
-    guids = relationship("Guid", back_populates="md")
+    guids = relationship("Guid", back_populates="md", lazy='joined')
 
     def __init__(self):
         """ Constructor for object """
