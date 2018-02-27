@@ -4,17 +4,17 @@
 # Copyright (C) 2017-2018 Richard Hughes <richard@hughsie.com>
 # Licensed under the GNU General Public License Version 2
 
+import datetime
+
 from flask import url_for, redirect, render_template, g
 from flask_login import login_required
 from sqlalchemy import func, text
 from sqlalchemy.orm import joinedload
 
-import datetime
-
 from app import app, db
 
 from .db import _execute_count_star
-from .models import Firmware, Client, Report, UserCapability
+from .models import Firmware, Client, UserCapability
 from .util import _error_permission_denied
 
 def _get_split_names_for_firmware(fw):
