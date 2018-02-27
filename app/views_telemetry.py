@@ -7,6 +7,9 @@
 from flask import url_for, redirect, render_template, g
 from flask_login import login_required
 from sqlalchemy import func, text
+from sqlalchemy.orm import joinedload
+
+import datetime
 
 from app import app, db
 
@@ -62,7 +65,8 @@ def telemetry(age=0, sort_key='downloads', sort_direction='up'):
     total_issue = 0
     show_duplicate_warning = False
     fwlines = []
-    for fw in db.session.query(Firmware).all():
+    age_seconds = age * 60 * 60 * 24
+    for fw in db.session.query(Firmware).options(joinedload('reports')).all():
 
         # not allowed to view
         if not g.user.check_capability(UserCapability.Admin) and fw.group_id != g.user.group_id:
@@ -75,19 +79,17 @@ def telemetry(age=0, sort_key='downloads', sort_direction='up'):
         # reports
         if age == 0:
             cnt_download = fw.download_cnt
-            rpts = db.session.query(Report).\
-                        filter(Report.firmware_id == fw.firmware_id).all()
+            rpts = fw.reports
         else:
             cnt_download = _execute_count_star(db.session.query(Client).\
                                 filter(Client.firmware_id == fw.firmware_id).\
                                 filter(func.timestampdiff(text('DAY'),
                                                           Client.timestamp,
                                                           func.current_timestamp()) < age))
-            rpts = db.session.query(Report).\
-                        filter(Report.firmware_id == fw.firmware_id).\
-                        filter(func.timestampdiff(text('DAY'),
-                                                  Report.timestamp,
-                                                  func.current_timestamp()) < age).all()
+            rpts = []
+            for rpt in fw.reports:
+                if (datetime.datetime.now() - rpt.timestamp).total_seconds() < age_seconds:
+                    rpts.append(rpt)
 
         cnt_success = 0
         cnt_failed = 0
