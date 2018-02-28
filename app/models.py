@@ -342,7 +342,7 @@ def _is_keyword_valid(value):
     return True
 
 def _sanitize_keyword(value):
-    for rpl in ['(', ')', '[', ']']:
+    for rpl in ['(', ')', '[', ']', '*', '?']:
         value = value.replace(rpl, '')
     return value.strip().lower()
 
