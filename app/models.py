@@ -4,7 +4,7 @@
 # Copyright (C) 2015-2018 Richard Hughes <richard@hughsie.com>
 # Licensed under the GNU General Public License Version 2
 #
-# pylint: disable=too-few-public-methods,too-many-instance-attributes
+# pylint: disable=too-few-public-methods,too-many-instance-attributes,too-many-arguments
 
 import datetime
 import fnmatch
@@ -32,14 +32,20 @@ class User(db.Base):
     password = Column(String(40), nullable=False, default='')
     display_name = Column(String(128))
     email = Column(String(255))
-    group_id = Column(String(40), nullable=False)
+    vendor_id = Column(Integer, ForeignKey('vendors.vendor_id'), nullable=False)
+    unused_group_id = Column('group_id', String(40))
     is_enabled = Column(Boolean, default=False)
     is_qa = Column(Boolean, default=False)
     is_analyst = Column(Boolean, default=False)
     is_locked = Column(Boolean, default=False)
+    is_admin = Column(Boolean, default=False)
+
+    # link using foreign keys
+    vendor = relationship('Vendor', foreign_keys=[vendor_id])
 
     def __init__(self, username, password=None, display_name=None, email=None,
-                 group_id=None, is_enabled=True, is_analyst=False, is_qa=False, is_locked=False):
+                 vendor_id=None, is_enabled=True, is_analyst=False, is_qa=False,
+                 is_locked=False, is_admin=False):
         """ Constructor for object """
         self.username = username
         self.password = password
@@ -48,8 +54,9 @@ class User(db.Base):
         self.is_enabled = is_enabled
         self.is_analyst = is_analyst
         self.is_qa = is_qa
-        self.group_id = group_id
+        self.vendor_id = vendor_id
         self.is_locked = is_locked
+        self.is_admin = is_admin
 
     def check_for_issue(self, issue, readonly=False):
 
@@ -57,16 +64,16 @@ class User(db.Base):
         if not self.is_enabled:
             return False
 
-        # anyone in the admin group can see everything
-        if self.group_id == 'admin':
+        # anyone who is an admin can see everything
+        if self.is_admin:
             return True
 
         # any issues owned by admin can be viewed by a QA user
-        if self.is_qa and issue.group_id == 'admin' and readonly:
+        if self.is_qa and issue.vendor_id == 1 and readonly:
             return True
 
         # QA user can modify any issues matching group_id
-        if self.is_qa and self.group_id == issue.group_id:
+        if self.is_qa and self.vendor_id == issue.vendor_id:
             return True
 
         # something else
@@ -79,19 +86,19 @@ class User(db.Base):
             return False
 
         # anyone in the admin group can see everything
-        if self.group_id == 'admin':
+        if self.is_admin:
             return True
 
-        # QA user can modify any firmware matching group_id
-        if self.is_qa and self.group_id == fw.group_id:
+        # QA user can modify any firmware matching vendor_id
+        if self.is_qa and self.vendor_id == fw.vendor_id:
             return True
 
-        # Analyst user can view (but not modify) any firmware matching group_id
-        if readonly and self.is_analyst and self.group_id == fw.group_id:
+        # Analyst user can view (but not modify) any firmware matching vendor_id
+        if readonly and self.is_analyst and self.vendor_id == fw.vendor_id:
             return True
 
         # User can see firmwares in the group owned by them
-        if self.group_id == fw.group_id and self.username == fw.username:
+        if self.vendor_id == fw.vendor_id and self.username == fw.username:
             return True
 
         # something else
@@ -105,13 +112,13 @@ class User(db.Base):
 
         # admin only
         if required_auth_level == UserCapability.Admin:
-            if self.group_id == 'admin':
+            if self.is_admin:
                 return True
             return False
 
         # analysts only
         if required_auth_level == UserCapability.Analyst:
-            if self.group_id == 'admin':
+            if self.is_admin:
                 return True
             if self.is_qa:
                 return True
@@ -121,7 +128,7 @@ class User(db.Base):
 
         # QA only
         if required_auth_level == UserCapability.QA:
-            if self.group_id == 'admin':
+            if self.is_admin:
                 return True
             if self.is_qa:
                 return True
@@ -178,11 +185,30 @@ class Group(db.Base):
     def __repr__(self):
         return "Group object %s" % self.group_id
 
+class Restriction(db.Base):
+
+    # sqlalchemy metadata
+    __tablename__ = 'restrictions'
+    restriction_id = Column(Integer, primary_key=True, unique=True, nullable=False)
+    vendor_id = Column(Integer, ForeignKey('vendors.vendor_id'), nullable=False)
+    value = Column(Text)
+
+    # link back to parent
+    vendor = relationship("Vendor", back_populates="restrictions")
+
+    def __init__(self, value=None):
+        """ Constructor for object """
+        self.value = value
+
+    def __repr__(self):
+        return "Restriction object %s" % self.restriction_id
+
 class Vendor(db.Base):
 
     # sqlalchemy metadata
     __tablename__ = 'vendors'
-    group_id = Column(String(40), primary_key=True, nullable=False, unique=True, default='')
+    vendor_id = Column(Integer, primary_key=True, unique=True)
+    group_id = Column(String(40), nullable=False, default='')
     display_name = Column(String(128), nullable=False, default='')
     plugins = Column(String(128), nullable=False, default='')
     description = Column(String(255), nullable=False, default='')
@@ -192,6 +218,10 @@ class Vendor(db.Base):
     is_uploading = Column(String(16), nullable=False, default='no')
     comments = Column(String(255), nullable=False, default='')
     icon = Column(Text, default=None)
+
+    # magically get the users in this vendor group
+    users = relationship("User", back_populates="vendor")
+    restrictions = relationship("Restriction", back_populates="vendor")
 
     def __init__(self, group_id=None):
         """ Constructor for object """
@@ -232,18 +262,22 @@ class Event(db.Base):
     id = Column(Integer, primary_key=True, nullable=False, unique=True)
     timestamp = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
     username = Column(String(40), nullable=False, default='')
-    group_id = Column(String(40), nullable=False)
+    unused_group_id = Column('group_id', String(40))
+    vendor_id = Column(Integer, ForeignKey('vendors.vendor_id'), nullable=False)
     address = Column('addr', String(40), nullable=False)
     message = Column(Text)
     is_important = Column(Integer, default=0)
     request = Column(Text)
 
-    def __init__(self, username=None, group_id=None, address=None, message=None,
+    # link using foreign keys
+    vendor = relationship('Vendor', foreign_keys=[vendor_id])
+
+    def __init__(self, username=None, vendor_id=None, address=None, message=None,
                  request=None, is_important=False):
         """ Constructor for object """
         self.timestamp = None
         self.username = username
-        self.group_id = group_id
+        self.vendor_id = vendor_id
         self.address = address
         self.message = message
         self.request = request
@@ -458,7 +492,8 @@ class Firmware(db.Base):
     # sqlalchemy metadata
     __tablename__ = 'firmware'
     firmware_id = Column(Integer, primary_key=True, unique=True, nullable=False)
-    group_id = Column(String(40), nullable=False)
+    vendor_id = Column(Integer, ForeignKey('vendors.vendor_id'), nullable=False)
+    unused_group_id = Column('group_id', String(40))
     addr = Column(String(40), nullable=False)
     timestamp = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
     filename = Column(String(255), nullable=False)
@@ -474,9 +509,11 @@ class Firmware(db.Base):
     events = relationship("FirmwareEvent", back_populates="fw")
     reports = relationship("Report", back_populates="fw")
 
+    # link using foreign keys
+    vendor = relationship('Vendor', foreign_keys=[vendor_id])
+
     def __init__(self):
         """ Constructor for object """
-        self.group_id = None
         self.addr = None
         self.timestamp = None
         self.filename = None        # filename of the original .cab file
@@ -573,13 +610,17 @@ class Issue(db.Base):
     issue_id = Column(Integer, primary_key=True, nullable=False, unique=True)
     priority = Column(Integer)
     enabled = Column(Boolean, default=False)
-    group_id = Column(Text, default=None)
+    vendor_id = Column(Integer, ForeignKey('vendors.vendor_id'), nullable=False)
+    unused_group_id = Column('group_id', Text, default=None)
     url = Column(Text, default='')
     name = Column(Text)
     description = Column(Text, default='')
     conditions = relationship("Condition", back_populates="issue")
 
-    def __init__(self, url=None, name=None, description=None, enabled=False, group_id=None, priority=0):
+    # link using foreign keys
+    vendor = relationship('Vendor', foreign_keys=[vendor_id])
+
+    def __init__(self, url=None, name=None, description=None, enabled=False, vendor_id=None, priority=0):
         """ Constructor for object """
         self.url = url
         self.name = name
@@ -587,7 +628,7 @@ class Issue(db.Base):
         self.priority = priority
         self.description = description
         self.enabled = enabled
-        self.group_id = group_id
+        self.vendor_id = vendor_id
         self.priority = priority
 
     def matches(self, data):

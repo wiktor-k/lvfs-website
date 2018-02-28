@@ -87,7 +87,7 @@
 {% if g.user.is_qa %}
     <select class="form-control" name="target" required>
       <option value="private">Private (secret)</option>
-      <option value="embargo">Embargoed (available to all members of the {{g.user.group_id}} group)</option>
+      <option value="embargo">Embargoed (available to all members of the {{g.user.vendor.group_id}} group)</option>
       <option value="testing">Testing (available to some users)</option>
       <option value="stable">Stable (available to all users)</option>
     </select>

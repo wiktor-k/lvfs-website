@@ -70,7 +70,7 @@ def _find_issue_for_report_data(data, fw):
     for issue in db.session.query(Issue).order_by(Issue.priority.desc()).all():
         if not issue.enabled:
             continue
-        if issue.group_id != 'admin' and issue.group_id != fw.group_id:
+        if issue.vendor_id != 1 and issue.vendor_id != fw.vendor_id:
             continue
         if issue.matches(data):
             return issue

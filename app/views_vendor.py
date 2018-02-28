@@ -12,7 +12,7 @@ from flask_login import login_required
 from app import app, db
 
 from .util import _error_permission_denied, _error_internal
-from .models import UserCapability, Vendor
+from .models import UserCapability, Vendor, Restriction
 
 # sort by awesomeness
 def _sort_vendor_func(a, b):
@@ -32,7 +32,7 @@ def vendor_list():
     vendors.sort(_sort_vendor_func)
     return render_template('vendorlist.html', vendors=vendors)
 
-@app.route('/lvfs/vendorlist/add', methods=['GET', 'POST'])
+@app.route('/lvfs/vendor/add', methods=['GET', 'POST'])
 @login_required
 def vendor_add():
     """ Add a vendor [ADMIN ONLY] """
@@ -50,20 +50,21 @@ def vendor_add():
     if db.session.query(Vendor).filter(Vendor.group_id == request.form['group_id']).first():
         flash('Failed to add vendor: Group ID already exists', 'warning')
         return redirect(url_for('.vendor_list'), 302)
-    db.session.add(Vendor(request.form['group_id']))
+    v = Vendor(request.form['group_id'])
+    db.session.add(v)
     db.session.commit()
     flash('Added vendor %s' % request.form['group_id'], 'info')
-    return redirect(url_for('.vendor_details', group_id=request.form['group_id']), 302)
+    return redirect(url_for('.vendor_details', vendor_id=v.vendor_id), 302)
 
-@app.route('/lvfs/vendor/<group_id>/delete')
+@app.route('/lvfs/vendor/<int:vendor_id>/delete')
 @login_required
-def vendor_delete(group_id):
+def vendor_delete(vendor_id):
     """ Removes a vendor [ADMIN ONLY] """
 
     # security check
     if not g.user.check_capability(UserCapability.Admin):
         return _error_permission_denied('Unable to remove vendor as non-admin')
-    vendor = db.session.query(Vendor).filter(Vendor.group_id == group_id).first()
+    vendor = db.session.query(Vendor).filter(Vendor.vendor_id == vendor_id).first()
     if not vendor:
         flash('Failed to delete vendor: No a vendor with that group ID', 'warning')
         return redirect(url_for('.vendor_list'), 302)
@@ -72,23 +73,90 @@ def vendor_delete(group_id):
     flash('Removed vendor', 'info')
     return redirect(url_for('.vendor_list'), 302)
 
-@app.route('/lvfs/vendor/<group_id>/details')
+@app.route('/lvfs/vendor/<int:vendor_id>/details')
 @login_required
-def vendor_details(group_id):
+def vendor_details(vendor_id):
     """ Allows changing a vendor [ADMIN ONLY] """
 
     # security check
     if not g.user.check_capability(UserCapability.Admin):
         return _error_permission_denied('Unable to edit vendor as non-admin')
-    vendor = db.session.query(Vendor).filter(Vendor.group_id == group_id).first()
+    vendor = db.session.query(Vendor).filter(Vendor.vendor_id == vendor_id).first()
     if not vendor:
         flash('Failed to get vendor details: No a vendor with that group ID', 'warning')
         return redirect(url_for('.vendor_list'), 302)
     return render_template('vendor-details.html', v=vendor)
 
-@app.route('/lvfs/vendor/<group_id>/modify_by_admin', methods=['GET', 'POST'])
+@app.route('/lvfs/vendor/<int:vendor_id>/restrictions')
 @login_required
-def vendor_modify_by_admin(group_id):
+def vendor_restrictions(vendor_id):
+    """ Allows changing a vendor [ADMIN ONLY] """
+
+    # security check
+    if not g.user.check_capability(UserCapability.Admin):
+        return _error_permission_denied('Unable to edit vendor as non-admin')
+    vendor = db.session.query(Vendor).filter(Vendor.vendor_id == vendor_id).first()
+    if not vendor:
+        flash('Failed to get vendor details: No a vendor with that group ID', 'warning')
+        return redirect(url_for('.vendor_list'), 302)
+    return render_template('vendor-restrictions.html', v=vendor)
+
+@app.route('/lvfs/vendor/<int:vendor_id>/users')
+@login_required
+def vendor_users(vendor_id):
+    """ Allows changing a vendor [ADMIN ONLY] """
+
+    # security check
+    if not g.user.check_capability(UserCapability.Admin):
+        return _error_permission_denied('Unable to edit vendor as non-admin')
+    vendor = db.session.query(Vendor).filter(Vendor.vendor_id == vendor_id).first()
+    if not vendor:
+        flash('Failed to get vendor details: No a vendor with that group ID', 'warning')
+        return redirect(url_for('.vendor_list'), 302)
+    return render_template('vendor-users.html', v=vendor)
+
+@app.route('/lvfs/vendor/<int:vendor_id>/restriction/add', methods=['POST'])
+@login_required
+def vendor_restriction_add(vendor_id):
+    """ Allows changing a vendor [ADMIN ONLY] """
+
+    # security check
+    if not g.user.check_capability(UserCapability.Admin):
+        return _error_permission_denied('Unable to edit vendor as non-admin')
+    vendor = db.session.query(Vendor).filter(Vendor.vendor_id == vendor_id).first()
+    if not vendor:
+        flash('Failed to get vendor details: No a vendor with that group ID', 'warning')
+        return redirect(url_for('.vendor_list'), 302)
+    if not 'value' in request.form:
+        return _error_internal('No value')
+    vendor.restrictions.append(Restriction(request.form['value']))
+    db.session.commit()
+    flash('Added restriction', 'info')
+    return redirect(url_for('.vendor_restrictions', vendor_id=vendor_id), 302)
+
+@app.route('/lvfs/vendor/<int:vendor_id>/restriction/<int:restriction_id>/delete')
+@login_required
+def vendor_restriction_delete(vendor_id, restriction_id):
+    """ Allows changing a vendor [ADMIN ONLY] """
+
+    # security check
+    if not g.user.check_capability(UserCapability.Admin):
+        return _error_permission_denied('Unable to edit vendor as non-admin')
+    vendor = db.session.query(Vendor).filter(Vendor.vendor_id == vendor_id).first()
+    if not vendor:
+        flash('Failed to get vendor details: No a vendor with that group ID', 'warning')
+        return redirect(url_for('.vendor_list'), 302)
+    for res in vendor.restrictions:
+        if res.restriction_id == restriction_id:
+            db.session.delete(res)
+            db.session.commit()
+            break
+    flash('Deleted restriction', 'info')
+    return redirect(url_for('.vendor_restrictions', vendor_id=vendor_id), 302)
+
+@app.route('/lvfs/vendor/<int:vendor_id>/modify_by_admin', methods=['GET', 'POST'])
+@login_required
+def vendor_modify_by_admin(vendor_id):
     """ Change details about the any vendor """
 
     # only accept form data
@@ -100,7 +168,7 @@ def vendor_modify_by_admin(group_id):
         return _error_permission_denied('Unable to modify vendor as non-admin')
 
     # save to database
-    vendor = db.session.query(Vendor).filter(Vendor.group_id == group_id).first()
+    vendor = db.session.query(Vendor).filter(Vendor.vendor_id == vendor_id).first()
     if not vendor:
         flash('Failed to modify vendor: No a vendor with that group ID', 'warning')
         return redirect(url_for('.vendor_list'), 302)
@@ -116,16 +184,16 @@ def vendor_modify_by_admin(group_id):
     flash('Updated vendor', 'info')
     return redirect(url_for('.vendor_list'))
 
-@app.route('/lvfs/vendor/<group_id>/upload', methods=['POST'])
+@app.route('/lvfs/vendor/<int:vendor_id>/upload', methods=['POST'])
 @login_required
-def vendor_upload(group_id):
+def vendor_upload(vendor_id):
 
     # security check
     if not g.user.check_capability(UserCapability.Admin):
         return _error_permission_denied('Unable to modify vendor as non-admin')
 
     # check exists
-    vendor = db.session.query(Vendor).filter(Vendor.group_id == group_id).first()
+    vendor = db.session.query(Vendor).filter(Vendor.vendor_id == vendor_id).first()
     if not vendor:
         flash('Failed to modify vendor: No a vendor with that group ID', 'warning')
         return redirect(url_for('.vendor_list'), 302)
@@ -136,11 +204,11 @@ def vendor_upload(group_id):
 
     # write the pixmap
     buf = request.files['file'].read()
-    fn = os.path.join(app.config['UPLOAD_DIR'], 'vendor-%s.png' % group_id)
+    fn = os.path.join(app.config['UPLOAD_DIR'], 'vendor-%s.png' % vendor_id)
     open(fn, 'wb').write(buf)
 
     vendor.icon = os.path.basename(fn)
     db.session.commit()
     flash('Modified vendor', 'info')
 
-    return redirect(url_for('.vendor_details', group_id=group_id), 302)
+    return redirect(url_for('.vendor_details', vendor_id=vendor_id), 302)

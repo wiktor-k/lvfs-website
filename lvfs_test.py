@@ -310,39 +310,6 @@ class LvfsTestCase(unittest.TestCase):
         assert b'Logged in' in rv.data, rv.data
         assert b'>anonymous<' not in rv.data, rv.data
 
-    def test_groups(self):
-
-        # login then add group
-        self.login()
-        rv = self.app.post('/lvfs/group/add', data=dict(
-            group_id='testgroup',
-        ), follow_redirects=True)
-        assert b'Added group' in rv.data, rv.data
-
-        # add duplicate group
-        rv = self.app.post('/lvfs/group/add', data=dict(
-            group_id='testgroup',
-        ), follow_redirects=True)
-        assert b'Already a entry with that group' in rv.data, rv.data
-
-        # get the grouplist
-        rv = self.app.get('/lvfs/grouplist')
-        assert b'testgroup' in rv.data, rv.data
-
-        # add a vendor-id
-        rv = self.app.get('/lvfs/group/testgroup/admin')
-        assert b'Empty group' in rv.data, rv.data
-        rv = self.app.post('/lvfs/group/testgroup/modify_by_admin',
-                           data=dict(vendor_ids='USB:0x273F,PCI:0xBEEF'),
-                           follow_redirects=True)
-        assert b'USB:0x273F,PCI:0xBEEF' in rv.data, rv.data
-
-        # delete the group
-        rv = self.app.get('/lvfs/group/notgoingtoexist/delete', follow_redirects=True)
-        assert b'No entry with group_id' in rv.data, rv.data
-        rv = self.app.get('/lvfs/group/testgroup/delete', follow_redirects=True)
-        assert b'Deleted group' in rv.data, rv.data
-
     def test_vendorlist(self):
 
         # check users can't modify the list
@@ -355,23 +322,37 @@ class LvfsTestCase(unittest.TestCase):
         assert b'Create a new vendor' in rv.data, rv.data
 
         # create new vendor
-        rv = self.app.post('/lvfs/vendorlist/add', data=dict(group_id='testvendor'),
+        rv = self.app.post('/lvfs/vendor/add', data=dict(group_id='testvendor'),
                            follow_redirects=True)
         assert b'Added vendor' in rv.data, rv.data
         rv = self.app.get('/lvfs/vendorlist')
         assert b'testvendor' in rv.data, rv.data
 
         # create duplicate
-        rv = self.app.post('/lvfs/vendorlist/add', data=dict(group_id='testvendor'),
+        rv = self.app.post('/lvfs/vendor/add', data=dict(group_id='testvendor'),
                            follow_redirects=True)
         assert b'Group ID already exists' in rv.data, rv.data
 
         # show the details page
-        rv = self.app.get('/lvfs/vendor/testvendor/details')
+        rv = self.app.get('/lvfs/vendor/2/details')
         assert b'testvendor' in rv.data, rv.data
 
+        # create a restriction
+        rv = self.app.post('/lvfs/vendor/2/restriction/add', data=dict(value='USB:0x1234'),
+                           follow_redirects=True)
+        assert b'Added restriction' in rv.data, rv.data
+
+        # show the restrictions page
+        rv = self.app.get('/lvfs/vendor/2/restrictions')
+        assert b'USB:0x1234' in rv.data, rv.data
+
+        # delete a restriction
+        rv = self.app.get('/lvfs/vendor/2/restriction/1/delete', follow_redirects=True)
+        assert b'Deleted restriction' in rv.data, rv.data
+        assert b'USB:0x1234' not in rv.data, rv.data
+
         # change some properties
-        rv = self.app.post('/lvfs/vendor/testvendor/modify_by_admin', data=dict(
+        rv = self.app.post('/lvfs/vendor/2/modify_by_admin', data=dict(
             display_name='VendorName',
             plugins='dfu 1.2.3',
             description='Everything supported',
@@ -388,9 +369,9 @@ class LvfsTestCase(unittest.TestCase):
         assert b'Emailed Dave' not in rv.data, rv.data
 
         # delete
-        rv = self.app.get('/lvfs/vendor/NOTGOINGTOEXIST/delete', follow_redirects=True)
+        rv = self.app.get('/lvfs/vendor/999/delete', follow_redirects=True)
         assert b'No a vendor with that group ID' in rv.data, rv.data
-        rv = self.app.get('/lvfs/vendor/testvendor/delete', follow_redirects=True)
+        rv = self.app.get('/lvfs/vendor/2/delete', follow_redirects=True)
         assert b'Removed vendor' in rv.data, rv.data
         rv = self.app.get('/lvfs/vendorlist')
         assert b'testvendor' not in rv.data, rv.data
@@ -415,7 +396,7 @@ class LvfsTestCase(unittest.TestCase):
         assert b'testuser' in rv.data, rv.data
         rv = self.app.get('/lvfs/user/testuser/admin')
         assert b'test@test.com' in rv.data, rv.data
-        rv = self.app.get('/lvfs/grouplist')
+        rv = self.app.get('/lvfs/vendorlist')
         assert b'testgroup' in rv.data, rv.data
 
         # modify an existing user as the admin

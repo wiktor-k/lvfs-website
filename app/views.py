@@ -252,7 +252,7 @@ def eventlog(start=0, length=20):
         eventlog_len = _execute_count_star(db.session.query(Event))
     else:
         eventlog_len = _execute_count_star(db.session.query(Event).\
-                            filter(Event.group_id == g.user.group_id))
+                            filter(Event.vendor_id == g.user.vendor_id))
 
     # limit this to keep the UI sane
     if eventlog_len / length > 20:
@@ -265,7 +265,7 @@ def eventlog(start=0, length=20):
                         offset(start).limit(length).all()
     else:
         events = db.session.query(Event).\
-                        filter(Event.group_id == g.user.group_id).\
+                        filter(Event.vendor_id == g.user.vendor_id).\
                         order_by(Event.id.desc()).\
                         offset(start).limit(length).all()
     return render_template('eventlog.html', events=events,

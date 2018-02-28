@@ -10,7 +10,7 @@ from flask_login import login_required
 from app import app, db
 
 from .util import _error_internal, _error_permission_denied
-from .models import UserCapability, User, Group
+from .models import UserCapability, User, Vendor
 from .hash import _password_hash
 
 def _password_check(value):
@@ -180,13 +180,16 @@ def user_add():
         flash('Failed to add user: Username invalid', 'warning')
         return redirect(url_for('.user_list'), 302)
 
+    vendor = db.session.query(Vendor).filter(Vendor.group_id == group_id).first()
+    if not vendor:
+        vendor = Vendor(group_id)
+        db.session.add(vendor)
+        db.session.commit()
     db.session.add(User(username=username_new,
                         password=_password_hash(password),
                         display_name=name,
                         email=email,
-                        group_id=group_id))
-    if not db.session.query(Group).filter(Group.group_id == group_id).first():
-        db.session.add(Group(group_id))
+                        vendor_id=vendor.vendor_id))
     db.session.commit()
     flash('Added user %s' % username_new, 'info')
     return redirect(url_for('.user_list'), 302)

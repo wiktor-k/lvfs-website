@@ -1,0 +1,43 @@
+{% extends "default.html" %}
+{% block title %}Vendor Details{% endblock %}
+
+{% block content %}
+<div class="container mt-3">
+
+<nav>
+  <ul class="nav nav-tabs">
+    <li class="nav-item">
+      <a class="nav-link" href="/lvfs/vendor/{{v.vendor_id}}/details">Details</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link active" href="/lvfs/vendor/{{v.vendor_id}}/users">Users</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="/lvfs/vendor/{{v.vendor_id}}/restrictions">Restrictions</a>
+    </li>
+  </ul>
+</nav>
+
+<div class="container mt-3">
+<h1 class="mt-3">Members of group ‘{{v.group_id}}’</h1>
+<p>
+  Vendors can have multiple users assigned.
+</p>
+<table class="table">
+  <tr>
+    <th>Username</th>
+    <th>Vendor Name</th>
+    <th>Contact Email</th>
+  </tr>
+{% for u in v.users %}
+  <tr>
+    <td><a href="/lvfs/user/{{u.username}}/admin"><code>{{u.username}}</code></a></td>
+    <td>{{u.display_name}}</td>
+    <td><a href="mailto:{{u.email}}"><code>{{u.email}}</code></a></td>
+  </tr>
+{% endfor %}
+</table>
+</div>
+
+</div> <!-- container -->
+{% endblock %}

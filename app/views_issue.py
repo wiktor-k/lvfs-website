@@ -47,7 +47,7 @@ def issue_add():
         return redirect(url_for('.issue_all'))
 
     # add issue
-    issue = Issue(url=request.form['url'], group_id=g.user.group_id)
+    issue = Issue(url=request.form['url'], vendor_id=g.user.vendor_id)
     db.session.add(issue)
     db.session.commit()
     flash('Added issue', 'info')

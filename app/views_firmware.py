@@ -119,6 +119,9 @@ def firmware_delete(firmware_id):
     if not g.user.is_qa and fw.target == 'stable':
         return _error_permission_denied('Unable to delete stable firmware as not QA')
 
+    # save so we can rebuild metadata after the firmware has been deleted
+    group_id = fw.vendor.group_id
+
     # delete from database
     for md in fw.mds:
         for kw in md.keywords:
@@ -139,7 +142,7 @@ def firmware_delete(firmware_id):
         os.remove(path)
 
     # update everything
-    _metadata_update_group(fw.group_id)
+    _metadata_update_group(group_id)
     if fw.target == 'stable':
         _metadata_update_targets(targets=['stable', 'testing'])
     elif fw.target == 'testing':
@@ -194,7 +197,7 @@ def firmware_promote(firmware_id, target):
     flash('Moved firmware', 'info')
 
     # update everything
-    _metadata_update_group(fw.group_id)
+    _metadata_update_group(fw.vendor.group_id)
     targets = []
     if target == 'stable' or fw.target == 'stable':
         targets.append('stable')
@@ -221,7 +224,7 @@ def firmware_show(firmware_id):
     if not g.user.check_for_firmware(fw, readonly=True):
         return _error_permission_denied('Insufficient permissions to view firmware')
 
-    embargo_url = '/downloads/firmware-%s.xml.gz' % _qa_hash(fw.group_id)
+    embargo_url = '/downloads/firmware-%s.xml.gz' % _qa_hash(fw.vendor.group_id)
 
     # get the reports for this firmware
     reports_success = 0

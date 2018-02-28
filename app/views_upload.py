@@ -18,7 +18,7 @@ from flask_login import login_required
 
 from app import app, db, ploader
 
-from .models import Firmware, Component, Requirement, UserCapability, Guid, Group, FirmwareEvent
+from .models import Firmware, Component, Requirement, UserCapability, Guid, FirmwareEvent, Vendor
 from .uploadedfile import UploadedFile, FileTooLarge, FileTooSmall, FileNotSupported, MetadataInvalid
 from .util import _get_client_address, _get_settings
 from .util import _error_internal, _error_permission_denied
@@ -43,9 +43,10 @@ def upload():
         if 'username' not in session:
             return redirect(url_for('.index'))
         vendor_ids = []
-        group = db.session.query(Group).filter(Group.group_id == g.user.group_id).first()
-        if group and len(group.vendor_ids):
-            vendor_ids = group.vendor_ids
+        vendor = db.session.query(Vendor).filter(Vendor.vendor_id == g.user.vendor_id).first()
+        if vendor:
+            for res in vendor.restrictions:
+                vendor_ids.append(res.value)
         return render_template('upload.html', vendor_ids=vendor_ids)
 
     # not correct parameters
@@ -134,7 +135,7 @@ def upload():
     # create parent firmware object
     target = request.form['target']
     fw = Firmware()
-    fw.group_id = g.user.group_id
+    fw.vendor_id = g.user.vendor_id
     fw.username = g.user.username
     fw.addr = _get_client_address()
     fw.filename = ufile.filename_new
@@ -215,7 +216,7 @@ def upload():
 
     # ensure up to date
     if target == 'embargo':
-        _metadata_update_group(fw.group_id)
+        _metadata_update_group(fw.vendor.group_id)
     if target == 'stable':
         _metadata_update_targets(['stable', 'testing'])
         _metadata_update_pulp()

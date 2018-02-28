@@ -11,29 +11,29 @@ from app import app, db
 
 from .hash import _qa_hash
 from .metadata import _metadata_update_group, _metadata_update_targets, _metadata_update_pulp
-from .models import UserCapability, Group
+from .models import UserCapability, Vendor
 from .util import _error_internal, _error_permission_denied
 
 @login_required
-@app.route('/lvfs/metadata/<qa_group>')
-def metadata_remote(qa_group):
+@app.route('/lvfs/metadata/<group_id>')
+def metadata_remote(group_id):
     """
     Generate a remote file for a given QA group.
     """
 
-    # find the Group
-    if not db.session.query(Group).filter(Group.group_id == qa_group).first():
-        return _error_internal('No QA Group')
+    # find the vendor
+    if not db.session.query(Vendor).filter(Vendor.group_id == group_id).first():
+        return _error_internal('No vendor with that name')
 
     # generate file
     remote = []
     remote.append('[fwupd Remote]')
     remote.append('Enabled=true')
-    remote.append('Title=Embargoed for ' + qa_group)
+    remote.append('Title=Embargoed for ' + group_id)
     remote.append('Keyring=gpg')
-    remote.append('MetadataURI=https://fwupd.org/downloads/firmware-' + _qa_hash(qa_group) + '.xml.gz')
+    remote.append('MetadataURI=https://fwupd.org/downloads/firmware-' + _qa_hash(group_id) + '.xml.gz')
     remote.append('OrderBefore=lvfs,fwupd')
-    fn = qa_group + '-embargo.conf'
+    fn = group_id + '-embargo.conf'
     response = make_response('\n'.join(remote))
     response.headers['Content-Disposition'] = 'attachment; filename=' + fn
     response.mimetype = 'text/plain'
@@ -49,12 +49,12 @@ def metadata_view():
     # show all embargo metadata URLs when admin user
     group_ids = []
     if g.user.check_capability(UserCapability.Admin):
-        for group in db.session.query(Group).all():
-            group_ids.append(group.group_id)
+        for vendor in db.session.query(Vendor).all():
+            group_ids.append(vendor.group_id)
     else:
-        group_ids.append(g.user.group_id)
+        group_ids.append(g.user.vendor.group_id)
     return render_template('metadata.html',
-                           group_id=g.user.group_id,
+                           group_id=g.user.vendor.group_id,
                            group_ids=group_ids)
 
 @app.route('/lvfs/metadata/rebuild')
@@ -69,8 +69,8 @@ def metadata_rebuild():
         return _error_permission_denied('Only admin is allowed to force-rebuild metadata')
 
     # update metadata
-    for group in db.session.query(Group).all():
-        _metadata_update_group(group.group_id)
+    for vendor in db.session.query(Vendor).all():
+        _metadata_update_group(vendor.group_id)
     _metadata_update_targets(['stable', 'testing'])
     _metadata_update_pulp()
     flash('Metadata rebuilt successfully', 'info')

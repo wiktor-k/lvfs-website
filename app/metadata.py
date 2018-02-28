@@ -14,7 +14,7 @@ from gi.repository import GLib
 from app import app, db, ploader
 
 from .hash import _qa_hash
-from .models import Firmware, Group
+from .models import Firmware, Vendor
 from .util import _get_settings
 
 def _generate_metadata_kind(filename, fws, firmware_baseuri=''):
@@ -90,16 +90,19 @@ def _generate_metadata_kind(filename, fws, firmware_baseuri=''):
                 component.add_screenshot(ss)
 
             # add requires for each allowed vendor_ids
-            group = db.session.query(Group).filter(Group.group_id == fw.group_id).first()
-            if group and group.vendor_ids:
+            vendor = db.session.query(Vendor).filter(Vendor.vendor_id == fw.vendor_id).first()
+            if vendor:
+                vendor_ids = []
+                for res in vendor.restrictions:
+                    vendor_ids.append(res.value)
                 req = AppStreamGlib.Require.new()
                 req.set_kind(AppStreamGlib.RequireKind.FIRMWARE)
                 req.set_value('vendor-id')
-                if len(group.vendor_ids) == 1:
+                if len(vendor_ids) == 1:
                     req.set_compare(AppStreamGlib.RequireCompare.EQ)
                 else:
                     req.set_compare(AppStreamGlib.RequireCompare.REGEX)
-                req.set_version('|'.join(group.vendor_ids))
+                req.set_version('|'.join(vendor_ids))
                 component.add_require(req)
 
             # add manual firmware or fwupd version requires
@@ -134,40 +137,40 @@ def _metadata_update_group(group_id):
 
     # get all firmwares in this group
     settings = _get_settings()
-    firmwares = db.session.query(Firmware).all()
-    firmwares_filtered = []
-    for f in firmwares:
-        if f.target == 'private':
+    fws = db.session.query(Firmware).all()
+    fws_filtered = []
+    for fw in fws:
+        if fw.target == 'private':
             continue
-        if f.group_id != group_id:
+        if fw.vendor.group_id != group_id:
             continue
-        firmwares_filtered.append(f)
+        fws_filtered.append(fw)
 
     # create metadata file for the embargoed firmware
     filename = 'firmware-%s.xml.gz' % _qa_hash(group_id)
     _generate_metadata_kind(filename,
-                            firmwares_filtered,
+                            fws_filtered,
                             firmware_baseuri=settings['firmware_baseuri'])
 
 def _metadata_update_targets(targets):
     """ updates metadata for a specific target """
-    firmwares = db.session.query(Firmware).all()
+    fws = db.session.query(Firmware).all()
     settings = _get_settings()
     for target in targets:
-        firmwares_filtered = []
-        for f in firmwares:
-            if f.target == 'private':
+        fws_filtered = []
+        for fw in fws:
+            if fw.target == 'private':
                 continue
-            if f.target != target:
+            if fw.target != target:
                 continue
-            firmwares_filtered.append(f)
+            fws_filtered.append(fw)
         if target == 'stable':
             _generate_metadata_kind('firmware.xml.gz',
-                                    firmwares_filtered,
+                                    fws_filtered,
                                     firmware_baseuri=settings['firmware_baseuri'])
         elif target == 'testing':
             _generate_metadata_kind('firmware-testing.xml.gz',
-                                    firmwares_filtered,
+                                    fws_filtered,
                                     firmware_baseuri=settings['firmware_baseuri'])
 
 def _hashfile(afile, hasher, blocksize=65536):

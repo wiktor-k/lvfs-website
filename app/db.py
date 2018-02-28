@@ -3,6 +3,8 @@
 #
 # Copyright (C) 2015-2018 Richard Hughes <richard@hughsie.com>
 # Licensed under the GNU General Public License Version 2
+#
+# pylint: disable=too-many-locals,too-many-statements
 
 from __future__ import print_function
 
@@ -35,7 +37,7 @@ class Database(object):
     def modify_db(self):
 
         # get current schema version
-        from .models import Setting, Event, FirmwareEvent, Firmware, User
+        from .models import Setting, Event, FirmwareEvent, Firmware, User, Vendor, Issue, Group, Restriction
         setting = self.session.query(Setting).filter(Setting.key == 'db_schema_version').first()
         if not setting:
             print('Setting initial schema version')
@@ -117,6 +119,128 @@ class Database(object):
             self.session.commit()
             return
 
+        if int(setting.value) == 24:
+            vendors = {}
+            for v in self.session.query(Vendor).all():
+                vendors[v.group_id] = v
+            # create a fake acme vendor
+            if 'admin' not in vendors:
+                v = Vendor('admin')
+                v.display_name = 'Acme Corp.'
+                v.description = 'A fake vendor used for testing firmware'
+                self.session.add(v)
+                self.session.commit()
+            setting.value += str(int(setting.value) + 1)
+            print('Committing transaction')
+            self.session.commit()
+            return
+
+        if int(setting.value) == 25:
+            vendors = {}
+            for v in self.session.query(Vendor).all():
+                vendors[v.group_id] = v
+
+            print('Setting the vendor ID on the firmware objects')
+            for fw in self.session.query(Firmware).all():
+                if fw.unused_group_id in vendors:
+                    group_id = fw.unused_group_id
+                else:
+                    appstream_id = fw.mds[0].appstream_id
+                    if appstream_id.startswith('com.hughski.'):
+                        group_id = 'hughski'
+                    elif appstream_id.startswith('com.8bitdo.'):
+                        group_id = '8bitdo'
+                    elif appstream_id.startswith('com.altusmetrum.'):
+                        group_id = 'altusmetrum'
+                    elif appstream_id.startswith('com.AIAIAI.'):
+                        group_id = 'aiaiai'
+                    elif appstream_id.startswith('com.acme.'):
+                        group_id = 'admin'
+                    elif appstream_id.startswith('fakedevice'):
+                        group_id = 'admin'
+                    else:
+                        print('MISSING VENDOR %s for %s (%s)' % (fw.unused_group_id, fw.filename, appstream_id))
+                        continue
+                fw.vendor_id = vendors[group_id].vendor_id
+            setting.value += str(int(setting.value) + 1)
+            print('Committing transaction')
+            self.session.commit()
+            return
+
+        if int(setting.value) == 26:
+            vendors = {}
+            for v in self.session.query(Vendor).all():
+                vendors[v.group_id] = v
+            print('Setting the vendor ID on the user objects')
+            for user in self.session.query(User).all():
+                if user.unused_group_id == 'admin':
+                    user.vendor_id = vendors['admin'].vendor_id
+                    user.is_admin = True
+                elif user.unused_group_id in vendors:
+                    user.vendor_id = vendors[user.unused_group_id].vendor_id
+                else:
+                    print('MISSING VENDOR %s for %s' % (user.unused_group_id, user.username))
+                    user.vendor_id = vendors['admin'].vendor_id
+            setting.value += str(int(setting.value) + 1)
+            print('Committing transaction')
+            self.session.commit()
+            return
+
+        if int(setting.value) == 27:
+            vendors = {}
+            for v in self.session.query(Vendor).all():
+                vendors[v.group_id] = v
+            print('Setting the vendor ID on the Event objects')
+            for ev in self.session.query(Event).all():
+                if not ev.unused_group_id or ev.unused_group_id == 'guest':
+                    ev.vendor_id = vendors['admin'].vendor_id
+                elif ev.unused_group_id in vendors:
+                    ev.vendor_id = vendors[ev.unused_group_id].vendor_id
+                else:
+                    print('MISSING VENDOR %s for %s' % (ev.unused_group_id, ev.username))
+                    ev.vendor_id = vendors['admin'].vendor_id
+            setting.value += str(int(setting.value) + 1)
+            print('Committing transaction')
+            self.session.commit()
+            return
+
+        if int(setting.value) == 28:
+            vendors = {}
+            for v in self.session.query(Vendor).all():
+                vendors[v.group_id] = v
+            print('Setting the vendor ID on the Issue objects')
+            for issue in self.session.query(Issue).all():
+                if not issue.unused_group_id:
+                    issue.vendor_id = vendors['admin'].vendor_id
+                elif issue.unused_group_id in vendors:
+                    issue.vendor_id = vendors[issue.unused_group_id].vendor_id
+                else:
+                    print('MISSING VENDOR %s for %s' % (issue.unused_group_id, issue.url))
+                    issue.vendor_id = vendors['admin'].vendor_id
+            setting.value += str(int(setting.value) + 1)
+            print('Committing transaction')
+            self.session.commit()
+            return
+        if int(setting.value) == 29:
+            print('Creating Restriction table')
+            self.Base.metadata.tables['restrictions'].create(bind=self.engine, checkfirst=True)
+            setting.value += str(int(setting.value) + 1)
+            self.session.commit()
+            return
+        if int(setting.value) == 30:
+            vendors = {}
+            for v in self.session.query(Vendor).all():
+                vendors[v.group_id] = v
+            print('Populating Restriction table')
+            for group in self.session.query(Group).all():
+                v = vendors[group.group_id]
+                for vendor_id in group.vendor_ids:
+                    v.restrictions.append(Restriction(vendor_id))
+            setting.value += str(int(setting.value) + 1)
+            print('Committing transaction')
+            self.session.commit()
+            return
+
         print('No schema changes required')
 
     def init_db(self):
@@ -125,13 +249,19 @@ class Database(object):
         self.Base.metadata.create_all(bind=self.engine)
 
         # ensure admin user exists
-        from .models import User
+        from .models import User, Vendor
         if not self.session.query(User).filter(User.username == 'admin').first():
+            vendor = Vendor('admin')
+            vendor.display_name = 'Acme Corp.'
+            vendor.description = 'A fake vendor used for testing firmware'
+            self.session.add(vendor)
+            self.session.commit()
             self.session.add(User(username='admin',
                                   password='5459dbe5e9aa80e077bfa40f3fb2ca8368ed09b4',
                                   display_name='Admin User',
                                   email='sign-test@fwupd.org',
-                                  group_id='admin',
+                                  vendor_id=vendor.vendor_id,
+                                  is_admin=True,
                                   is_enabled=True,
                                   is_qa=True,
                                   is_analyst=True))

@@ -69,7 +69,7 @@ def telemetry(age=0, sort_key='downloads', sort_direction='up'):
     for fw in db.session.query(Firmware).options(joinedload('reports')).all():
 
         # not allowed to view
-        if not g.user.check_capability(UserCapability.Admin) and fw.group_id != g.user.group_id:
+        if not g.user.check_capability(UserCapability.Admin) and fw.vendor.group_id != g.user.vendor.group_id:
             continue
         if len(fw.mds) == 0:
             continue
@@ -138,7 +138,7 @@ def telemetry(age=0, sort_key='downloads', sort_direction='up'):
                            sort_key=sort_key,
                            sort_direction=sort_direction,
                            firmware=fwlines,
-                           group_id=g.user.group_id,
+                           group_id=g.user.vendor.group_id,
                            show_duplicate_warning=show_duplicate_warning,
                            total_failed=total_failed,
                            total_issue=total_issue,

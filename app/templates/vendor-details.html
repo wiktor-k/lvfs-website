@@ -3,8 +3,23 @@
 
 {% block content %}
 <div class="container mt-3">
-<h1>Details of user ‘{{v.group_id}}’</h1>
 
+<nav>
+  <ul class="nav nav-tabs">
+    <li class="nav-item">
+      <a class="nav-link active" href="/lvfs/vendor/{{v.vendor_id}}/details">Details</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="/lvfs/vendor/{{v.vendor_id}}/users">Users</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="/lvfs/vendor/{{v.vendor_id}}/restrictions">Restrictions</a>
+    </li>
+  </ul>
+</nav>
+
+<div class="container mt-3">
+<h1>Details of user ‘{{v.group_id}}’</h1>
 {% if v.icon %}
 <img class="img-thumbnail" src="/uploads/{{v.icon}}" width=128 height="128"/>
 {% else %}
@@ -12,7 +27,7 @@
 {% endif %}
 <button type="button" class="btn" data-toggle="modal" data-target="#iconModal">Change...</button>
 
-<form method="post" action="/lvfs/vendor/{{v.group_id}}/modify_by_admin">
+<form method="post" action="/lvfs/vendor/{{v.vendor_id}}/modify_by_admin">
   <div class="form-group">
     <label for="group_id">Group ID:</label>
     <input type="text" class="form-control" name="group_id" value="{{v.group_id}}" required>
@@ -72,7 +87,7 @@
   Unless you are required to delete a user for legal or compliance reasons,
   removing a vendor is not recommended.
 </p>
-<form method="get" action="/lvfs/vendor/{{v.group_id}}/delete">
+<form method="get" action="/lvfs/vendor/{{v.vendor_id}}/delete">
   <button class="btn btn-danger">Delete</button>
 </form>
 
@@ -86,7 +101,7 @@
           <span aria-hidden="true">&times;</span>
         </button>
       </div>
-      <form action="/lvfs/vendor/{{v.group_id}}/upload" method="post" enctype="multipart/form-data" class="form">
+      <form action="/lvfs/vendor/{{v.vendor_id}}/upload" method="post" enctype="multipart/form-data" class="form">
         <div class="modal-body">
           <p>
             Upload a new 128x128 PNG below:
