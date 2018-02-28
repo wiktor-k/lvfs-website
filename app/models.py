@@ -33,7 +33,6 @@ class User(db.Base):
     display_name = Column(String(128))
     email = Column(String(255))
     vendor_id = Column(Integer, ForeignKey('vendors.vendor_id'), nullable=False)
-    unused_group_id = Column('group_id', String(40))
     is_enabled = Column(Boolean, default=False)
     is_qa = Column(Boolean, default=False)
     is_analyst = Column(Boolean, default=False)
@@ -159,32 +158,6 @@ class User(db.Base):
     def __repr__(self):
         return "User object %s" % self.username
 
-class Group(db.Base):
-
-    # sqlalchemy metadata
-    __tablename__ = 'groups'
-    group_id = Column(String(40), primary_key=True, unique=True)
-    _vendor_ids = Column('vendor_ids', String(40), nullable=False, default='')
-
-    def __init__(self, group_id=None):
-        """ Constructor for object """
-        self.group_id = group_id
-        self._vendor_ids = ''
-        self.vendor_ids = []
-
-    @property
-    def vendor_ids(self):
-        if not len(self._vendor_ids):
-            return []
-        return self._vendor_ids.split(',')
-
-    @vendor_ids.setter
-    def vendor_ids(self, value):
-        self._vendor_ids = ','.join(value)
-
-    def __repr__(self):
-        return "Group object %s" % self.group_id
-
 class Restriction(db.Base):
 
     # sqlalchemy metadata
@@ -262,7 +235,6 @@ class Event(db.Base):
     id = Column(Integer, primary_key=True, nullable=False, unique=True)
     timestamp = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
     username = Column(String(40), nullable=False, default='')
-    unused_group_id = Column('group_id', String(40))
     vendor_id = Column(Integer, ForeignKey('vendors.vendor_id'), nullable=False)
     address = Column('addr', String(40), nullable=False)
     message = Column(Text)
@@ -493,7 +465,6 @@ class Firmware(db.Base):
     __tablename__ = 'firmware'
     firmware_id = Column(Integer, primary_key=True, unique=True, nullable=False)
     vendor_id = Column(Integer, ForeignKey('vendors.vendor_id'), nullable=False)
-    unused_group_id = Column('group_id', String(40))
     addr = Column(String(40), nullable=False)
     timestamp = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
     filename = Column(String(255), nullable=False)
@@ -611,7 +582,6 @@ class Issue(db.Base):
     priority = Column(Integer)
     enabled = Column(Boolean, default=False)
     vendor_id = Column(Integer, ForeignKey('vendors.vendor_id'), nullable=False)
-    unused_group_id = Column('group_id', Text, default=None)
     url = Column(Text, default='')
     name = Column(Text)
     description = Column(Text, default='')
