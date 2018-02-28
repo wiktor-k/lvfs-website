@@ -28,7 +28,7 @@ def _sort_vendor_func(a, b):
 @app.route('/vendorlist') # deprecated
 @app.route('/lvfs/vendorlist')
 def vendor_list():
-    vendors = db.session.query(Vendor).all()
+    vendors = db.session.query(Vendor).order_by(Vendor.display_name).all()
     vendors.sort(_sort_vendor_func)
     return render_template('vendorlist.html', vendors=vendors)
 
