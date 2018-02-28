@@ -118,7 +118,7 @@ def search(max_results=19):
         # this seems like we're over-logging but I'd like to see how people are
         # searching for a few weeks so we can tweak the algorithm used
         _event_log('User search for "%s" returned %i AND results' %
-                   (request.args['value'], len(filtered_mds)))
+                   (request.args['value'], len(filtered_mds) + len(vendors)))
         return render_template('search.html',
                                mds=filtered_mds[:max_results],
                                search_size=len(filtered_mds),
@@ -151,7 +151,7 @@ def search(max_results=19):
         if md.fw.vendor not in vendors:
             vendors.append(md.fw.vendor)
     _event_log('User search for "%s" returned %i OR results' %
-               (request.args['value'], len(filtered_mds)))
+               (request.args['value'], len(filtered_mds) + len(vendors)))
     return render_template('search.html',
                            mds=filtered_mds[:max_results],
                            search_size=len(filtered_mds),
