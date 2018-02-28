@@ -49,7 +49,8 @@ def metadata_view():
     # show all embargo metadata URLs when admin user
     group_ids = []
     if g.user.check_capability(UserCapability.Admin):
-        for vendor in db.session.query(Vendor).all():
+        for vendor in db.session.query(Vendor).\
+                        filter(Vendor.is_account_holder != 'no').all():
             group_ids.append(vendor.group_id)
     else:
         group_ids.append(g.user.vendor.group_id)
@@ -69,7 +70,8 @@ def metadata_rebuild():
         return _error_permission_denied('Only admin is allowed to force-rebuild metadata')
 
     # update metadata
-    for vendor in db.session.query(Vendor).all():
+    for vendor in db.session.query(Vendor).\
+                    filter(Vendor.is_account_holder != 'no').all():
         _metadata_update_group(vendor.group_id)
     _metadata_update_targets(['stable', 'testing'])
     _metadata_update_pulp()
