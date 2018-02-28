@@ -191,6 +191,7 @@ class Vendor(db.Base):
     is_uploading = Column(String(16), nullable=False, default='no')
     comments = Column(String(255), nullable=False, default='')
     icon = Column(Text, default=None)
+    keywords = Column(Text, default=None)
 
     # magically get the users in this vendor group
     users = relationship("User", back_populates="vendor")
@@ -208,6 +209,7 @@ class Vendor(db.Base):
         self.is_uploading = None
         self.comments = None
         self.icon = None
+        self.keywords = None
 
     def get_sort_key(self):
         val = 0

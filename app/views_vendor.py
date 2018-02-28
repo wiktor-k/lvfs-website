@@ -180,6 +180,7 @@ def vendor_modify_by_admin(vendor_id):
     vendor.is_account_holder = request.form['is_account_holder']
     vendor.is_uploading = request.form['is_uploading']
     vendor.comments = request.form['comments']
+    vendor.keywords = request.form['keywords']
     db.session.commit()
     flash('Updated vendor', 'info')
     return redirect(url_for('.vendor_list'))
