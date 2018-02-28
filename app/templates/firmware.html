@@ -8,7 +8,7 @@
 {% if fw_by_name|length == 0 %}
 <p>
 {% if g.user.check_capability('qa') %}
-  No firmware has been uploaded to the &lsquo;{{g.user.group_id}}&rsquo; QA group yet.
+  No firmware has been uploaded to the &lsquo;{{g.user.vendor.group_id}}&rsquo; QA group yet.
 {% else %}
   No firmware has been uploaded by the &lsquo;{{g.user.username}}&rsquo; account yet.
 {% endif %}
@@ -18,7 +18,7 @@
 
 <p>
   The following firmware files have been uploaded to the
-  &lsquo;{{group_id}}&rsquo; QA group.
+  &lsquo;{{g.user.vendor.group_id}}&rsquo; QA group.
 {% if not show_all %}
   By default only one firmware per device is shown in each state.
   To show all files for all devices, <a href="/lvfs/firmware_all">click here</a>.

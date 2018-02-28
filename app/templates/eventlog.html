@@ -7,7 +7,7 @@
 {% if g.user.username == 'admin' %}
 <p>This list shows all events for all users.</p>
 {% else %}
-<p>This list shows all events for the {{g.user.group_id}} QA group.</p>
+<p>This list shows all events for the {{g.user.vendor.group_id}} QA group.</p>
 {% endif %}
 
 <table class="table">
