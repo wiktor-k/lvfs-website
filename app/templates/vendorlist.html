@@ -96,7 +96,7 @@
 {% if session['username'] and g.user.check_capability('admin') %}
 <h1>Create a new vendor</h1>
 <form method="post" action="/lvfs/vendor/add" class="form-inline">
-  <input class="form-control" type="text" size="20" name="vendor_id" placeholder="Group ID" required>
+  <input class="form-control" type="text" size="20" name="group_id" placeholder="Group ID" required>
   <input class="btn btn-primary" type="submit" value="Add">
 </form>
 {% endif %}
