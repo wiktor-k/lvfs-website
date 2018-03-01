@@ -138,6 +138,7 @@ def search(max_results=19):
                                    method='AND'))
         db.session.commit()
         return render_template('search.html',
+                               show_vendor_nag=False,
                                mds=filtered_mds[:max_results],
                                search_size=len(filtered_mds),
                                vendors=vendors,
@@ -174,6 +175,7 @@ def search(max_results=19):
                                method='OR'))
     db.session.commit()
     return render_template('search.html',
+                           show_vendor_nag=True,
                            mds=filtered_mds[:max_results],
                            search_size=len(filtered_mds),
                            vendors=vendors,

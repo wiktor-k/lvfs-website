@@ -83,5 +83,26 @@
 {% endif %}
 </div>
 
+{% if show_vendor_nag %}
+<div class="card mt-3">
+  <h3 class="card-header list-group-item-info">
+    Not found what you were looking for?
+  </h3>
+  <div class="card-body">
+    <p class="card-text">
+      If you didn't find the hardware you were looking for <b>please contact
+      your hardware vendor and ask them to support the LVFS.</b>
+    </p>
+    <p class="card-text">
+      Companies only respond to consumer demand, and having customers
+      opening support tickets and sending emails to ask about firmware updating
+      on Linux is the best way to get vendors uploading firmware.
+      More and more companies are joining the LVFS, but some need a little convincing.
+      Thanks!
+    </p>
+  </div>
+</div>
+{% endif %}
+
 </div> <!-- container -->
 {% endblock %}
