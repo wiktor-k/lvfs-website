@@ -27,7 +27,7 @@
   </div>
   <div class="form-group">
     <label for="group_id">Group:</label>
-    <input type="text" class="form-control" name="group_id" value="{{issue.group_id}}" required {{'disabled' if not g.user.check_for_issue(issue)}}>
+    <input type="text" class="form-control" name="group_id" value="{{issue.vendor.group_id}}" disabled>
   </div>
   <div class="form-group">
     <label for="group_id">Name:</label>

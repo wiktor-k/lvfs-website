@@ -194,7 +194,7 @@ def issue_modify(issue_id):
 
     # modify issue
     issue.enabled = True if 'enabled' in request.form else False
-    for key in ['url', 'name', 'description', 'group_id']:
+    for key in ['url', 'name', 'description']:
         if key in request.form:
             setattr(issue, key, request.form[key])
     db.session.commit()
