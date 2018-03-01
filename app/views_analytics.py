@@ -195,7 +195,7 @@ def analytics_search_history():
         return _error_permission_denied('Unable to view analytics')
     search_events = db.session.query(SearchEvent).\
                         order_by(SearchEvent.timestamp.desc()).\
-                        limit(250).all()
+                        limit(1000).all()
     return render_template('analytics-search-history.html',
                            search_events=search_events)
 

@@ -61,7 +61,7 @@ def search_delete(search_event_id):
     db.session.delete(ev)
     db.session.commit()
     flash('Deleted search event', 'info')
-    return redirect(url_for('.analytics_search'))
+    return redirect(url_for('.analytics_search_history'))
 
 @app.route('/lvfs/search', methods=['GET', 'POST'])
 @app.route('/lvfs/search/<int:max_results>', methods=['POST'])
