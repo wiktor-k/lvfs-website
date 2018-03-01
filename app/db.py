@@ -37,12 +37,37 @@ class Database(object):
     def modify_db(self):
 
         # get current schema version
-        from .models import Setting
+        from .models import Setting, SearchEvent, Event
+        from .hash import _addr_hash
         setting = self.session.query(Setting).filter(Setting.key == 'db_schema_version').first()
         if not setting:
             print('Setting initial schema version')
             setting = Setting('db_schema_version', str(0))
             self.session.add(setting)
+
+        if int(setting.value) == 31:
+            print('Creating search_events table')
+            self.Base.metadata.tables['search_events'].create(bind=self.engine, checkfirst=True)
+            setting.value = 32
+            self.session.commit()
+            return
+
+        if int(setting.value) == 32:
+            print('Getting all events')
+            events = self.session.query(Event).order_by(Event.timestamp.asc()).all()
+            print('Populating search_events table')
+            for e in events:
+                if e.message.startswith('User search for'):
+                    spl = e.message.split('returned')
+                    spl2 = spl[1].split(' ')
+                    self.session.add(SearchEvent(value=spl[0][17:-2],
+                                                 addr=_addr_hash(e.address),
+                                                 timestamp=e.timestamp,
+                                                 count=int(spl2[1]),
+                                                 method=spl2[2]))
+            setting.value = 33
+            self.session.commit()
+            return
 
         print('No schema changes required')
 

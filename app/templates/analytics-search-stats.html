@@ -12,7 +12,7 @@ Chart.defaults.global.animation = false;
 <nav>
   <ul class="nav nav-tabs">
     <li class="nav-item">
-      <a class="nav-link active" href="/lvfs/analytics/month">Past Month</a>
+      <a class="nav-link" href="/lvfs/analytics/month">Past Month</a>
     </li>
     <li class="nav-item">
       <a class="nav-link" href="/lvfs/analytics/year">Past Year</a>
@@ -30,31 +30,31 @@ Chart.defaults.global.animation = false;
       <a class="nav-link" href="/lvfs/analytics/search_history">Recent Searches</a>
     </li>
     <li class="nav-item">
-      <a class="nav-link" href="/lvfs/analytics/search_stats">Popular Searches</a>
+      <a class="nav-link active" href="/lvfs/analytics/search_stats">Popular Searches</a>
     </li>
   </ul>
 </nav>
 
 <div class="container mt-3">
 
-<h2>Firmware Downloads</h2>
-<canvas id="metadataChartMonthsDays" width="1000" height="600"></canvas>
+<h2>Search Stats</h2>
+<canvas id="metadataChartMonths" width="1000" height="600"></canvas>
 <script>
-var ctx = document.getElementById("metadataChartMonthsDays").getContext("2d");
+var ctx = document.getElementById("metadataChartMonths").getContext("2d");
 var data = {
-    labels: {{labels_days|safe}},
+    labels: {{labels|safe}},
     datasets: [
         {
-            label: "Firmware",
+            label: "Searches",
             borderColor: "rgba(20,120,220,0.2)",
             backgroundColor: "rgba(20,120,220,0.2)",
-            data: {{data_days|safe}}
+            data: {{data|safe}}
         },
     ]
 };
 
 new Chart(ctx, {
-    type: 'line',
+    type: 'bar',
     data: data,
     options: {
         legend: {

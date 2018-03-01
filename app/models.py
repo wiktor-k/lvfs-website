@@ -742,6 +742,29 @@ class Useragent(db.Base):
     def __repr__(self):
         return "Useragent object %i:%s" % (self.kind, self.datestr)
 
+
+class SearchEvent(db.Base):
+
+    # sqlalchemy metadata
+    __tablename__ = 'search_events'
+    search_event_id = Column(Integer, primary_key=True, unique=True, nullable=False)
+    timestamp = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
+    addr = Column(String(40), nullable=False)
+    value = Column(Text)
+    count = Column(Integer)
+    method = Column(Text)
+
+    def __init__(self, value, addr=None, timestamp=None, count=0, method=None):
+        """ Constructor for object """
+        self.value = value
+        self.addr = addr
+        self.timestamp = timestamp
+        self.count = count
+        self.method = method
+
+    def __repr__(self):
+        return "SearchEvent object %s" % self.search_event_id
+
 class DownloadKind(object):
     METADATA = 0
     FIRMWARE = 1

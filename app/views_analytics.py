@@ -13,8 +13,8 @@ from flask_login import login_required
 
 from app import app, db
 
-from .models import UserCapability, DownloadKind, Analytic, Client, Report, Useragent
-from .models import _get_datestr_from_datetime
+from .models import UserCapability, DownloadKind, Analytic, Client, Report, Useragent, SearchEvent
+from .models import _get_datestr_from_datetime, _split_search_string
 from .util import _error_permission_denied
 from .util import _get_chart_labels_months, _get_chart_labels_days
 
@@ -186,3 +186,48 @@ def analytics_reports():
                     order_by(Report.timestamp.desc()).\
                     limit(25).all()
     return render_template('analytics-reports.html', reports=reports)
+
+@app.route('/lvfs/analytics/search_history')
+@login_required
+def analytics_search_history():
+    # security check
+    if not g.user.check_capability(UserCapability.Admin):
+        return _error_permission_denied('Unable to view analytics')
+    search_events = db.session.query(SearchEvent).\
+                        order_by(SearchEvent.timestamp.desc()).\
+                        limit(250).all()
+    return render_template('analytics-search-history.html',
+                           search_events=search_events)
+
+@app.route('/lvfs/analytics/search_stats')
+@app.route('/lvfs/analytics/search_stats/<int:limit>')
+@login_required
+def analytics_search_stats(limit=20):
+
+    # security check
+    if not g.user.check_capability(UserCapability.Admin):
+        return _error_permission_denied('Unable to view analytics')
+
+    search_events = db.session.query(SearchEvent).\
+                        order_by(SearchEvent.timestamp.desc()).\
+                        limit(99999).all()
+
+    keywords = {}
+    for ev in search_events:
+        for tok in _split_search_string(ev.value):
+            if tok in keywords:
+                keywords[tok] += 1
+                continue
+            keywords[tok] = 1
+    results = []
+    for keyword in keywords:
+        results.append((keyword, keywords[keyword]))
+    results.sort(key=lambda k: k[1], reverse=True)
+
+    # generate the graph data
+    labels = []
+    data = []
+    for res in results[0:limit]:
+        labels.append(str(res[0]))
+        data.append(res[1])
+    return render_template('analytics-search-stats.html', labels=labels, data=data)

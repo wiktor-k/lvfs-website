@@ -6,12 +6,14 @@
 
 from __future__ import print_function
 
-from flask import request, render_template
+from flask import request, render_template, flash, redirect, url_for, g
+from flask_login import login_required
 
 from app import app, db
 
-from .models import Keyword, Vendor, _split_search_string
-from .util import _event_log
+from .models import Keyword, Vendor, UserCapability, SearchEvent, _split_search_string
+from .hash import _addr_hash
+from .util import _get_client_address, _error_internal, _error_permission_denied
 
 def _md_suitable_as_search_result(md):
     if not md:
@@ -47,6 +49,19 @@ def _get_md_priority_for_kws(kws):
         else:
             md_priority[md] += kw.priority
     return md_priority
+
+@app.route('/lvfs/search/<int:search_event_id>/delete')
+@login_required
+def search_delete(search_event_id):
+    if not g.user.check_capability(UserCapability.Admin):
+        return _error_permission_denied('Unable to delete search')
+    ev = db.session.query(SearchEvent).filter(SearchEvent.search_event_id == search_event_id).first()
+    if not ev:
+        return _error_internal('No search found!')
+    db.session.delete(ev)
+    db.session.commit()
+    flash('Deleted search event', 'info')
+    return redirect(url_for('.analytics_search'))
 
 @app.route('/lvfs/search', methods=['GET', 'POST'])
 @app.route('/lvfs/search/<int:max_results>', methods=['POST'])
@@ -117,8 +132,11 @@ def search(max_results=19):
                 vendors.append(md.fw.vendor)
         # this seems like we're over-logging but I'd like to see how people are
         # searching for a few weeks so we can tweak the algorithm used
-        _event_log('User search for "%s" returned %i AND results' %
-                   (request.args['value'], len(filtered_mds) + len(vendors)))
+        db.session.add(SearchEvent(value=request.args['value'],
+                                   addr=_addr_hash(_get_client_address()),
+                                   count=len(filtered_mds) + len(vendors),
+                                   method='AND'))
+        db.session.commit()
         return render_template('search.html',
                                mds=filtered_mds[:max_results],
                                search_size=len(filtered_mds),
@@ -150,8 +168,11 @@ def search(max_results=19):
     for md in filtered_mds:
         if md.fw.vendor not in vendors:
             vendors.append(md.fw.vendor)
-    _event_log('User search for "%s" returned %i OR results' %
-               (request.args['value'], len(filtered_mds) + len(vendors)))
+    db.session.add(SearchEvent(value=request.args['value'],
+                               addr=_addr_hash(_get_client_address()),
+                               count=len(filtered_mds) + len(vendors),
+                               method='OR'))
+    db.session.commit()
     return render_template('search.html',
                            mds=filtered_mds[:max_results],
                            search_size=len(filtered_mds),
