@@ -176,6 +176,7 @@ def vendor_modify_by_admin(vendor_id):
     vendor.plugins = request.form['plugins']
     vendor.description = request.form['description']
     vendor.visible = request.form['visible']
+    vendor.visible_for_search = request.form['visible_for_search']
     vendor.is_fwupd_supported = request.form['is_fwupd_supported']
     vendor.is_account_holder = request.form['is_account_holder']
     vendor.is_uploading = request.form['is_uploading']

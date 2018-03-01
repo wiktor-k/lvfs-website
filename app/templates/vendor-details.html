@@ -56,6 +56,13 @@
     </select>
   </div>
   <div class="form-group">
+    <label for="email">Visible in search results:</label>
+    <select class="form-control" name="visible_for_search">
+      <option value="0" {{ 'selected' if v.visible == 0 }}>No</option>
+      <option value="1" {{ 'selected' if v.visible == 1 }}>Yes</option>
+    </select>
+  </div>
+  <div class="form-group">
     <label for="email">Supported in fwupd:</label>
     <select class="form-control" name="is_fwupd_supported">
       <option value="no" {{ 'selected' if v.is_fwupd_supported == 'no' }}>No</option>

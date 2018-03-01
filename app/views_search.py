@@ -90,7 +90,7 @@ def search(max_results=19):
     # get any vendor information
     vendors = []
     for vendor in db.session.query(Vendor).all():
-        if not vendor.visible:
+        if not vendor.visible_for_search:
             continue
         vendor_keywords = []
         if vendor.display_name:

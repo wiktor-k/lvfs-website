@@ -186,6 +186,7 @@ class Vendor(db.Base):
     plugins = Column(String(128), nullable=False, default='')
     description = Column(String(255), nullable=False, default='')
     visible = Column(Boolean, default=False)
+    visible_for_search = Column(Boolean, default=False)
     is_fwupd_supported = Column(String(16), nullable=False, default='no')
     is_account_holder = Column(String(16), nullable=False, default='no')
     is_uploading = Column(String(16), nullable=False, default='no')
