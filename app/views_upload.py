@@ -54,11 +54,11 @@ def upload():
         return _error_internal('No target')
     if not 'file' in request.files:
         return _error_internal('No file')
-    if request.form['target'] not in ['private', 'embargo', 'testing', 'stable']:
+    if request.form['target'] not in ['private', 'embargo', 'testing']:
         return _error_internal('Target not valid')
 
     # can the user upload directly to stable
-    if request.form['target'] in ['stable', 'testing']:
+    if request.form['target'] in ['testing']:
         if not g.user.check_capability(UserCapability.QA):
             return _error_permission_denied('Unable to upload to this target as not QA user')
 

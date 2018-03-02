@@ -545,7 +545,7 @@ class LvfsTestCase(unittest.TestCase):
 
         # upload a firmware that can receive a report
         self.login()
-        self.upload(target='stable')
+        self.upload(target='testing')
 
         # send empty
         rv = self.app.post('/lvfs/firmware/report')
