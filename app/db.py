@@ -69,6 +69,19 @@ class Database(object):
             self.session.commit()
             return
 
+        if int(setting.value) == 33:
+            print('Removing duplicate search_events')
+            dup = {}
+            for ev in self.session.query(SearchEvent).order_by(SearchEvent.timestamp.asc()).all():
+                key = ev.value + ':' + ev.addr
+                if key not in dup:
+                    dup[key] = ev
+                    continue
+                self.session.delete(ev)
+            setting.value = 34
+            self.session.commit()
+            return
+
         print('No schema changes required')
 
     def init_db(self):

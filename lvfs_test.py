@@ -738,6 +738,10 @@ class LvfsTestCase(unittest.TestCase):
         rv = self.app.get('/lvfs/search?value=Alice')
         assert b'ColorHug2 Device Update' in rv.data, rv.data
 
+        # search for one defined keyword, again
+        rv = self.app.get('/lvfs/search?value=Alice')
+        assert b'ColorHug2 Device Update' in rv.data, rv.data
+
         # search for a keyword and a name match
         rv = self.app.get('/lvfs/search?value=Alice+Edward+ColorHug2')
         assert b'ColorHug2 Device Update' in rv.data, rv.data

@@ -63,6 +63,14 @@ def search_delete(search_event_id):
     flash('Deleted search event', 'info')
     return redirect(url_for('.analytics_search_history'))
 
+def _add_search_event(ev):
+    if db.session.query(SearchEvent).\
+                        filter(SearchEvent.value == ev.value).\
+                        filter(SearchEvent.addr == ev.addr).all():
+        return
+    db.session.add(ev)
+    db.session.commit()
+
 @app.route('/lvfs/search', methods=['GET', 'POST'])
 @app.route('/lvfs/search/<int:max_results>', methods=['POST'])
 def search(max_results=19):
@@ -132,11 +140,10 @@ def search(max_results=19):
                 vendors.append(md.fw.vendor)
         # this seems like we're over-logging but I'd like to see how people are
         # searching for a few weeks so we can tweak the algorithm used
-        db.session.add(SearchEvent(value=request.args['value'],
-                                   addr=_addr_hash(_get_client_address()),
-                                   count=len(filtered_mds) + len(vendors),
-                                   method='AND'))
-        db.session.commit()
+        _add_search_event(SearchEvent(value=request.args['value'],
+                                      addr=_addr_hash(_get_client_address()),
+                                      count=len(filtered_mds) + len(vendors),
+                                      method='AND'))
         return render_template('search.html',
                                show_vendor_nag=False,
                                mds=filtered_mds[:max_results],
@@ -169,11 +176,10 @@ def search(max_results=19):
     for md in filtered_mds:
         if md.fw.vendor not in vendors:
             vendors.append(md.fw.vendor)
-    db.session.add(SearchEvent(value=request.args['value'],
-                               addr=_addr_hash(_get_client_address()),
-                               count=len(filtered_mds) + len(vendors),
-                               method='OR'))
-    db.session.commit()
+    _add_search_event(SearchEvent(value=request.args['value'],
+                                  addr=_addr_hash(_get_client_address()),
+                                  count=len(filtered_mds) + len(vendors),
+                                  method='OR'))
     return render_template('search.html',
                            show_vendor_nag=True,
                            mds=filtered_mds[:max_results],
