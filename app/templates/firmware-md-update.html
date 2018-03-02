@@ -58,7 +58,7 @@
     </div>
     <div class="form-group">
       <label for="description">Description</label>
-      <textarea class="form-control" name="description" id="description" cols="100" rows="5">{{md.release_description|safe}}</textarea>
+      <textarea class="form-control" name="description" id="description" cols="100" rows="5">{{md.release_description|safe if md.release_description}}</textarea>
       <p class="text-secondary">Unformatted text will be automatically converted to
         <a href="http://www.freedesktop.org/software/appstream/docs/chap-Metadata.html#tag-description">
         AppStream XML description markup</a>.
