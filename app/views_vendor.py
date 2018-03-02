@@ -172,16 +172,18 @@ def vendor_modify_by_admin(vendor_id):
     if not vendor:
         flash('Failed to modify vendor: No a vendor with that group ID', 'warning')
         return redirect(url_for('.vendor_list'), 302)
-    vendor.display_name = request.form['display_name']
-    vendor.plugins = request.form['plugins']
-    vendor.description = request.form['description']
-    vendor.visible = request.form['visible']
-    vendor.visible_for_search = request.form['visible_for_search']
-    vendor.is_fwupd_supported = request.form['is_fwupd_supported']
-    vendor.is_account_holder = request.form['is_account_holder']
-    vendor.is_uploading = request.form['is_uploading']
-    vendor.comments = request.form['comments']
-    vendor.keywords = request.form['keywords']
+    for key in ['display_name',
+                'plugins',
+                'description',
+                'visible',
+                'visible_for_search',
+                'is_fwupd_supported',
+                'is_account_holder',
+                'is_uploading',
+                'comments',
+                'keywords']:
+        if key in request.form:
+            setattr(vendor, key, request.form[key])
     db.session.commit()
     flash('Updated vendor', 'info')
     return redirect(url_for('.vendor_list'))
