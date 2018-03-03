@@ -11,6 +11,7 @@ import sqlalchemy
 
 from flask import Flask, flash, render_template, message_flashed, request, Response, g
 from flask_login import LoginManager
+from flask_oauthlib.client import OAuth
 from werkzeug.local import LocalProxy
 
 from .db import Database
@@ -26,6 +27,8 @@ else:
     app.config.from_pyfile('flaskapp.cfg')
 if 'LVFS_CUSTOM_SETTINGS' in os.environ:
     app.config.from_envvar('LVFS_CUSTOM_SETTINGS')
+
+oauth = OAuth(app)
 
 db = Database()
 db.init_app(app)

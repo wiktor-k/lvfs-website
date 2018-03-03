@@ -181,3 +181,14 @@ class Pluginloader(object):
                     plugin.archive_finalize(arc, metadata)
                 except PluginError as e:
                     _event_log('Plugin %s failed for ArchiveFinalize(): %s' % (plugin.id, str(e)))
+
+    # log out of all oauth providers
+    def oauth_logout(self):
+        if not self.loaded:
+            self.load_plugins()
+        for plugin in self._plugins:
+            if hasattr(plugin, 'oauth_logout'):
+                try:
+                    plugin.oauth_logout()
+                except PluginError as e:
+                    _event_log('Plugin %s failed for oauth_logout(): %s' % (plugin.id, str(e)))

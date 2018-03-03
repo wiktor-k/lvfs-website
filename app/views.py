@@ -16,14 +16,15 @@ from flask_login import login_required, login_user, logout_user
 
 from gi.repository import AppStreamGlib
 
-from app import app, db, lm
+from app import app, db, lm, ploader
 from .db import _execute_count_star
+from .pluginloader import PluginError
 
 from .models import Firmware, DownloadKind, UserCapability, Requirement, Component
 from .models import User, Analytic, Client, Event, Useragent, _get_datestr_from_datetime
 from .hash import _qa_hash, _password_hash, _addr_hash
 from .util import _get_client_address, _get_settings
-from .util import _error_permission_denied
+from .util import _error_permission_denied, _event_log
 
 def _user_agent_safe_for_requirement(user_agent):
 
@@ -242,10 +243,70 @@ def login():
         flash('Logged in', 'info')
     return redirect(url_for('.index'))
 
+@app.route('/lvfs/login/<plugin_id>')
+def login_oauth(plugin_id):
+
+    # find the plugin that can authenticate us
+    p = ploader.get_by_id(plugin_id)
+    if not p:
+        return _error_permission_denied('no plugin %s' % plugin_id)
+    if not p.oauth_authorize:
+        return _error_permission_denied('no oauth support in plugin %s' % plugin_id)
+    try:
+        _event_log('attempted to login using OAuth')
+        return p.oauth_authorize(url_for('login_oauth_authorized', plugin_id=plugin_id, _external=True))
+    except PluginError as e:
+        return _error_permission_denied(str(e))
+
+@app.route('/lvfs/login/authorized/<plugin_id>')
+def login_oauth_authorized(plugin_id):
+
+    # find the plugin that can authenticate us
+    p = ploader.get_by_id(plugin_id)
+    if not p:
+        return _error_permission_denied('no plugin %s' % plugin_id)
+    if not hasattr(p, 'oauth_get_data'):
+        return _error_permission_denied('no oauth support in plugin %s' % plugin_id)
+    try:
+        data = p.oauth_get_data()
+        _event_log('OAuth returned: %s' % str(data))
+        if 'userPrincipalName' not in data:
+            raise PluginError('No userPrincipalName in profile')
+    except PluginError as e:
+        return _error_permission_denied(str(e))
+
+    # auth check
+    user = db.session.query(User).filter(User.username == data['userPrincipalName']).first()
+    if not user:
+        flash('Failed to log in: no user for %s' % data['userPrincipalName'], 'danger')
+        return redirect(url_for('.index'))
+    if not user.is_enabled:
+        flash('Failed to log in: User account %s is disabled' % user.username, 'danger')
+        return redirect(url_for('.index'))
+    if not user.is_locked:
+        flash('Failed to log in: Only locked accounts can log in using OAuth', 'danger')
+        return redirect(url_for('.index'))
+    if user.password:
+        flash('Failed to log in: Only accounts with no local password can log in using OAuth', 'danger')
+        return redirect(url_for('.index'))
+
+    # sync the display name
+    if 'displayName' in data:
+        if user.display_name != data['displayName']:
+            user.display_name = data['displayName']
+            db.session.commit()
+
+    # success
+    login_user(user, remember=False)
+    g.user = user
+    flash('Logged in', 'info')
+    return redirect(url_for('.index'))
+
 @app.route('/lvfs/logout')
 @login_required
 def logout():
     flash('Logged out from %s' % g.user.username, 'info')
+    ploader.oauth_logout()
     logout_user()
     return redirect(url_for('.index'))
 
