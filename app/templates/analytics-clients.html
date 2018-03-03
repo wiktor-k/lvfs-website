@@ -45,7 +45,7 @@
   <tr class="row">
     <td class="col-sm-2">{{c.timestamp}}</td>
     <td class="col-sm-2"><code>{{c.addr|truncate(9, False, '…')}}</code></td>
-    <td class="col-sm-4">{{c.fw.filename}}</td>
+    <td class="col-sm-4">{{c.fw.filename[41:]|truncate(41, False, '…')}}</td>
     <td class="col-sm-4">{{c.user_agent}}</td>
   </tr>
 {% endfor %}
