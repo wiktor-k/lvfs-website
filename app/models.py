@@ -237,7 +237,6 @@ class Event(db.Base):
     __tablename__ = 'event_log'
     id = Column(Integer, primary_key=True, nullable=False, unique=True)
     timestamp = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
-    unused_username = Column('username', String(40), default='')
     user_id = Column(Integer, ForeignKey('users.user_id'), nullable=False)
     vendor_id = Column(Integer, ForeignKey('vendors.vendor_id'), nullable=False)
     address = Column('addr', String(40), nullable=False)
@@ -479,7 +478,6 @@ class Firmware(db.Base):
     target = Column(String(255), nullable=False)
     checksum_signed = Column(String(40), nullable=False)
     user_id = Column(Integer, ForeignKey('users.user_id'), nullable=False)
-    unused_username = Column('username', String(40), default=None)
 
     # include all Component objects
     mds = relationship("Component", back_populates="fw", lazy='joined')
