@@ -97,7 +97,7 @@ class User(db.Base):
             return True
 
         # User can see firmwares in the group owned by them
-        if self.vendor_id == fw.vendor_id and self.username == fw.username:
+        if self.vendor_id == fw.vendor_id and self.user_id == fw.user_id:
             return True
 
         # something else
@@ -237,7 +237,8 @@ class Event(db.Base):
     __tablename__ = 'event_log'
     id = Column(Integer, primary_key=True, nullable=False, unique=True)
     timestamp = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
-    username = Column(String(40), nullable=False, default='')
+    unused_username = Column('username', String(40), default='')
+    user_id = Column(Integer, ForeignKey('users.user_id'), nullable=False)
     vendor_id = Column(Integer, ForeignKey('vendors.vendor_id'), nullable=False)
     address = Column('addr', String(40), nullable=False)
     message = Column(Text)
@@ -246,12 +247,13 @@ class Event(db.Base):
 
     # link using foreign keys
     vendor = relationship('Vendor', foreign_keys=[vendor_id])
+    user = relationship('User', foreign_keys=[user_id])
 
-    def __init__(self, username=None, vendor_id=None, address=None, message=None,
+    def __init__(self, user_id, vendor_id=None, address=None, message=None,
                  request=None, is_important=False):
         """ Constructor for object """
         self.timestamp = None
-        self.username = username
+        self.user_id = user_id
         self.vendor_id = vendor_id
         self.address = address
         self.message = message
@@ -476,7 +478,8 @@ class Firmware(db.Base):
     version_display = Column(String(255), nullable=True, default=None)
     target = Column(String(255), nullable=False)
     checksum_signed = Column(String(40), nullable=False)
-    username = Column(String(40), default=None)
+    user_id = Column(Integer, ForeignKey('users.user_id'), nullable=False)
+    unused_username = Column('username', String(40), default=None)
 
     # include all Component objects
     mds = relationship("Component", back_populates="fw", lazy='joined')
@@ -485,6 +488,7 @@ class Firmware(db.Base):
 
     # link using foreign keys
     vendor = relationship('Vendor', foreign_keys=[vendor_id])
+    user = relationship('User', foreign_keys=[user_id])
 
     @property
     def target_duration(self):
@@ -502,7 +506,7 @@ class Firmware(db.Base):
         self.version_display = None # from the firmware.inf file
         self.download_cnt = 0       # generated from the client database
         self.checksum_signed = None # SHA1 of the signed .cab
-        self.username = None        # username of the uploader
+        self.user_id = None         # user_id of the uploader
         self.mds = []
 
     def __repr__(self):

@@ -56,17 +56,17 @@ def _get_client_address():
 
 def _event_log(msg, is_important=False):
     """ Adds an item to the event log """
-    username = 'anonymous'
+    user_id = 1
     vendor_id = 1
     request_path = None
     if hasattr(g, 'user'):
-        username = g.user.username
+        user_id = g.user.user_id
         vendor_id = g.user.vendor_id
     if request:
         request_path = request.path
     from .models import Event
     from app import db
-    event = Event(username=username,
+    event = Event(user_id=user_id,
                   message=msg,
                   vendor_id=vendor_id,
                   address=_get_client_address(),

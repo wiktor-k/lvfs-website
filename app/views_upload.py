@@ -136,7 +136,7 @@ def upload():
     target = request.form['target']
     fw = Firmware()
     fw.vendor_id = g.user.vendor_id
-    fw.username = g.user.username
+    fw.user_id = g.user.user_id
     fw.addr = _get_client_address()
     fw.filename = ufile.filename_new
     fw.checksum_upload = ufile.checksum_upload

@@ -37,7 +37,7 @@ class Database(object):
     def modify_db(self):
 
         # get current schema version
-        from .models import Setting, SearchEvent, Event
+        from .models import Setting, SearchEvent, Event, User, Firmware
         from .hash import _addr_hash
         setting = self.session.query(Setting).filter(Setting.key == 'db_schema_version').first()
         if not setting:
@@ -82,6 +82,44 @@ class Database(object):
             self.session.commit()
             return
 
+        if int(setting.value) == 34:
+            print('Getting all events')
+            users = {}
+            for u in self.session.query(User).all():
+                users[u.username] = u
+            events = self.session.query(Event).all()
+            print('Setting user_id on event table')
+            for e in events:
+                if e.user_id == 0:
+                    username = e.unused_username
+                    if username == 'dell' or username == 'dellqa ' or username == 'Dell':
+                        username = 'dellqa'
+                    if username in users:
+                        e.user_id = users[username].user_id
+                    elif username == 'anonymous':
+                        e.user_id = 2
+                    else:
+                        e.user_id = 1
+            setting.value = 35
+            self.session.commit()
+            return
+
+        if int(setting.value) == 35:
+            print('Getting all events')
+            users = {}
+            for u in self.session.query(User).all():
+                users[u.username] = u
+            print('Setting user_id on event table')
+            for fw in self.session.query(Firmware).all():
+                if fw.user_id == 0:
+                    username = fw.unused_username
+                    if username == 'dell':
+                        username = 'dellqa'
+                    fw.user_id = users[username].user_id
+            setting.value = 36
+            self.session.commit()
+            return
+
         print('No schema changes required')
 
     def init_db(self):
@@ -106,6 +144,13 @@ class Database(object):
                                   is_enabled=True,
                                   is_qa=True,
                                   is_analyst=True))
+            self.session.commit()
+        if not self.session.query(User).filter(User.username == 'anonymous').first():
+            self.session.add(User(username='anonymous',
+                                  password='',
+                                  display_name='Anonymous User',
+                                  email='',
+                                  vendor_id=1))
             self.session.commit()
 
     def drop_db(self):
