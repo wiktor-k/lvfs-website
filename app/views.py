@@ -10,7 +10,7 @@ import os
 import datetime
 import humanize
 
-from flask import session, request, flash, url_for, redirect, render_template
+from flask import request, flash, url_for, redirect, render_template
 from flask import send_from_directory, abort, Response, g
 from flask_login import login_required, login_user, logout_user
 
@@ -224,8 +224,7 @@ def login():
         flash('Failed to log in: User account %s is disabled' % request.form['username'], 'danger')
         return redirect(url_for('.index'))
 
-    # this is signed, not encrypted
-    session['username'] = user.username
+    # success
     login_user(user, remember=False)
     g.user = user
     flash('Logged in', 'info')
@@ -234,9 +233,7 @@ def login():
 @app.route('/lvfs/logout')
 @login_required
 def logout():
-    # remove the username from the session
     flash('Logged out from %s' % g.user.username, 'info')
-    session.pop('username', None)
     logout_user()
     return redirect(url_for('.index'))
 

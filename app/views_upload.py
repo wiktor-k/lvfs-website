@@ -13,7 +13,7 @@ import hashlib
 from gi.repository import AppStreamGlib
 from gi.repository import Gio
 
-from flask import session, request, flash, url_for, redirect, render_template, g
+from flask import request, flash, url_for, redirect, render_template, g
 from flask_login import login_required
 
 from app import app, db, ploader
@@ -40,7 +40,7 @@ def upload():
 
     # only accept form data
     if request.method != 'POST':
-        if 'username' not in session:
+        if not hasattr(g, 'user'):
             return redirect(url_for('.index'))
         vendor_ids = []
         vendor = db.session.query(Vendor).filter(Vendor.vendor_id == g.user.vendor_id).first()
