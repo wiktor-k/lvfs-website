@@ -108,7 +108,7 @@ def user_modify_by_admin(username):
         return _error_internal('No user with that username', 422)
 
     # set each optional thing in turn
-    for key in ['group_id', 'display_name', 'email']:
+    for key in ['display_name', 'email']:
         if key in request.form:
             setattr(user, key, request.form[key])
 
