@@ -123,6 +123,14 @@ class Pluginloader(object):
         # success
         self.loaded = True
 
+    def get_by_id(self, plugin_id):
+        if not self.loaded:
+            self.load_plugins()
+        for p in self._plugins:
+            if p.id == plugin_id:
+                return p
+        return None
+
     def get_all(self):
         if not self.loaded:
             self.load_plugins()
