@@ -50,9 +50,7 @@ def user_modify(user_id):
         return _error_permission_denied('Unable to change user as no data')
     if not 'password_old' in request.form:
         return _error_permission_denied('Unable to change user as no data')
-    if not 'name' in request.form:
-        return _error_permission_denied('Unable to change user as no data')
-    if not 'email' in request.form:
+    if not 'display_name' in request.form:
         return _error_permission_denied('Unable to change user as no data')
     old_password_hash = _password_hash(request.form['password_old'])
     user = db.session.query(User).\
@@ -67,22 +65,15 @@ def user_modify(user_id):
     if not _password_check(password):
         return redirect(url_for('.profile'), 302)
 
-    # check email
-    email = request.form['email']
-    if not _email_check(email):
-        flash('Failed to modify profile: Invalid email address', 'warning')
-        return redirect(url_for('.profile'))
-
     # verify name
-    name = request.form['name']
-    if len(name) < 3:
+    display_name = request.form['display_name']
+    if len(display_name) < 3:
         flash('Failed to modify profile: Name invalid', 'warning')
         return redirect(url_for('.profile'), 302)
 
     # save to database
     user.password = _password_hash(password)
-    user.display_name = name
-    user.email = email
+    user.display_name = display_name
     db.session.commit()
     flash('Updated profile', 'info')
     return redirect(url_for('.profile'))
@@ -102,7 +93,7 @@ def user_modify_by_admin(user_id):
         return _error_internal('No user with that user_id', 422)
 
     # set each optional thing in turn
-    for key in ['display_name', 'email']:
+    for key in ['display_name', 'username']:
         if key in request.form:
             setattr(user, key, request.form[key])
 
@@ -131,19 +122,17 @@ def user_add():
     if not g.user.check_capability(UserCapability.Admin):
         return _error_permission_denied('Unable to add user as non-admin')
 
+    if not 'username' in request.form:
+        return _error_permission_denied('Unable to add user as no username')
     if not 'password_new' in request.form:
         return _error_permission_denied('Unable to add user as no password_new')
-    if not 'username_new' in request.form:
-        return _error_permission_denied('Unable to add user as no username_new')
     if not 'group_id' in request.form:
         return _error_permission_denied('Unable to add user as no group_id')
-    if not 'name' in request.form:
-        return _error_permission_denied('Unable to add user as no name')
-    if not 'email' in request.form:
-        return _error_permission_denied('Unable to add user as no email')
-    user = db.session.query(User).filter(User.username == request.form['username_new']).first()
+    if not 'display_name' in request.form:
+        return _error_permission_denied('Unable to add user as no display_name')
+    user = db.session.query(User).filter(User.username == request.form['username']).first()
     if user:
-        return _error_internal('Already a entry with that username', 422)
+        return _error_internal('Already a user with that username', 422)
 
     # verify password
     password = request.form['password_new']
@@ -151,8 +140,8 @@ def user_add():
         return redirect(url_for('.user_list'), 302)
 
     # verify email
-    email = request.form['email']
-    if not _email_check(email):
+    username = request.form['username']
+    if not _email_check(username):
         flash('Failed to add user: Invalid email address', 'warning')
         return redirect(url_for('.user_list'), 302)
 
@@ -163,15 +152,9 @@ def user_add():
         return redirect(url_for('.user_list'), 302)
 
     # verify name
-    name = request.form['name']
-    if len(name) < 3:
+    display_name = request.form['display_name']
+    if len(display_name) < 3:
         flash('Failed to add user: Name invalid', 'warning')
-        return redirect(url_for('.user_list'), 302)
-
-    # verify username
-    username_new = request.form['username_new']
-    if len(username_new) < 3:
-        flash('Failed to add user: Username invalid', 'warning')
         return redirect(url_for('.user_list'), 302)
 
     vendor = db.session.query(Vendor).filter(Vendor.group_id == group_id).first()
@@ -179,10 +162,9 @@ def user_add():
         vendor = Vendor(group_id)
         db.session.add(vendor)
         db.session.commit()
-    user = User(username=username_new,
+    user = User(username=username,
                 password=_password_hash(password),
-                display_name=name,
-                email=email,
+                display_name=display_name,
                 vendor_id=vendor.vendor_id)
     db.session.add(user)
     db.session.commit()

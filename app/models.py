@@ -28,10 +28,10 @@ class User(db.Base):
     # database
     __tablename__ = 'users'
     user_id = Column(Integer, primary_key=True, unique=True, nullable=False)
-    username = Column(String(40), nullable=False, default='')
+    username = Column(String(40), nullable=False)
+    username_old = Column(String(255))
     password = Column(String(40), nullable=False, default='')
     display_name = Column(String(128))
-    email = Column(String(255))
     vendor_id = Column(Integer, ForeignKey('vendors.vendor_id'), nullable=False)
     is_enabled = Column(Boolean, default=False)
     is_qa = Column(Boolean, default=False)
@@ -42,14 +42,13 @@ class User(db.Base):
     # link using foreign keys
     vendor = relationship('Vendor', foreign_keys=[vendor_id])
 
-    def __init__(self, username, password=None, display_name=None, email=None,
+    def __init__(self, username, password=None, display_name=None,
                  vendor_id=None, is_enabled=True, is_analyst=False, is_qa=False,
                  is_locked=False, is_admin=False):
         """ Constructor for object """
         self.username = username
         self.password = password
         self.display_name = display_name
-        self.email = email
         self.is_enabled = is_enabled
         self.is_analyst = is_analyst
         self.is_qa = is_qa

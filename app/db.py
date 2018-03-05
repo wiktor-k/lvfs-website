@@ -59,10 +59,9 @@ class Database(object):
             vendor.description = 'A fake vendor used for testing firmware'
             self.session.add(vendor)
             self.session.commit()
-            self.session.add(User(username='admin',
+            self.session.add(User(username='sign-test@fwupd.org',
                                   password='5459dbe5e9aa80e077bfa40f3fb2ca8368ed09b4',
                                   display_name='Admin User',
-                                  email='sign-test@fwupd.org',
                                   vendor_id=vendor.vendor_id,
                                   is_admin=True,
                                   is_enabled=True,
@@ -70,10 +69,9 @@ class Database(object):
                                   is_analyst=True))
             self.session.commit()
         if not self.session.query(User).filter(User.username == 'anonymous').first():
-            self.session.add(User(username='anonymous',
+            self.session.add(User(username='anonymous@fwupd.org',
                                   password='',
                                   display_name='Anonymous User',
-                                  email='',
                                   vendor_id=1))
             self.session.commit()
 

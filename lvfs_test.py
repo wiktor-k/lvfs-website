@@ -57,7 +57,7 @@ class LvfsTestCase(unittest.TestCase):
     def _logout(self):
         return self.app.get('/lvfs/logout', follow_redirects=True)
 
-    def login(self, username='admin', password='Pa$$w0rd'):
+    def login(self, username='sign-test@fwupd.org', password='Pa$$w0rd'):
         rv = self._login(username, password)
         assert b'/lvfs/upload' in rv.data, rv.data
         assert b'Incorrect username or password' not in rv.data, rv.data
@@ -72,19 +72,17 @@ class LvfsTestCase(unittest.TestCase):
                           follow_redirects=True)
         assert b'Firmware deleted' in rv.data, rv.data
 
-    def _add_user(self, username, group_id, password, email):
+    def _add_user(self, username, group_id, password):
         return self.app.post('/lvfs/user/add', data=dict(
+            username=username,
             password_new=password,
-            username_new=username,
             group_id=group_id,
-            name='Generic Name',
-            email=email,
+            display_name='Generic Name',
         ), follow_redirects=True)
 
-    def add_user(self, username='testuser', group_id='testgroup',
-                 password='Pa$$w0rd', email='test@test.com',
-                 is_qa=False, is_analyst=False):
-        rv = self._add_user(username, group_id, password, email)
+    def add_user(self, username='testuser@fwupd.org', group_id='testgroup',
+                 password='Pa$$w0rd', is_qa=False, is_analyst=False):
+        rv = self._add_user(username, group_id, password)
         assert b'Added user' in rv.data, rv.data
         user_id_idx = rv.data.find('Added user ')
         assert user_id_idx != -1, rv.data
@@ -116,13 +114,16 @@ class LvfsTestCase(unittest.TestCase):
     def test_login_logout(self):
 
         # test logging in and out
-        rv = self._login('admin', 'Pa$$w0rd')
+        rv = self._login('sign-test@fwupd.org', 'Pa$$w0rd')
+        assert b'/lvfs/upload' in rv.data, rv.data
+        rv = self._logout()
+        rv = self._login('sign-test@fwupd.org', 'Pa$$w0rd')
         assert b'/lvfs/upload' in rv.data, rv.data
         rv = self._logout()
         assert b'/lvfs/upload' not in rv.data, rv.data
-        rv = self._login('adminx', 'default')
+        rv = self._login('sign-test@fwupd.orgx', 'default')
         assert b'Incorrect username or password' in rv.data, rv.data
-        rv = self._login('admin', 'defaultx')
+        rv = self._login('sign-test@fwupd.org', 'defaultx')
         assert b'Incorrect username or password' in rv.data, rv.data
 
     def test_upload_invalid(self):
@@ -209,17 +210,17 @@ class LvfsTestCase(unittest.TestCase):
 
         # create user
         self.login()
-        self.add_user('testuser')
-        self.add_user('otheruser')
+        self.add_user('testuser@fwupd.org')
+        self.add_user('otheruser@fwupd.org')
         self.logout()
 
         # upload as testuser
-        self.login('testuser')
+        self.login('testuser@fwupd.org')
         self.upload()
         self.logout()
 
         # try to delete as otheruser
-        self.login('otheruser')
+        self.login('otheruser@fwupd.org')
         rv = self.app.get('/lvfs/firmware/1/delete',
                           follow_redirects=True)
         assert b'Firmware deleted' not in rv.data, rv.data
@@ -229,17 +230,17 @@ class LvfsTestCase(unittest.TestCase):
 
         # create user
         self.login()
-        self.add_user('testuser')
-        self.add_user('otheruser', 'different_group', is_qa=True)
+        self.add_user('testuser@fwupd.org')
+        self.add_user('otheruser@fwupd.org', 'different_group', is_qa=True)
         self.logout()
 
         # upload as testuser
-        self.login('testuser')
+        self.login('testuser@fwupd.org')
         self.upload()
         self.logout()
 
         # try to delete as otheruser
-        self.login('otheruser')
+        self.login('otheruser@fwupd.org')
         rv = self.app.get('/lvfs/firmware/1/delete',
                           follow_redirects=True)
         assert b'Firmware deleted' not in rv.data, rv.data
@@ -249,14 +250,14 @@ class LvfsTestCase(unittest.TestCase):
 
         # create User:alice, User:bob, Analyst:clara, and QA:mario
         self.login()
-        self.add_user('alice')
-        self.add_user('bob')
-        self.add_user('clara', is_analyst=True)
-        self.add_user('mario', is_qa=True)
+        self.add_user('alice@fwupd.org')
+        self.add_user('bob@fwupd.org')
+        self.add_user('clara@fwupd.org', is_analyst=True)
+        self.add_user('mario@fwupd.org', is_qa=True)
         self.logout()
 
         # let alice upload a file to embargo
-        self.login('alice')
+        self.login('alice@fwupd.org')
         self.upload('embargo')
         rv = self.app.get('/lvfs/firmware/1')
         assert b'/downloads/7514fc4b0e1a306337de78c58f10e9e68f791de2' in rv.data, rv.data
@@ -267,7 +268,7 @@ class LvfsTestCase(unittest.TestCase):
         self.logout()
 
         # bob can't see the file, nor can upload a duplicate
-        self.login('bob')
+        self.login('bob@fwupd.org')
         rv = self._upload('contrib/hughski-colorhug2-2.0.3.cab', 'embargo')
         assert b'Another user has already uploaded this firmware' in rv.data, rv.data
         rv = self.app.get('/lvfs/firmware/1')
@@ -279,7 +280,7 @@ class LvfsTestCase(unittest.TestCase):
         self.logout()
 
         # clara can see all firmwares, but can't promote them
-        self.login('clara')
+        self.login('clara@fwupd.org')
         rv = self.app.get('/lvfs/firmware/1')
         assert b'/downloads/7514fc4b0e1a306337de78c58f10e9e68f791de2' in rv.data, rv.data
         rv = self.app.get('/lvfs/firmware')
@@ -292,7 +293,7 @@ class LvfsTestCase(unittest.TestCase):
         self.logout()
 
         # mario can see things from both users and promote
-        self.login('mario')
+        self.login('mario@fwupd.org')
         rv = self.app.get('/lvfs/firmware/1')
         assert b'/downloads/7514fc4b0e1a306337de78c58f10e9e68f791de2' in rv.data, rv.data
         rv = self.app.get('/lvfs/firmware')
@@ -385,22 +386,20 @@ class LvfsTestCase(unittest.TestCase):
 
         # login then add invalid users
         self.login()
-        rv = self._add_user('testuser', 'testgroup', 'unsuitable', 'test@test.com')
+        rv = self._add_user('testuser@fwupd.org', 'testgroup', 'unsuitable')
         assert b'requires at least one uppercase character' in rv.data, rv.data
-        rv = self._add_user('testuser', 'testgroup', 'Pa$$w0rd', 'testtestcom')
+        rv = self._add_user('testuser', 'testgroup', 'Pa$$w0rd')
         assert b'Invalid email address' in rv.data, rv.data
-        rv = self._add_user('XX', 'testgroup', 'Pa$$w0rd', 'test@test.com')
-        assert b'Username invalid' in rv.data, rv.data
-        rv = self._add_user('testuser', 'XX', 'Pa$$w0rd', 'test@test.com')
+        rv = self._add_user('testuser@fwupd.org', 'XX', 'Pa$$w0rd')
         assert b'QA group invalid' in rv.data, rv.data
 
         # add a good user, and check the user and group was created
-        rv = self._add_user('testuser', 'testgroup', 'Pa$$w0rd', 'test@test.com')
+        rv = self._add_user('testuser@fwupd.org', 'testgroup', 'Pa$$w0rd')
         assert b'Added user' in rv.data, rv.data
         rv = self.app.get('/lvfs/userlist')
         assert b'testuser' in rv.data, rv.data
         rv = self.app.get('/lvfs/user/3/admin')
-        assert b'test@test.com' in rv.data, rv.data
+        assert b'testuser@fwupd.org' in rv.data, rv.data
         rv = self.app.get('/lvfs/vendorlist')
         assert b'testgroup' in rv.data, rv.data
 
@@ -411,7 +410,6 @@ class LvfsTestCase(unittest.TestCase):
             is_analyst='1',
             group_id='testgroup',
             display_name='Slightly Less Generic Name',
-            email='test@test.com',
         ), follow_redirects=True)
         assert b'Updated profile' in rv.data, rv.data
         rv = self.app.get('/lvfs/user/3/admin')
@@ -419,26 +417,23 @@ class LvfsTestCase(unittest.TestCase):
 
         # ensure the user can log in
         self.logout()
-        self.login('testuser')
+        self.login('testuser@fwupd.org')
 
         # ensure the user can change thier own password
         rv = self.app.post('/lvfs/user/3/modify', data=dict(
             password_old='not-even-close',
             password_new='Hi$$t0ry',
-            name='Something Funky',
-            email='test@test.com',
+            display_name='Something Funky',
         ), follow_redirects=True)
         assert b'Incorrect existing password' in rv.data, rv.data
         rv = self.app.post('/lvfs/user/3/modify', data=dict(
             password_old='Pa$$w0rd',
             password_new='Hi$$t0ry',
-            name='Something Funky',
-            email='test@test.com',
+            display_name='Something Funky',
         ), follow_redirects=True)
         assert b'Updated profile' in rv.data, rv.data
         rv = self.app.get('/lvfs/profile')
         assert b'Something Funky' in rv.data, rv.data
-        assert b'test@test.com' in rv.data, rv.data
 
         # try to self-delete
         rv = self.app.get('/lvfs/user/3/delete')
@@ -450,17 +445,17 @@ class LvfsTestCase(unittest.TestCase):
         rv = self.app.get('/lvfs/user/3/delete', follow_redirects=True)
         assert b'Deleted user' in rv.data, rv.data
         rv = self.app.get('/lvfs/userlist')
-        assert b'testuser' not in rv.data, rv.data
+        assert b'testuser@fwupd.org' not in rv.data, rv.data
 
     def test_promote_as_user(self):
 
         # create User
         self.login()
-        self.add_user('testuser')
+        self.add_user('testuser@fwupd.org')
         self.logout()
 
         # login as user, upload file, then promote
-        self.login('testuser')
+        self.login('testuser@fwupd.org')
         self.upload()
         rv = self.app.get('/lvfs/firmware/1/promote/embargo',
                           follow_redirects=True)
@@ -765,11 +760,11 @@ class LvfsTestCase(unittest.TestCase):
 
         # create ODM user as admin
         self.login()
-        self.add_user('testuser')
+        self.add_user('testuser@fwupd.org')
         self.logout()
 
         # login and upload firmware to embargo
-        self.login('testuser')
+        self.login('testuser@fwupd.org')
         self.upload(target='embargo')
 
         # relogin as admin and rebuild metadata
@@ -918,8 +913,8 @@ class LvfsTestCase(unittest.TestCase):
 
         # create QA:alice, QA:bob
         self.login()
-        self.add_user('alice', group_id='oem', is_qa=True)
-        self.add_user('bob', group_id='anotheroem', is_qa=True)
+        self.add_user('alice@fwupd.org', group_id='oem', is_qa=True)
+        self.add_user('bob@fwupd.org', group_id='anotheroem', is_qa=True)
 
         # create a shared issue owned by admin
         self.add_issue(name='Shared', url='https://fwupd.org/')
@@ -930,7 +925,7 @@ class LvfsTestCase(unittest.TestCase):
         self.logout()
 
         # let alice create an issue
-        self.login('alice')
+        self.login('alice@fwupd.org')
         self.add_issue(issue_id=2, name='Secret')
         self.add_issue_condition(issue_id=2)
         self.enable_issue(issue_id=2)
@@ -939,7 +934,7 @@ class LvfsTestCase(unittest.TestCase):
         self.logout()
 
         # bob can only see the admin issue, not the one from alice
-        self.login('bob')
+        self.login('bob@fwupd.org')
         rv = self.app.get('/lvfs/issue/all')
         assert b'Shared' in rv.data, rv.data
         assert b'Secret' not in rv.data, rv.data

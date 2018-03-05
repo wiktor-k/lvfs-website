@@ -277,7 +277,7 @@
 
 <!-- modal dialog -->
 <div class="modal" id="historyModal" tabindex="-1" role="dialog" aria-labelledby="historyModalLabel" aria-hidden="true">
-  <div class="modal-dialog" role="document">
+  <div class="modal-dialog modal-lg" role="document">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="historyModalLabel">Target History</h5>
@@ -289,15 +289,15 @@
         <div class="container">
           <table class="table">
             <tr class="row">
-              <th class="col-sm-5">Timestamp</td>
+              <th class="col-sm-3">Timestamp</td>
               <th class="col-sm-3">Target</td>
-              <th class="col-sm-4">User</td>
+              <th class="col-sm-6">User</td>
             </tr>
 {% for ev in fw.events %}
             <tr class="row">
-              <td class="col-sm-5">{{ev.timestamp}}</td>
+              <td class="col-sm-3">{{ev.timestamp}}</td>
               <td class="col-sm-3">{{ev.target}}</td>
-              <td class="col-sm-4">{{ev.user.username}}</td>
+              <td class="col-sm-6">{{ev.user.username}}</td>
             </tr>
 {% endfor %}
           </table>
