@@ -109,7 +109,8 @@ def _generate_metadata_kind(filename, fws, firmware_baseuri=''):
             for rq in md.requirements:
                 req = AppStreamGlib.Require.new()
                 req.set_kind(AppStreamGlib.Require.kind_from_string(rq.kind))
-                req.set_value(rq.value)
+                if rq.value:
+                    req.set_value(rq.value)
                 if rq.compare:
                     req.set_compare(AppStreamGlib.Require.compare_from_string(rq.compare))
                 if rq.version:

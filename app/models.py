@@ -268,7 +268,7 @@ class Requirement(db.Base):
     requirement_id = Column(Integer, primary_key=True, unique=True)
     component_id = Column(Integer, ForeignKey('components.component_id'), nullable=False)
     kind = Column(Text, nullable=False)
-    value = Column(Text, nullable=False)
+    value = Column(Text)
     compare = Column(Text)
     version = Column(Text)
 
