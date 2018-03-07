@@ -70,7 +70,7 @@
 
 <!-- back -->
 {% block footer %}
-{% if not 'username' in session %}
+{% if g.user is not defined %}
 <p><a href="/lvfs/devicelist">Back to the device list</a></p>
 {% endif %}
 </div> <!-- container -->
