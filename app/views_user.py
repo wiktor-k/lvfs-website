@@ -9,7 +9,7 @@ from flask_login import login_required
 
 from app import app, db
 
-from .util import _error_internal, _error_permission_denied
+from .util import _error_internal, _error_permission_denied, _email_check
 from .models import UserCapability, User, Vendor
 from .hash import _password_hash
 
@@ -29,12 +29,6 @@ def _password_check(value):
         success = False
         flash('The password requires at least one non-alphanumeric character', 'warning')
     return success
-
-def _email_check(value):
-    """ Do a quick and dirty check on the email address """
-    if len(value) < 5 or value.find('@') == -1 or value.find('.') == -1:
-        return False
-    return True
 
 @app.route('/lvfs/user/<int:user_id>/modify', methods=['GET', 'POST'])
 @login_required

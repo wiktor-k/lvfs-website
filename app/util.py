@@ -111,3 +111,9 @@ def _get_chart_labels_hours():
     for i in range(0, 24):
         labels.append("%02i" % i)
     return labels
+
+def _email_check(value):
+    """ Do a quick and dirty check on the email address """
+    if len(value) < 5 or value.find('@') == -1 or value.find('.') == -1:
+        return False
+    return True
