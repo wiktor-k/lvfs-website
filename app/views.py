@@ -284,9 +284,7 @@ def profile():
     if not g.user.check_capability(UserCapability.User):
         return _error_permission_denied('Unable to view profile as account locked')
 
-    return render_template('profile.html',
-                           vendor_name=g.user.display_name,
-                           contact_email=g.user.email)
+    return render_template('profile.html')
 
 # old names used on the static site
 @app.route('/users.html')
