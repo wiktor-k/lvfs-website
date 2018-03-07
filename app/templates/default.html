@@ -83,7 +83,10 @@
             </a>
             <div class="dropdown-menu" aria-labelledby="navbarDropdown">
 {% if not g.user.is_locked %}
-              <a class="dropdown-item" href="/lvfs/profile">Modify</a>
+              <a class="dropdown-item" href="/lvfs/profile">User</a>
+{% endif %}
+{% if g.user.check_capability('vendor-manager') %}
+              <a class="dropdown-item" href="/lvfs/vendor/{{g.user.vendor_id}}/users">Vendor</a>
 {% endif %}
 {% if g.user.is_qa %}
               <a class="dropdown-item" href="/lvfs/eventlog">Events</a>

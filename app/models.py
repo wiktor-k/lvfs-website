@@ -19,6 +19,7 @@ from app import db
 
 class UserCapability(object):
     Admin = 'admin'
+    VendorManager = 'vendor-manager'
     QA = 'qa'
     Analyst = 'analyst'
     User = 'user'
@@ -37,6 +38,7 @@ class User(db.Base):
     is_qa = Column(Boolean, default=False)
     is_analyst = Column(Boolean, default=False)
     is_locked = Column(Boolean, default=False)
+    is_vendor_manager = Column(Boolean, default=False)
     is_admin = Column(Boolean, default=False)
 
     # link using foreign keys
@@ -44,7 +46,7 @@ class User(db.Base):
 
     def __init__(self, username, password=None, display_name=None,
                  vendor_id=None, is_enabled=True, is_analyst=False, is_qa=False,
-                 is_locked=False, is_admin=False):
+                 is_locked=False, is_admin=False, is_vendor_manager=False):
         """ Constructor for object """
         self.username = username
         self.password = password
@@ -55,6 +57,7 @@ class User(db.Base):
         self.vendor_id = vendor_id
         self.is_locked = is_locked
         self.is_admin = is_admin
+        self.is_vendor_manager = is_vendor_manager
 
     def check_for_issue(self, issue, readonly=False):
 
@@ -102,6 +105,23 @@ class User(db.Base):
         # something else
         return False
 
+    def check_for_vendor(self, vendor):
+
+        # locked accounts can never see firmware
+        if not self.is_enabled:
+            return False
+
+        # anyone in the admin group can see everything
+        if self.is_admin:
+            return True
+
+        # manager user can modify any firmware matching vendor_id
+        if self.is_vendor_manager and self.vendor_id == vendor.vendor_id:
+            return True
+
+        # something else
+        return False
+
     def check_capability(self, required_auth_level):
 
         # user has been disabled for bad behaviour
@@ -111,6 +131,14 @@ class User(db.Base):
         # admin only
         if required_auth_level == UserCapability.Admin:
             if self.is_admin:
+                return True
+            return False
+
+        # vendor manager only
+        if required_auth_level == UserCapability.VendorManager:
+            if self.is_admin:
+                return True
+            if self.is_vendor_manager:
                 return True
             return False
 

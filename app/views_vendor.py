@@ -11,8 +11,8 @@ from flask_login import login_required
 
 from app import app, db
 
-from .util import _error_permission_denied, _error_internal
-from .models import UserCapability, Vendor, Restriction
+from .util import _error_permission_denied, _error_internal, _email_check
+from .models import UserCapability, Vendor, Restriction, User
 
 # sort by awesomeness
 def _sort_vendor_func(a, b):
@@ -106,13 +106,15 @@ def vendor_restrictions(vendor_id):
 def vendor_users(vendor_id):
     """ Allows changing a vendor [ADMIN ONLY] """
 
-    # security check
-    if not g.user.check_capability(UserCapability.Admin):
-        return _error_permission_denied('Unable to edit vendor as non-admin')
+    # check exists
     vendor = db.session.query(Vendor).filter(Vendor.vendor_id == vendor_id).first()
     if not vendor:
         flash('Failed to get vendor details: No a vendor with that group ID', 'warning')
         return redirect(url_for('.vendor_list'), 302)
+
+    # security check
+    if not g.user.check_for_vendor(vendor):
+        return _error_permission_denied('Unable to edit vendor as non-admin')
     return render_template('vendor-users.html', v=vendor)
 
 @app.route('/lvfs/vendor/<int:vendor_id>/restriction/add', methods=['POST'])
@@ -123,6 +125,8 @@ def vendor_restriction_add(vendor_id):
     # security check
     if not g.user.check_capability(UserCapability.Admin):
         return _error_permission_denied('Unable to edit vendor as non-admin')
+
+    # check exists
     vendor = db.session.query(Vendor).filter(Vendor.vendor_id == vendor_id).first()
     if not vendor:
         flash('Failed to get vendor details: No a vendor with that group ID', 'warning')
@@ -142,6 +146,8 @@ def vendor_restriction_delete(vendor_id, restriction_id):
     # security check
     if not g.user.check_capability(UserCapability.Admin):
         return _error_permission_denied('Unable to edit vendor as non-admin')
+
+    # check exists
     vendor = db.session.query(Vendor).filter(Vendor.vendor_id == vendor_id).first()
     if not vendor:
         flash('Failed to get vendor details: No a vendor with that group ID', 'warning')
@@ -216,3 +222,45 @@ def vendor_upload(vendor_id):
     flash('Modified vendor', 'info')
 
     return redirect(url_for('.vendor_details', vendor_id=vendor_id), 302)
+
+
+@app.route('/lvfs/vendor/<int:vendor_id>/user/add', methods=['POST'])
+@login_required
+def vendor_user_add(vendor_id):
+    """ Add a user to the vendor """
+
+    # check exists
+    vendor = db.session.query(Vendor).filter(Vendor.vendor_id == vendor_id).first()
+    if not vendor:
+        flash('Failed to modify vendor: No a vendor with that group ID', 'warning')
+        return redirect(url_for('.vendor_list'), 302)
+
+    # security check
+    if not g.user.check_for_vendor(vendor):
+        return _error_permission_denied('Unable to modify vendor as non-admin')
+
+    if not 'username' in request.form or not request.form['username']:
+        return _error_permission_denied('Unable to add user as no username')
+    if not 'display_name' in request.form:
+        return _error_permission_denied('Unable to add user as no display_name')
+    user = db.session.query(User).filter(User.username == request.form['username']).first()
+    if user:
+        flash('Failed to add user: Username already exists', 'warning')
+        return redirect(url_for('.vendor_users', vendor_id=vendor_id), 302)
+
+    # verify email
+    if not _email_check(request.form['username']):
+        flash('Failed to add user: Invalid email address', 'warning')
+        return redirect(url_for('.user_list'), 302)
+
+    # add user
+    user = User(username=request.form['username'],
+                display_name=request.form['display_name'],
+                password='',
+                is_locked=True,
+                is_enabled=False,
+                vendor_id=vendor.vendor_id)
+    db.session.add(user)
+    db.session.commit()
+    flash('Added user %i' % user.user_id, 'info')
+    return redirect(url_for('.vendor_users', vendor_id=vendor_id), 302)

@@ -83,14 +83,14 @@ def user_modify(user_id):
 def user_modify_by_admin(user_id):
     """ Change details about the any user """
 
-    # security check
-    if not g.user.check_capability(UserCapability.Admin):
-        return _error_permission_denied('Unable to modify user as non-admin')
-
-    # get user
+    # check exists
     user = db.session.query(User).filter(User.user_id == user_id).first()
     if not user:
         return _error_internal('No user with that user_id', 422)
+
+    # security check
+    if not g.user.check_for_vendor(user.vendor):
+        return _error_permission_denied('Unable to modify user as non-admin')
 
     # set each optional thing in turn
     for key in ['display_name', 'username']:
@@ -98,7 +98,7 @@ def user_modify_by_admin(user_id):
             setattr(user, key, request.form[key])
 
     # unchecked checkbuttons are not included in the form data
-    for key in ['is_enabled', 'is_qa', 'is_analyst', 'is_locked']:
+    for key in ['is_enabled', 'is_qa', 'is_analyst', 'is_vendor_manager', 'is_locked']:
         setattr(user, key, True if key in request.form else False)
 
     # password is optional, and hashed
@@ -206,10 +206,15 @@ def user_admin(user_id):
     """
     Shows an admin panel for a user
     """
-    if not g.user.check_capability(UserCapability.Admin):
-        return _error_permission_denied('Unable to modify user for non-admin user')
+
+    # check exists
     user = db.session.query(User).filter(User.user_id == user_id).first()
     if not user:
         flash('No user found', 'danger')
         return redirect(url_for('.user_list'), 422)
+
+    # security check
+    if not g.user.check_for_vendor(user.vendor):
+        return _error_permission_denied('Unable to modify user for non-admin user')
+
     return render_template('useradmin.html', u=user)

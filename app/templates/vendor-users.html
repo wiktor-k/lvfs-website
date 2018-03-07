@@ -6,15 +6,19 @@
 
 <nav>
   <ul class="nav nav-tabs">
+{% if g.user.check_capability('admin') %}
     <li class="nav-item">
       <a class="nav-link" href="/lvfs/vendor/{{v.vendor_id}}/details">Details</a>
     </li>
+{% endif %}
     <li class="nav-item">
       <a class="nav-link active" href="/lvfs/vendor/{{v.vendor_id}}/users">Users</a>
     </li>
+{% if g.user.check_capability('admin') %}
     <li class="nav-item">
       <a class="nav-link" href="/lvfs/vendor/{{v.vendor_id}}/restrictions">Restrictions</a>
     </li>
+{% endif %}
   </ul>
 </nav>
 
@@ -24,18 +28,34 @@
   Vendors can have multiple users assigned.
 </p>
 <table class="table">
-  <tr>
-    <th>Username</th>
-    <th>Display Name</th>
-    <th>&nbsp;</th>
+  <tr class="row">
+    <th class="col-sm-4">Username</th>
+    <th class="col-sm-4">Display Name</th>
+    <th class="col-sm-4">Attributes</th>
   </tr>
 {% for u in v.users %}
-  <tr>
-    <td><a href="/lvfs/user/{{u.user_id}}/admin"><code>{{u.username}}</code></a></td>
-    <td>{{u.display_name}}</td>
-    <td></td>
+  <tr class="row">
+    <td class="col-sm-4"><a href="/lvfs/user/{{u.user_id}}/admin"><code>{{u.username}}</code></a></td>
+    <td class="col-sm-4">{{u.display_name}}</td>
+    <td class="col-sm-4">
+      <code>
+      {{ 'enabled' if u.is_enabled }}
+      {{ 'admin' if u.is_admin }}
+      {{ 'manager' if u.is_vendor_manager }}
+      {{ 'qa' if u.is_qa }}
+      {{ 'analyst' if u.is_analyst }}
+      {{ 'locked' if u.is_locked }}
+      </code>
+    </td>
   </tr>
 {% endfor %}
+  <form method="post" action="/lvfs/vendor/{{v.vendor_id}}/user/add" class="form">
+  <tr class="row">
+    <td class="col-sm-4"><input type="email" class="form-control" name="username" placeholder="email@address" required></td>
+    <td class="col-sm-4"><input type="text" class="form-control" name="display_name" placeholder="Display Name (optional)"></td>
+    <td class="col-sm-4"><input class="btn btn-primary" type="submit" value="Add"></td>
+  </tr>
+  </form>
 </table>
 </div>
 
