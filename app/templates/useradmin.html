@@ -5,7 +5,7 @@
 <div class="container mt-3">
 <h1>Details of user ‘{{u.username}}’</h1>
 
-<form method="post" action="/lvfs/user/{{u.username}}/modify_by_admin">
+<form method="post" action="/lvfs/user/{{u.user_id}}/modify_by_admin">
   <div class="form-group">
     <label for="display_name">Display Name:</label>
     <input type="text" class="form-control" name="display_name" value="{{u.display_name}}" required>
@@ -78,7 +78,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-        <a class="btn btn-danger" href="/lvfs/user/{{u.username}}/delete">Delete</a>
+        <a class="btn btn-danger" href="/lvfs/user/{{u.user_id}}/delete">Delete</a>
       </div>
     </div>
   </div>

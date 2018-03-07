@@ -31,7 +31,7 @@
   </tr>
 {% for u in v.users %}
   <tr>
-    <td><a href="/lvfs/user/{{u.username}}/admin"><code>{{u.username}}</code></a></td>
+    <td><a href="/lvfs/user/{{u.user_id}}/admin"><code>{{u.username}}</code></a></td>
     <td>{{u.display_name}}</td>
     <td><a href="mailto:{{u.email}}"><code>{{u.email}}</code></a></td>
   </tr>

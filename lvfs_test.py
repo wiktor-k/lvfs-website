@@ -86,13 +86,17 @@ class LvfsTestCase(unittest.TestCase):
                  is_qa=False, is_analyst=False):
         rv = self._add_user(username, group_id, password, email)
         assert b'Added user' in rv.data, rv.data
+        user_id_idx = rv.data.find('Added user ')
+        assert user_id_idx != -1, rv.data
+        user_id = int(rv.data[user_id_idx+11:user_id_idx+12])
+        assert user_id != 0, rv.data
         if is_qa or is_analyst:
             data = {'is_enabled': '1'}
             if is_qa:
                 data['is_qa'] = '1'
             if is_analyst:
                 data['is_analyst'] = '1'
-            rv = self.app.post('/lvfs/user/%s/modify_by_admin' % username,
+            rv = self.app.post('/lvfs/user/%i/modify_by_admin' % user_id,
                                data=data, follow_redirects=True)
             assert b'Updated profile' in rv.data, rv.data
 
@@ -395,13 +399,13 @@ class LvfsTestCase(unittest.TestCase):
         assert b'Added user' in rv.data, rv.data
         rv = self.app.get('/lvfs/userlist')
         assert b'testuser' in rv.data, rv.data
-        rv = self.app.get('/lvfs/user/testuser/admin')
+        rv = self.app.get('/lvfs/user/3/admin')
         assert b'test@test.com' in rv.data, rv.data
         rv = self.app.get('/lvfs/vendorlist')
         assert b'testgroup' in rv.data, rv.data
 
         # modify an existing user as the admin
-        rv = self.app.post('/lvfs/user/testuser/modify_by_admin', data=dict(
+        rv = self.app.post('/lvfs/user/3/modify_by_admin', data=dict(
             is_enabled='1',
             is_qa='1',
             is_analyst='1',
@@ -410,7 +414,7 @@ class LvfsTestCase(unittest.TestCase):
             email='test@test.com',
         ), follow_redirects=True)
         assert b'Updated profile' in rv.data, rv.data
-        rv = self.app.get('/lvfs/user/testuser/admin')
+        rv = self.app.get('/lvfs/user/3/admin')
         assert b'Slightly Less Generic Name' in rv.data, rv.data
 
         # ensure the user can log in
@@ -418,14 +422,14 @@ class LvfsTestCase(unittest.TestCase):
         self.login('testuser')
 
         # ensure the user can change thier own password
-        rv = self.app.post('/lvfs/user/testuser/modify', data=dict(
+        rv = self.app.post('/lvfs/user/3/modify', data=dict(
             password_old='not-even-close',
             password_new='Hi$$t0ry',
             name='Something Funky',
             email='test@test.com',
         ), follow_redirects=True)
         assert b'Incorrect existing password' in rv.data, rv.data
-        rv = self.app.post('/lvfs/user/testuser/modify', data=dict(
+        rv = self.app.post('/lvfs/user/3/modify', data=dict(
             password_old='Pa$$w0rd',
             password_new='Hi$$t0ry',
             name='Something Funky',
@@ -437,13 +441,13 @@ class LvfsTestCase(unittest.TestCase):
         assert b'test@test.com' in rv.data, rv.data
 
         # try to self-delete
-        rv = self.app.get('/lvfs/user/testuser/delete')
+        rv = self.app.get('/lvfs/user/3/delete')
         assert b'Unable to remove user as not admin' in rv.data, rv.data
 
         # delete the user as the admin
         self.logout()
         self.login()
-        rv = self.app.get('/lvfs/user/testuser/delete', follow_redirects=True)
+        rv = self.app.get('/lvfs/user/3/delete', follow_redirects=True)
         assert b'Deleted user' in rv.data, rv.data
         rv = self.app.get('/lvfs/userlist')
         assert b'testuser' not in rv.data, rv.data

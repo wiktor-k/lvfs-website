@@ -36,9 +36,9 @@ def _email_check(value):
         return False
     return True
 
-@app.route('/lvfs/user/<username>/modify', methods=['GET', 'POST'])
+@app.route('/lvfs/user/<int:user_id>/modify', methods=['GET', 'POST'])
 @login_required
-def user_modify(username):
+def user_modify(user_id):
     """ Change details about the current user """
 
     # only accept form data
@@ -46,7 +46,7 @@ def user_modify(username):
         return redirect(url_for('.profile'))
 
     # security check
-    if g.user.username != username:
+    if g.user.user_id != user_id:
         return _error_permission_denied('Unable to modify a different user')
     if g.user.is_locked:
         return _error_permission_denied('Unable to change user as account locked')
@@ -62,7 +62,7 @@ def user_modify(username):
         return _error_permission_denied('Unable to change user as no data')
     old_password_hash = _password_hash(request.form['password_old'])
     user = db.session.query(User).\
-            filter(User.username == username).\
+            filter(User.user_id == user_id).\
             filter(User.password == old_password_hash).first()
     if not user:
         flash('Failed to modify profile: Incorrect existing password', 'danger')
@@ -93,9 +93,9 @@ def user_modify(username):
     flash('Updated profile', 'info')
     return redirect(url_for('.profile'))
 
-@app.route('/lvfs/user/<username>/modify_by_admin', methods=['POST'])
+@app.route('/lvfs/user/<int:user_id>/modify_by_admin', methods=['POST'])
 @login_required
-def user_modify_by_admin(username):
+def user_modify_by_admin(user_id):
     """ Change details about the any user """
 
     # security check
@@ -103,9 +103,9 @@ def user_modify_by_admin(username):
         return _error_permission_denied('Unable to modify user as non-admin')
 
     # get user
-    user = db.session.query(User).filter(User.username == username).first()
+    user = db.session.query(User).filter(User.user_id == user_id).first()
     if not user:
-        return _error_internal('No user with that username', 422)
+        return _error_internal('No user with that user_id', 422)
 
     # set each optional thing in turn
     for key in ['display_name', 'email']:
@@ -122,7 +122,7 @@ def user_modify_by_admin(username):
 
     db.session.commit()
     flash('Updated profile', 'info')
-    return redirect(url_for('.user_admin', username=username))
+    return redirect(url_for('.user_admin', user_id=user_id))
 
 @app.route('/lvfs/user/add', methods=['GET', 'POST'])
 @login_required
@@ -185,18 +185,19 @@ def user_add():
         vendor = Vendor(group_id)
         db.session.add(vendor)
         db.session.commit()
-    db.session.add(User(username=username_new,
-                        password=_password_hash(password),
-                        display_name=name,
-                        email=email,
-                        vendor_id=vendor.vendor_id))
+    user = User(username=username_new,
+                password=_password_hash(password),
+                display_name=name,
+                email=email,
+                vendor_id=vendor.vendor_id)
+    db.session.add(user)
     db.session.commit()
-    flash('Added user %s' % username_new, 'info')
+    flash('Added user %i' % user.user_id, 'info')
     return redirect(url_for('.user_list'), 302)
 
-@app.route('/lvfs/user/<username>/delete')
+@app.route('/lvfs/user/<int:user_id>/delete')
 @login_required
-def user_delete(username):
+def user_delete(user_id):
     """ Delete a user """
 
     # security check
@@ -204,9 +205,9 @@ def user_delete(username):
         return _error_permission_denied('Unable to remove user as not admin')
 
     # check whether exists in database
-    user = db.session.query(User).filter(User.username == username).first()
+    user = db.session.query(User).filter(User.user_id == user_id).first()
     if not user:
-        flash("Failed to delete user: No entry with username %s" % username, 'danger')
+        flash('Failed to delete user: No user found', 'danger')
         return redirect(url_for('.user_list'), 422)
     db.session.delete(user)
     db.session.commit()
@@ -223,16 +224,16 @@ def user_list():
         return _error_permission_denied('Unable to show userlist for non-admin user')
     return render_template('userlist.html', users=db.session.query(User).all())
 
-@app.route('/lvfs/user/<username>/admin')
+@app.route('/lvfs/user/<int:user_id>/admin')
 @login_required
-def user_admin(username):
+def user_admin(user_id):
     """
     Shows an admin panel for a user
     """
     if not g.user.check_capability(UserCapability.Admin):
         return _error_permission_denied('Unable to modify user for non-admin user')
-    user = db.session.query(User).filter(User.username == username).first()
+    user = db.session.query(User).filter(User.user_id == user_id).first()
     if not user:
-        flash("No entry with username %s" % username, 'danger')
+        flash('No user found', 'danger')
         return redirect(url_for('.user_list'), 422)
     return render_template('useradmin.html', u=user)
