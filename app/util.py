@@ -59,7 +59,7 @@ def _event_log(msg, is_important=False):
     user_id = 1
     vendor_id = 1
     request_path = None
-    if hasattr(g, 'user'):
+    if hasattr(g, 'user') and g.user:
         user_id = g.user.user_id
         vendor_id = g.user.vendor_id
     if request:
