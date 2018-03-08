@@ -31,7 +31,7 @@ class User(db.Base):
     user_id = Column(Integer, primary_key=True, unique=True, nullable=False)
     username = Column(String(40), nullable=False)
     username_old = Column(String(255))
-    password = Column(String(40), nullable=False, default='')
+    password = Column(Text, default=None)
     display_name = Column(String(128))
     vendor_id = Column(Integer, ForeignKey('vendors.vendor_id'), nullable=False)
     auth_type = Column(Text, default='disabled')

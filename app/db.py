@@ -84,7 +84,6 @@ class Database(object):
             self.session.commit()
         if not self.session.query(User).filter(User.username == 'anonymous').first():
             self.session.add(User(username='anonymous@fwupd.org',
-                                  password='',
                                   display_name='Anonymous User',
                                   vendor_id=1))
             self.session.commit()
