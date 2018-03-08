@@ -6,6 +6,7 @@
 <h1>Details of user ‘{{u.username}}’</h1>
 
 <form method="post" action="/lvfs/user/{{u.user_id}}/modify_by_admin">
+{% if u.auth_type != 'oauth' %}
   <div class="form-group">
     <label for="display_name">Display Name:</label>
     <input type="text" class="form-control" name="display_name" value="{{u.display_name}}" required>
@@ -18,18 +19,24 @@
     <label for="password">New Password:</label>
     <input type="password" class="form-control" name="password">
   </div>
+{% endif %}
 {% if g.user.check_capability('vendor-manager') %}
   <div class="form-group">
-    <label for="is_enabled">
-      <input class="checkbox" type="checkbox" name="is_enabled" value="1" {{'checked' if u.is_enabled}} />
-      Account enabled
-    </label>
-  </div>
-  <div class="form-group">
-    <label for="is_locked">
-      <input class="checkbox" type="checkbox" name="is_locked" value="1" {{'checked' if u.is_locked}} />
-      Prevent password change (also allows login using OAuth)
-    </label>
+    <label for="auth_type">Account Type:</label>
+    <select class="form-control" name="auth_type">
+      <option value="disabled" {{ 'selected' if u.auth_type == 'disabled' }}>
+        Disabled
+      </option>
+      <option value="local" {{ 'selected' if u.auth_type == 'local' }}>
+        Local (can change own password)
+      </option>
+      <option value="local+locked" {{ 'selected' if u.auth_type == 'local+locked' }}>
+        Local Locked (password cannot be changed)
+      </option>
+      <option value="oauth" {{ 'selected' if u.auth_type == 'oauth' }}>
+        OAuth only
+      </option>
+    </select>
   </div>
   <div class="form-group">
     <label for="is_analyst">

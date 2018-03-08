@@ -42,8 +42,10 @@ def user_modify(user_id):
     # security check
     if g.user.user_id != user_id:
         return _error_permission_denied('Unable to modify a different user')
-    if g.user.is_locked:
+    if g.user.auth_type == 'local+locked':
         return _error_permission_denied('Unable to change user as account locked')
+    if g.user.auth_type == 'oauth':
+        return _error_permission_denied('Unable to change OAuth-only user')
 
     # check we got enough data
     if not 'password_new' in request.form:
@@ -93,12 +95,12 @@ def user_modify_by_admin(user_id):
         return _error_permission_denied('Unable to modify user as non-admin')
 
     # set each optional thing in turn
-    for key in ['display_name', 'username']:
+    for key in ['display_name', 'username', 'auth_type']:
         if key in request.form:
             setattr(user, key, request.form[key])
 
     # unchecked checkbuttons are not included in the form data
-    for key in ['is_enabled', 'is_qa', 'is_analyst', 'is_vendor_manager', 'is_locked']:
+    for key in ['is_qa', 'is_analyst', 'is_vendor_manager']:
         setattr(user, key, True if key in request.form else False)
 
     # password is optional, and hashed
@@ -212,6 +214,11 @@ def user_admin(user_id):
     if not user:
         flash('No user found', 'danger')
         return redirect(url_for('.user_list'), 422)
+
+    # check user is not trying to edit themselves using the admin panel
+    if user.user_id == g.user.user_id:
+        flash('Cannot self edit using admin panel', 'warning')
+        return redirect(url_for('.user_list'))
 
     # security check
     if not g.user.check_for_vendor(user.vendor):

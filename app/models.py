@@ -34,10 +34,11 @@ class User(db.Base):
     password = Column(String(40), nullable=False, default='')
     display_name = Column(String(128))
     vendor_id = Column(Integer, ForeignKey('vendors.vendor_id'), nullable=False)
-    is_enabled = Column(Boolean, default=False)
+    auth_type = Column(Text, default='disabled')
+    unused_is_enabled = Column('is_enabled', Boolean, default=False)
+    unused_is_locked = Column('is_locked', Boolean, default=False)
     is_qa = Column(Boolean, default=False)
     is_analyst = Column(Boolean, default=False)
-    is_locked = Column(Boolean, default=False)
     is_vendor_manager = Column(Boolean, default=False)
     is_admin = Column(Boolean, default=False)
 
@@ -45,24 +46,23 @@ class User(db.Base):
     vendor = relationship('Vendor', foreign_keys=[vendor_id])
 
     def __init__(self, username, password=None, display_name=None,
-                 vendor_id=None, is_enabled=True, is_analyst=False, is_qa=False,
-                 is_locked=False, is_admin=False, is_vendor_manager=False):
+                 vendor_id=None, auth_type=True, is_analyst=False, is_qa=False,
+                 is_admin=False, is_vendor_manager=False):
         """ Constructor for object """
         self.username = username
         self.password = password
         self.display_name = display_name
-        self.is_enabled = is_enabled
+        self.auth_type = auth_type
         self.is_analyst = is_analyst
         self.is_qa = is_qa
         self.vendor_id = vendor_id
-        self.is_locked = is_locked
         self.is_admin = is_admin
         self.is_vendor_manager = is_vendor_manager
 
     def check_for_issue(self, issue, readonly=False):
 
-        # locked accounts can never see issues
-        if not self.is_enabled:
+        # disabled accounts can never see issues
+        if not self.auth_type:
             return False
 
         # anyone who is an admin can see everything
@@ -82,8 +82,8 @@ class User(db.Base):
 
     def check_for_firmware(self, fw, readonly=False):
 
-        # locked accounts can never see firmware
-        if not self.is_enabled:
+        # disabled accounts can never see firmware
+        if not self.auth_type:
             return False
 
         # anyone in the admin group can see everything
@@ -107,8 +107,8 @@ class User(db.Base):
 
     def check_for_vendor(self, vendor):
 
-        # locked accounts can never see firmware
-        if not self.is_enabled:
+        # disabled accounts can never see firmware
+        if not self.auth_type:
             return False
 
         # anyone in the admin group can see everything
@@ -125,7 +125,7 @@ class User(db.Base):
     def check_capability(self, required_auth_level):
 
         # user has been disabled for bad behaviour
-        if not self.is_enabled:
+        if not self.auth_type:
             return False
 
         # admin only

@@ -89,7 +89,7 @@ class LvfsTestCase(unittest.TestCase):
         user_id = int(rv.data[user_id_idx+11:user_id_idx+12])
         assert user_id != 0, rv.data
         if is_qa or is_analyst:
-            data = {'is_enabled': '1'}
+            data = {'auth_type': 'local'}
             if is_qa:
                 data['is_qa'] = '1'
             if is_analyst:
@@ -405,7 +405,7 @@ class LvfsTestCase(unittest.TestCase):
 
         # modify an existing user as the admin
         rv = self.app.post('/lvfs/user/3/modify_by_admin', data=dict(
-            is_enabled='1',
+            auth_type='auth_type',
             is_qa='1',
             is_analyst='1',
             group_id='testgroup',

@@ -37,12 +37,26 @@ class Database(object):
     def modify_db(self):
 
         # get current schema version
-        from .models import Setting
+        from .models import Setting, User
         setting = self.session.query(Setting).filter(Setting.key == 'db_schema_version').first()
         if not setting:
             print('Setting initial schema version')
             setting = Setting('db_schema_version', str(0))
             self.session.add(setting)
+
+        if int(setting.value) == 36:
+            for u in self.session.query(User).all():
+                if not u.unused_is_enabled:
+                    u.auth_type = None
+                    continue
+                if u.unused_is_locked:
+                    u.auth_type = 'local+locked'
+                    continue
+                u.auth_type = 'local'
+                continue
+            setting.value = 37
+            self.session.commit()
+            return
 
         print('No schema changes required')
 
@@ -61,10 +75,10 @@ class Database(object):
             self.session.commit()
             self.session.add(User(username='sign-test@fwupd.org',
                                   password='5459dbe5e9aa80e077bfa40f3fb2ca8368ed09b4',
+                                  auth_type='local',
                                   display_name='Admin User',
                                   vendor_id=vendor.vendor_id,
                                   is_admin=True,
-                                  is_enabled=True,
                                   is_qa=True,
                                   is_analyst=True))
             self.session.commit()

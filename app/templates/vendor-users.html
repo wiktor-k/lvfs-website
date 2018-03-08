@@ -30,30 +30,44 @@
 <table class="table">
   <tr class="row">
     <th class="col-sm-4">Username</th>
-    <th class="col-sm-4">Display Name</th>
-    <th class="col-sm-4">Attributes</th>
+    <th class="col-sm-3">Display Name</th>
+    <th class="col-sm-3">Attributes</th>
+    <th class="col-sm-2">&nbsp;</th>
   </tr>
 {% for u in v.users %}
   <tr class="row">
-    <td class="col-sm-4"><a href="/lvfs/user/{{u.user_id}}/admin"><code>{{u.username}}</code></a></td>
-    <td class="col-sm-4">{{u.display_name}}</td>
     <td class="col-sm-4">
+{% if u.user_id == g.user.user_id %}
+      <code>{{u.username}}</code>
+{% else %}
+      <a href="/lvfs/user/{{u.user_id}}/admin"><code>{{u.username}}</code></a>
+{% endif %}
+    </td>
+    <td class="col-sm-3">{{u.display_name}}</td>
+    <td class="col-sm-3">
       <code>
-      {{ 'enabled' if u.is_enabled }}
+      {{ 'me' if u.user_id == g.user.user_id }}
+      {{ u.auth_type if u.auth_type else 'disabled' }}
       {{ 'admin' if u.is_admin }}
       {{ 'manager' if u.is_vendor_manager }}
       {{ 'qa' if u.is_qa }}
       {{ 'analyst' if u.is_analyst }}
-      {{ 'locked' if u.is_locked }}
       </code>
+    </td>
+    <td class="col-sm-2">
+{% if u.auth_type and u.user_id != g.user.user_id %}
+      <a class="btn btn-block btn-danger"
+         href="/lvfs/vendor/{{v.vendor_id}}/user/{{u.user_id}}/disable">Disable</a>
+{% endif %}
     </td>
   </tr>
 {% endfor %}
   <form method="post" action="/lvfs/vendor/{{v.vendor_id}}/user/add" class="form">
   <tr class="row">
     <td class="col-sm-4"><input type="email" class="form-control" name="username" placeholder="email@address" required></td>
-    <td class="col-sm-4"><input type="text" class="form-control" name="display_name" placeholder="Display Name (optional)"></td>
-    <td class="col-sm-4"><input class="btn btn-primary" type="submit" value="Add"></td>
+    <td class="col-sm-3"><input type="text" class="form-control" name="display_name" placeholder="Display Name (optional)"></td>
+    <td class="col-sm-3">&nbsp;</td>
+    <td class="col-sm-2"><input class="btn btn-block btn-primary" type="submit" value="Add"></td>
   </tr>
   </form>
 </table>

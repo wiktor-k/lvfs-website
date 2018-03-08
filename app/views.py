@@ -228,8 +228,11 @@ def login():
     if not user:
         flash('Failed to log in: Incorrect username or password for %s' % request.form['username'], 'danger')
         return redirect(url_for('.index'))
-    if not user.is_enabled:
+    if not user.auth_type:
         flash('Failed to log in: User account %s is disabled' % request.form['username'], 'danger')
+        return redirect(url_for('.index'))
+    if user.auth_type == 'oauth':
+        flash('Failed to log in: Only OAuth can be used to log in for this user', 'danger')
         return redirect(url_for('.index'))
 
     # success
@@ -280,11 +283,11 @@ def login_oauth_authorized(plugin_id):
     if not user:
         flash('Failed to log in: no user for %s' % data['userPrincipalName'], 'danger')
         return redirect(url_for('.index'))
-    if not user.is_enabled:
+    if not user.auth_type:
         flash('Failed to log in: User account %s is disabled' % user.username, 'danger')
         return redirect(url_for('.index'))
-    if not user.is_locked:
-        flash('Failed to log in: Only locked accounts can log in using OAuth', 'danger')
+    if user.auth_type != 'oauth':
+        flash('Failed to log in: Only some accounts can log in using OAuth', 'danger')
         return redirect(url_for('.index'))
     if user.password:
         flash('Failed to log in: Only accounts with no local password can log in using OAuth', 'danger')

@@ -82,7 +82,7 @@
               Profile
             </a>
             <div class="dropdown-menu" aria-labelledby="navbarDropdown">
-{% if not g.user.is_locked %}
+{% if g.user.auth_type == 'local' %}
               <a class="dropdown-item" href="/lvfs/profile">User</a>
 {% endif %}
 {% if g.user.check_capability('vendor-manager') %}
