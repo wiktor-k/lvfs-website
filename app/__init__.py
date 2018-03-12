@@ -73,9 +73,6 @@ def error_page_not_found(msg=None):
     if request.path in ['/wp-login.php',
                         '/a2billing/common/javascript/misc.js']:
         return Response(response='bad karma', status=404, mimetype="text/plain")
-
-    # flash, recording to the eventlog too
-    flash(str(msg))
     return render_template('error.html'), 404
 
 from app import views
