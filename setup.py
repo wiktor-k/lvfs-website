@@ -9,5 +9,6 @@ setup(name='LVFS',
       install_requires=['Flask>=0.10.1',
                         'Flask-Login',
                         'Flask-OAuthlib',
+                        'SQLAlchemy',
                         'boto3'],
      )
