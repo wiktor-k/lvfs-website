@@ -69,7 +69,7 @@ def load_user(user_id):
     return g.user
 
 @app.errorhandler(404)
-def error_page_not_found(msg=None):
+def error_page_not_found(unused_msg=None):
     """ Error handler: File not found """
 
     # the world is a horrible place
