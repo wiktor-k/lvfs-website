@@ -75,25 +75,25 @@ class Plugin(PluginBase):
         s.append(PluginSettingBool('sign_gpg_enable', 'Enabled', False))
         s.append(PluginSettingText('sign_gpg_keyring_dir', 'Keyring Directory',
                                    '/var/www/lvfs/.gnupg'))
-        s.append(PluginSettingText('sign_gpg_signing_uid', 'Signing UID',
+        s.append(PluginSettingText('sign_gpg_firmware_uid', 'Signing UID for firmware',
+                                   'sign-test@fwupd.org'))
+        s.append(PluginSettingText('sign_gpg_metadata_uid', 'Signing UID for metadata',
                                    'sign-test@fwupd.org'))
         return s
 
-    def _create_affidavit(self):
-        """ Create an affidavit that can be used to sign files """
-        settings = _get_settings('sign_gpg')
-        if settings['sign_gpg_enable'] != 'enabled':
-            return None
-        if not settings['sign_gpg_signing_uid']:
-            raise PluginError('No signing UID set')
-        if not settings['sign_gpg_keyring_dir']:
-            raise PluginError('No keyring directory set')
-        return Affidavit(settings['sign_gpg_signing_uid'], settings['sign_gpg_keyring_dir'])
-
     def _metadata_modified(self, fn):
 
+        # plugin not enabled
+        settings = _get_settings('sign_gpg')
+        if settings['sign_gpg_enable'] != 'enabled':
+            return
+
         # generate
-        affidavit = self._create_affidavit()
+        if not settings['sign_gpg_keyring_dir']:
+            raise PluginError('No keyring directory set')
+        if not settings['sign_gpg_metadata_uid']:
+            raise PluginError('No metadata signing UID set')
+        affidavit = Affidavit(settings['sign_gpg_metadata_uid'], settings['sign_gpg_keyring_dir'])
         if not affidavit:
             return
         blob = open(fn, 'rb').read()
@@ -111,15 +111,22 @@ class Plugin(PluginBase):
 
     def archive_sign(self, arc, firmware_cff):
 
+        # plugin not enabled
+        settings = _get_settings('sign_gpg')
+        if settings['sign_gpg_enable'] != 'enabled':
+            return
+
         # already signed
         detached_fn = _get_basename_safe(firmware_cff.get_name() + '.asc')
         if _archive_get_files_from_glob(arc, detached_fn):
             return
 
         # create the detached signature
-        affidavit = self._create_affidavit()
-        if not affidavit:
-            return
+        if not settings['sign_gpg_keyring_dir']:
+            raise PluginError('No keyring directory set')
+        if not settings['sign_gpg_firmware_uid']:
+            raise PluginError('No firmware signing UID set')
+        affidavit = Affidavit(settings['sign_gpg_firmware_uid'], settings['sign_gpg_keyring_dir'])
         contents = firmware_cff.get_bytes().get_data()
         contents_asc = affidavit.create(contents)
 

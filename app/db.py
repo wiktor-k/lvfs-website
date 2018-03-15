@@ -58,6 +58,18 @@ class Database(object):
             self.session.commit()
             return
 
+        # split a settings key
+        if int(setting.value) == 37:
+            print('Split sign_gpg_signing_uid')
+            s1 = self.session.query(User).\
+                    filter(Setting.key == 'sign_gpg_signing_uid').first()
+            if s1:
+                s1.key = 'sign_gpg_firmware_uid'
+                self.session.add(Setting('sign_gpg_metadata_uid', s1.value))
+            setting.value = 38
+            self.session.commit()
+            return
+
         print('No schema changes required')
 
     def init_db(self):
