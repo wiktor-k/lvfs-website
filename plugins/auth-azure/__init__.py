@@ -16,7 +16,7 @@ from app.pluginloader import PluginBase, PluginSettingBool, PluginSettingText, P
 from app.util import _get_settings
 
 settings = _get_settings('auth_azure')
-if 'auth_azure_consumer_key' in settings:
+if 'auth_azure_consumer_key' in settings and settings['auth_azure_consumer_key']:
     remote_app = oauth.remote_app(
         'microsoft',
         consumer_key=settings['auth_azure_consumer_key'],
