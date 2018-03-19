@@ -3,6 +3,8 @@
 #
 # Copyright (C) 2015-2018 Richard Hughes <richard@hughsie.com>
 # Licensed under the GNU General Public License Version 2
+#
+# pylint: disable=too-many-locals
 
 from __future__ import print_function
 
@@ -18,7 +20,7 @@ from flask_login import login_required
 
 from app import app, db, ploader
 
-from .models import Firmware, Component, Requirement, UserCapability, Guid, FirmwareEvent, Vendor
+from .models import Firmware, Component, Requirement, UserCapability, Guid, FirmwareEvent, Vendor, Remote
 from .uploadedfile import UploadedFile, FileTooLarge, FileTooSmall, FileNotSupported, MetadataInvalid
 from .util import _get_client_address, _get_settings
 from .util import _error_internal, _error_permission_denied
@@ -61,6 +63,15 @@ def upload():
     if request.form['target'] in ['testing']:
         if not g.user.check_capability(UserCapability.QA):
             return _error_permission_denied('Unable to upload to this target as not QA user')
+
+    # find remote, creating if required
+    remote_name = request.form['target']
+    if remote_name == 'embargo':
+        remote = g.user.vendor.remote
+    else:
+        remote = db.session.query(Remote).filter(Remote.name == remote_name).first()
+    if not remote:
+        return _error_internal('No remote for target %s' % remote_name)
 
     # load in the archive
     fileitem = request.files['file']
@@ -140,7 +151,7 @@ def upload():
     fw.addr = _get_client_address()
     fw.filename = ufile.filename_new
     fw.checksum_upload = ufile.checksum_upload
-    fw.target = target
+    fw.remote_id = remote.remote_id
     fw.checksum_signed = hashlib.sha1(cab_data).hexdigest()
     if ufile.version_display:
         fw.version_display = ufile.version_display
@@ -213,7 +224,7 @@ def upload():
         fw.mds.append(md)
 
     # add to database
-    fw.events.append(FirmwareEvent(target, g.user.user_id))
+    fw.events.append(FirmwareEvent(remote.remote_id, g.user.user_id))
     db.session.add(fw)
     db.session.commit()
     flash('Uploaded file %s to %s' % (ufile.filename_new, target), 'info')

@@ -18,7 +18,7 @@ from .util import _get_client_address, _error_internal, _error_permission_denied
 def _md_suitable_as_search_result(md):
     if not md:
         return False
-    if md.fw.target != 'stable' and md.fw.target != 'testing':
+    if not md.fw.remote.is_public:
         return False
     return True
 

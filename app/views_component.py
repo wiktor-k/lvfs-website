@@ -41,7 +41,7 @@ def firmware_component_all(component_id):
     fws = []
     for fw in db.session.query(Firmware).\
                     order_by(Firmware.timestamp.desc()).all():
-        if not fw.target in ['stable', 'testing']:
+        if not fw.remote.is_public:
             continue
         if not fw.mds:
             continue

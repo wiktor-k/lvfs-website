@@ -461,11 +461,11 @@ class LvfsTestCase(unittest.TestCase):
         rv = self.app.get('/lvfs/firmware/1/promote/embargo',
                           follow_redirects=True)
         assert b'Moved firmware' in rv.data, rv.data
-        assert b'>embargo<' in rv.data, rv.data
+        assert b'>embargo-testgroup<' in rv.data, rv.data
         rv = self.app.get('/lvfs/firmware/1/promote/embargo',
                           follow_redirects=True)
         assert b'Firmware already in that target' in rv.data, rv.data
-        assert b'>embargo<' in rv.data, rv.data
+        assert b'>embargo-testgroup<' in rv.data, rv.data
         rv = self.app.get('/lvfs/firmware/1/promote/testing',
                           follow_redirects=True)
         assert b'Unable to promote as not QA' in rv.data, rv.data
@@ -487,7 +487,7 @@ class LvfsTestCase(unittest.TestCase):
         rv = self.app.get('/lvfs/firmware/1/promote/embargo',
                           follow_redirects=True)
         assert b'Moved firmware' in rv.data, rv.data
-        assert b'>embargo<' in rv.data, rv.data
+        assert b'>embargo-admin<' in rv.data, rv.data
         rv = self.app.get('/lvfs/firmware/1/promote/testing',
                           follow_redirects=True)
         assert b'Moved firmware' in rv.data, rv.data

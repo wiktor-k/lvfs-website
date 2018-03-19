@@ -25,11 +25,20 @@ def init_db(db):
     db.metadata.create_all(bind=db.engine)
 
     # ensure admin user exists
-    from .models import User, Vendor
+    from .models import User, Vendor, Remote
+    if not db.session.query(Remote).filter(Remote.name == 'stable').first():
+        db.session.add(Remote(name='stable', is_public=True))
+        db.session.add(Remote(name='testing', is_public=True))
+        db.session.add(Remote(name='private'))
+        db.session.commit()
     if not db.session.query(User).filter(User.username == 'admin').first():
+        remote = Remote(name='embargo-admin')
+        db.session.add(remote)
+        db.session.commit()
         vendor = Vendor('admin')
         vendor.display_name = 'Acme Corp.'
         vendor.description = 'A fake vendor used for testing firmware'
+        vendor.remote_id = remote.remote_id
         db.session.add(vendor)
         db.session.commit()
         db.session.add(User(username='sign-test@fwupd.org',

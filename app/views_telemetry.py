@@ -73,7 +73,7 @@ def telemetry(age=0, sort_key='downloads', sort_direction='up'):
             continue
         if len(fw.mds) == 0:
             continue
-        if fw.target == 'private' or fw.target == 'embargo':
+        if not fw.remote.is_public:
             continue
 
         # reports
@@ -119,7 +119,7 @@ def telemetry(age=0, sort_key='downloads', sort_direction='up'):
             res['version'] = fw.mds[0].version
         res['nameversion'] = res['names'][0] + ' ' + res['version']
         res['firmware_id'] = fw.firmware_id
-        res['target'] = fw.target
+        res['target'] = fw.remote.name
         res['duplicate'] = len(fw.mds)
         fwlines.append(res)
 

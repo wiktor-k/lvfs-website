@@ -31,7 +31,7 @@
   <tr class="row">
     <th class="col-sm-3">Version</td>
     <th class="col-sm-3">Submitted</td>
-    <th class="col-sm-4">Target</td>
+    <th class="col-sm-4">Remote</td>
     <th class="col-sm-2">&nbsp;</td>
   </tr>
 {% for fw in fw_by_name[name] %}
@@ -43,7 +43,7 @@
     <td class="col-sm-3">{{fw.version_display}} [{{fw.mds[0].version}}]</td>
 {% endif %}
     <td class="col-sm-3">{{fw.timestamp}}</td>
-    <td class="col-sm-4">{{fw.target}}</td>
+    <td class="col-sm-4">{{fw.remote.name}}</td>
     <td class="col-sm-2 text-right">
       <a class="btn btn-info btn-block" href="/lvfs/firmware/{{fw.firmware_id}}">Details</a>
     </td>

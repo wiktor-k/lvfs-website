@@ -63,7 +63,7 @@ def device_list():
     fws = db.session.query(Firmware).all()
     vendors = []
     for fw in fws:
-        if fw.target not in ['stable', 'testing']:
+        if not fw.remote.is_public:
             continue
         vendor = fw.mds[0].developer_name
         if vendor in vendors:
@@ -74,7 +74,7 @@ def device_list():
     mds_by_vendor = {}
     for vendor in sorted(vendors):
         for fw in fws:
-            if fw.target not in ['stable', 'testing']:
+            if not fw.remote.is_public:
                 continue
             for md in fw.mds:
 

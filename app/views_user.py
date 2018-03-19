@@ -10,7 +10,7 @@ from flask_login import login_required
 from app import app, db
 
 from .util import _error_internal, _error_permission_denied, _email_check
-from .models import UserCapability, User, Vendor
+from .models import UserCapability, User, Vendor, Remote
 from .hash import _password_hash
 
 def _password_check(value):
@@ -161,7 +161,10 @@ def user_add():
 
     vendor = db.session.query(Vendor).filter(Vendor.group_id == group_id).first()
     if not vendor:
-        vendor = Vendor(group_id)
+        remote = Remote(name='embargo-%s' % group_id)
+        db.session.add(remote)
+        db.session.commit()
+        vendor = Vendor(group_id, remote_id=remote.remote_id)
         db.session.add(vendor)
         db.session.commit()
     user = User(username=username,

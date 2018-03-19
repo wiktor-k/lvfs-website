@@ -141,7 +141,7 @@ def _metadata_update_group(group_id):
     fws = db.session.query(Firmware).all()
     fws_filtered = []
     for fw in fws:
-        if fw.target == 'private':
+        if fw.remote.name == 'private':
             continue
         if fw.vendor.group_id != group_id:
             continue
@@ -160,9 +160,9 @@ def _metadata_update_targets(targets):
     for target in targets:
         fws_filtered = []
         for fw in fws:
-            if fw.target == 'private':
+            if fw.remote.name == 'private':
                 continue
-            if fw.target != target:
+            if fw.remote.name != target:
                 continue
             fws_filtered.append(fw)
         if target == 'stable':
@@ -185,7 +185,7 @@ def _metadata_update_pulp():
     """ updates metadata for Pulp """
     files_to_scan = ['firmware.xml.gz', 'firmware.xml.gz.asc']
     for fw in db.session.query(Firmware).all():
-        if fw.target != 'stable':
+        if fw.remote.name != 'stable':
             continue
         files_to_scan.append(fw.filename)
 

@@ -12,7 +12,7 @@ from flask_login import login_required
 from app import app, db
 
 from .util import _error_permission_denied, _error_internal, _email_check
-from .models import UserCapability, Vendor, Restriction, User
+from .models import UserCapability, Vendor, Restriction, User, Remote
 
 # sort by awesomeness
 def _sort_vendor_func(a, b):
@@ -50,7 +50,10 @@ def vendor_add():
     if db.session.query(Vendor).filter(Vendor.group_id == request.form['group_id']).first():
         flash('Failed to add vendor: Group ID already exists', 'warning')
         return redirect(url_for('.vendor_list'), 302)
-    v = Vendor(request.form['group_id'])
+    r = Remote(name='embargo-%s' % request.form['group_id'])
+    db.session.add(r)
+    db.session.commit()
+    v = Vendor(request.form['group_id'], remote_id=r.remote_id)
     db.session.add(v)
     db.session.commit()
     flash('Added vendor %s' % request.form['group_id'], 'info')
@@ -68,6 +71,7 @@ def vendor_delete(vendor_id):
     if not vendor:
         flash('Failed to delete vendor: No a vendor with that group ID', 'warning')
         return redirect(url_for('.vendor_list'), 302)
+    db.session.delete(vendor.remote)
     db.session.delete(vendor)
     db.session.commit()
     flash('Removed vendor', 'info')

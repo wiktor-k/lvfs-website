@@ -47,14 +47,14 @@ def metadata_view():
     """
 
     # show all embargo metadata URLs when admin user
-    group_ids = []
+    vendors = []
     if g.user.check_capability(UserCapability.Admin):
         for vendor in db.session.query(Vendor).\
                         filter(Vendor.is_account_holder != 'no').all():
-            group_ids.append(vendor.group_id)
+            vendors.append(vendor)
     else:
-        group_ids.append(g.user.vendor.group_id)
-    return render_template('metadata.html', group_ids=group_ids)
+        vendors.append(g.user.vendor)
+    return render_template('metadata.html', vendors=vendors)
 
 @app.route('/lvfs/metadata/rebuild')
 @login_required

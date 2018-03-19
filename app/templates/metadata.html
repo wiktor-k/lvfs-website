@@ -32,12 +32,12 @@
     <td><a href="/downloads/firmware-testing.xml.gz">firmware-testing.xml.gz</td>
     <td class="text-muted">not required</td>
   </tr>
-{% for qa in group_ids %}
+{% for v in vendors %}
   <tr>
-    <td>Embargoed for &lsquo;{{qa}}&rsquo;</td>
+    <td>Embargoed for &lsquo;{{v.group_id}}&rsquo;</td>
     <td><b>No</b></td>
-    <td><a href="/downloads/{{ 'firmware-%s.xml.gz' % format_qa_hash(qa) }}">{{ 'firmware-%s...xml.gz' % format_qa_hash(qa)[0:8] }}</td>
-    <td><code><a href="/lvfs/metadata/{{qa}}">{{qa}}-embargo.conf</a></code></td>
+    <td><a href="/downloads/{{ 'firmware-%s.xml.gz' % format_qa_hash(v.group_id) }}">{{ 'firmware-%s...xml.gz' % format_qa_hash(v.group_id)[0:8] }}</td>
+    <td><code><a href="/lvfs/metadata/{{v.group_id}}">{{v.group_id}}-embargo.conf</a></code></td>
   </tr>
 {% endfor %}
 </table>

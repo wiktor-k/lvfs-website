@@ -22,13 +22,13 @@
 <h1>Update History</h1>
 {% for fw in fws %}
 
-{% if (g.user is defined and g.user.check_capability('admin')) or fw.target == 'stable' or fw.target == 'testing' %}
+{% if (g.user is defined and g.user.check_capability('admin')) or fw.remote.is_public %}
 {% if fw.version_display %}
 <h2 class="mt-3">Version {{fw.version_display}}:</h2>
 {% else %}
 <h2>Version {{fw.mds[0].version}}:</h2>
 {% endif %}
-{% if fw.target == 'testing' %}
+{% if fw.remote.name == 'testing' %}
 <p>
   <b>Warning:</b> This firmware is in the testing state and may not be suitable for
   production systems.
@@ -42,7 +42,7 @@
   </tr>
   <tr class="row">
     <th class="col-sm-2">State</th>
-    <td class="col-sm-10">{{fw.target}}</td>
+    <td class="col-sm-10">{{fw.remote.name}}</td>
   </tr>
   <tr class="row">
     <th class="col-sm-2">Urgency</th>

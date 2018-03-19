@@ -34,7 +34,7 @@
 
 <div class="container mt-3">
   <h3>Update Metadata</h3>
-{% if fw.target == 'stable' %}
+{% if fw.remote.name == 'stable' %}
   <div class="alert alert-danger mt-1" role="alert">
     This firmware has <strong>already been pushed to stable</strong>.
     The admin user has to manually rebuild the metadata to propagate changes.

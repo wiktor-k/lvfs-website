@@ -19,7 +19,7 @@ from .dbutils import _execute_count_star
 
 from .hash import _qa_hash
 from .metadata import _metadata_update_group, _metadata_update_targets
-from .models import UserCapability, Firmware, Report, Client, FirmwareEvent
+from .models import UserCapability, Firmware, Report, Client, FirmwareEvent, Remote
 from .util import _error_internal, _error_permission_denied
 from .util import _get_chart_labels_months, _get_chart_labels_days
 
@@ -53,7 +53,7 @@ def firmware(show_all=False):
         for fw in names[name]:
             if len(fw.mds) == 0:
                 continue
-            key = fw.target + fw.mds[0].appstream_id
+            key = fw.remote.name + fw.mds[0].appstream_id
             if key in targets_seen:
                 fw.is_newest_in_state = False
             else:
@@ -117,11 +117,12 @@ def firmware_delete(firmware_id):
         return _error_permission_denied('Insufficient permissions to delete firmware')
 
     # only QA users can delete once the firmware has gone stable
-    if not g.user.is_qa and fw.target == 'stable':
+    if not g.user.is_qa and fw.remote.name == 'stable':
         return _error_permission_denied('Unable to delete stable firmware as not QA')
 
     # save so we can rebuild metadata after the firmware has been deleted
     group_id = fw.vendor.group_id
+    remote_name = fw.remote.name
 
     # delete from database
     for md in fw.mds:
@@ -146,9 +147,9 @@ def firmware_delete(firmware_id):
 
     # update everything
     _metadata_update_group(group_id)
-    if fw.target == 'stable':
+    if remote_name == 'stable':
         _metadata_update_targets(targets=['stable', 'testing'])
-    elif fw.target == 'testing':
+    elif remote_name == 'testing':
         _metadata_update_targets(targets=['testing'])
 
     flash('Firmware deleted', 'info')
@@ -173,28 +174,36 @@ def firmware_promote(firmware_id, target):
     if not g.user.check_for_firmware(fw):
         return _error_permission_denied("No QA access to %s" % fw.firmware_id)
 
-    # same as before
-    if fw.target == target:
-        flash('Cannot move firmware: Firmware already in that target', 'info')
-        return redirect(url_for('.firmware_show', firmware_id=firmware_id))
-
     # anything -> testing,stable = QA
     if target in ['testing', 'stable']:
         if not g.user.check_capability(UserCapability.QA):
             return _error_permission_denied('Unable to promote as not QA')
 
     # testing,stable -> anything = QA
-    elif fw.target in ['testing', 'stable']:
+    elif fw.remote.name in ['testing', 'stable']:
         if not g.user.check_capability(UserCapability.QA):
             return _error_permission_denied('Unable to promote as not QA')
 
     # private,embargo -> embargo,private = User
-    elif fw.target in ['private', 'embargo'] and target in ['private', 'embargo']:
+    elif fw.remote.name in ['private', 'embargo'] and target in ['private', 'embargo']:
         if not g.user.check_capability(UserCapability.User):
             return _error_permission_denied('Unable to promote as not User')
 
+    # set new remote
+    if target == 'embargo':
+        remote = g.user.vendor.remote
+    else:
+        remote = db.session.query(Remote).filter(Remote.name == target).first()
+    if not remote:
+        return _error_internal('No remote for target %s' % target)
+
+    # same as before
+    if fw.remote.remote_id == remote.remote_id:
+        flash('Cannot move firmware: Firmware already in that target', 'info')
+        return redirect(url_for('.firmware_show', firmware_id=firmware_id))
+
     # all okay
-    fw.target = target
+    fw.remote_id = remote.remote_id
     fw.events.append(FirmwareEvent(target, g.user.user_id))
     db.session.commit()
     flash('Moved firmware', 'info')
@@ -202,9 +211,9 @@ def firmware_promote(firmware_id, target):
     # update everything
     _metadata_update_group(fw.vendor.group_id)
     targets = []
-    if target == 'stable' or fw.target == 'stable':
+    if target == 'stable' or fw.remote.name == 'stable':
         targets.append('stable')
-    if target == 'testing' or fw.target == 'testing':
+    if target == 'testing' or fw.remote.name == 'testing':
         targets.append('testing')
     if len(targets) > 0:
         _metadata_update_targets(targets)

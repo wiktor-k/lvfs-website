@@ -5,7 +5,7 @@
 <div class="container mt-3">
 
 <!-- veto information -->
-{% if fw.target == 'testing' and 'no-release-urgency' in vetos %}
+{% if fw.remote.name == 'testing' and 'no-release-urgency' in vetos %}
 <div class="card mb-3">
   <h3 class="card-header list-group-item-warning">
     More information soon required!
@@ -28,7 +28,7 @@
     </p>
   </div>
 </div>
-{% elif fw.target == 'testing' and 'no-release-description' in vetos %}
+{% elif fw.remote.name == 'testing' and 'no-release-description' in vetos %}
 <div class="card mb-3">
   <h3 class="card-header list-group-item-warning">
     More information soon required!
@@ -67,7 +67,7 @@
 {% endif %}
     </td>
     <td class="col-sm-2 text-right">
-{% if fw.target != 'stable' or g.user.is_qa %}
+{% if fw.remote.name != 'stable' or g.user.is_qa %}
       <button type="button" class="btn btn-block btn-danger" data-toggle="modal" data-target="#deleteModal">Delete</button>
 {% endif %}
     </td>
@@ -75,7 +75,7 @@
   <tr class="row">
     <th class="col-sm-4 align-middle">Current Target</th>
     <td class="col-sm-6 align-middle">
-      {{fw.target}}
+      {{fw.remote.name}}
 {% if fw.target_duration.total_seconds() > 5 %}
       (moved {{format_timedelta_approx(fw.target_duration)}})
 {% endif %}
@@ -83,20 +83,20 @@
     <td class="col-sm-2 align-middle text-right">
       <button type="button" class="btn btn-block btn-info" data-toggle="modal" data-target="#historyModal">History</button>
 {% if g.user.is_qa %}
-{% if fw.target == 'private' %}
+{% if fw.remote.name == 'private' %}
       <form method="get" action="/lvfs/firmware/{{fw.firmware_id}}/promote/embargo">
         <button class="btn btn-block btn-primary">&#8594; Embargo</button>
       </form>
 {% endif %}
-{% if fw.target == 'embargo' %}
+{% if fw.remote.name.startswith('embargo') %}
       <a class="btn btn-block btn-secondary" href="/lvfs/firmware/{{fw.firmware_id}}/promote/private" role="button">&#8592; Private</a>
       <a class="btn btn-block btn-primary" href="/lvfs/firmware/{{fw.firmware_id}}/promote/testing" role="button">&#8594; Testing</a>
 {% endif %}
-{% if fw.target == 'testing' %}
+{% if fw.remote.name == 'testing' %}
       <a class="btn btn-block btn-secondary" href="/lvfs/firmware/{{fw.firmware_id}}/promote/embargo" role="button">&#8592; Embargo</a>
       <button type="button" class="btn btn-block btn-primary" data-toggle="modal" data-target="#promoteStableModal">&#8594; Stable</button>
 {% endif %}
-{% if fw.target == 'stable' %}
+{% if fw.remote.name == 'stable' %}
       <button type="button" class="btn btn-block btn-danger" data-toggle="modal" data-target="#demoteTestingModal">&#8592; Testing</button>
 {% endif %}
 {% endif %}
@@ -301,7 +301,7 @@
 {% for ev in fw.events %}
             <tr class="row">
               <td class="col-sm-3">{{ev.timestamp}}</td>
-              <td class="col-sm-3">{{ev.target}}</td>
+              <td class="col-sm-3">{{ev.remote.name}}</td>
               <td class="col-sm-6">{{ev.user.username}}</td>
             </tr>
 {% endfor %}

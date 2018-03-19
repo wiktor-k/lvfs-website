@@ -220,12 +220,16 @@ class Vendor(db.Model):
     keywords = Column(Text, default=None)
     oauth_unknown_user = Column(Text, default=None)
     oauth_domain_glob = Column(Text, default=None)
+    remote_id = Column(Integer, ForeignKey('remotes.remote_id'), nullable=False)
 
     # magically get the users in this vendor group
     users = relationship("User", back_populates="vendor")
     restrictions = relationship("Restriction", back_populates="vendor")
 
-    def __init__(self, group_id=None):
+    # link using foreign keys
+    remote = relationship('Remote', foreign_keys=[remote_id])
+
+    def __init__(self, group_id=None, remote_id=None):
         """ Constructor for object """
         self.group_id = group_id
         self.display_name = None
@@ -238,6 +242,7 @@ class Vendor(db.Model):
         self.comments = None
         self.icon = None
         self.keywords = None
+        self.remote_id = remote_id
 
     def get_sort_key(self):
         val = 0
@@ -465,6 +470,17 @@ class Component(db.Model):
     def __repr__(self):
         return "Component object %s" % self.appstream_id
 
+class Remote(db.Model):
+
+    # sqlalchemy metadata
+    __tablename__ = 'remotes'
+    remote_id = Column(Integer, primary_key=True, unique=True, nullable=False)
+    name = Column(Text, nullable=False)
+    is_public = Column(Boolean, default=False)
+
+    def __repr__(self):
+        return "Remote object %s [%s]" % (self.remote_id, self.name)
+
 class FirmwareEvent(db.Model):
 
     # sqlalchemy metadata
@@ -473,17 +489,18 @@ class FirmwareEvent(db.Model):
     firmware_id = Column(Integer, ForeignKey('firmware.firmware_id'), nullable=False)
     user_id = Column(Integer, ForeignKey('users.user_id'), nullable=False)
     timestamp = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
-    target = Column(Text, nullable=False)
+    remote_id = Column(Integer, ForeignKey('remotes.remote_id'), nullable=False)
 
     # link back to parent
     fw = relationship("Firmware", back_populates="events")
 
     # link using foreign keys
     user = relationship('User', foreign_keys=[user_id])
+    remote = relationship('Remote', foreign_keys=[remote_id], lazy='joined')
 
-    def __init__(self, target=None, user_id=0, timestamp=None):
+    def __init__(self, remote_id=None, user_id=0, timestamp=None):
         """ Constructor for object """
-        self.target = target
+        self.remote_id = remote_id
         self.user_id = user_id
         self.timestamp = timestamp
 
@@ -502,7 +519,7 @@ class Firmware(db.Model):
     download_cnt = Column(Integer, default=0)
     checksum_upload = Column(String(40), nullable=False, index=True)
     version_display = Column(Text, nullable=True, default=None)
-    target = Column(Text, nullable=False)
+    remote_id = Column(Integer, ForeignKey('remotes.remote_id'), nullable=False)
     checksum_signed = Column(String(40), nullable=False)
     user_id = Column(Integer, ForeignKey('users.user_id'), nullable=False)
     inhibit_download = Column(Boolean, default=False)
@@ -516,6 +533,7 @@ class Firmware(db.Model):
     # link using foreign keys
     vendor = relationship('Vendor', foreign_keys=[vendor_id])
     user = relationship('User', foreign_keys=[user_id])
+    remote = relationship('Remote', foreign_keys=[remote_id], lazy='joined')
 
     @property
     def target_duration(self):
@@ -529,7 +547,6 @@ class Firmware(db.Model):
         self.timestamp = None
         self.filename = None        # filename of the original .cab file
         self.checksum_upload = None # SHA1 of the original .cab file
-        self.target = None          # pivate, embargo, testing, etc.
         self.version_display = None # from the firmware.inf file
         self.download_cnt = 0       # generated from the client database
         self.checksum_signed = None # SHA1 of the signed .cab
