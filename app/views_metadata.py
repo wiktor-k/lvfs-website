@@ -54,9 +54,7 @@ def metadata_view():
             group_ids.append(vendor.group_id)
     else:
         group_ids.append(g.user.vendor.group_id)
-    return render_template('metadata.html',
-                           group_id=g.user.vendor.group_id,
-                           group_ids=group_ids)
+    return render_template('metadata.html', group_ids=group_ids)
 
 @app.route('/lvfs/metadata/rebuild')
 @login_required
