@@ -21,22 +21,21 @@ class LvfsTestCase(unittest.TestCase):
         self.db_uri = 'sqlite:///' + self.db_filename
 
         # write out custom settings file
-        self.cfg_filename = '/tmp/foo.cfg'
+        self.cfg_fd, self.cfg_filename = tempfile.mkstemp()
         cfgfile = open(self.cfg_filename, 'w')
         cfgfile.write('\n'.join([
             "SQLALCHEMY_DATABASE_URI = '%s'" % self.db_uri,
             "DOWNLOAD_DIR = '/tmp'",
             ]))
         cfgfile.close()
-        os.environ['LVFS_CUSTOM_SETTINGS'] = self.cfg_filename
 
         # create instance
         import app as lvfs
         from app import db
-        from app.dbutils import drop_db, init_db
+        from app.dbutils import init_db
         self.app = lvfs.app.test_client()
+        lvfs.app.config.from_pyfile(self.cfg_filename)
         with lvfs.app.app_context():
-            drop_db(db)
             init_db(db)
 
         # ensure the plugins settings are set up
@@ -47,6 +46,7 @@ class LvfsTestCase(unittest.TestCase):
     def tearDown(self):
         os.close(self.db_fd)
         os.unlink(self.db_filename)
+        os.close(self.cfg_fd)
         os.unlink(self.cfg_filename)
 
     def _login(self, username, password):
