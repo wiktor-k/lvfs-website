@@ -511,6 +511,7 @@ class Firmware(db.Model):
     mds = relationship("Component", back_populates="fw", lazy='joined')
     events = relationship("FirmwareEvent", back_populates="fw")
     reports = relationship("Report", back_populates="fw")
+    clients = relationship("Client", back_populates="fw")
 
     # link using foreign keys
     vendor = relationship('Vendor', foreign_keys=[vendor_id])

@@ -134,6 +134,8 @@ def firmware_delete(firmware_id):
         db.session.delete(md)
     for ev in fw.events:
         db.session.delete(ev)
+    for cl in fw.clients:
+        db.session.delete(cl)
     db.session.delete(fw)
     db.session.commit()
 
