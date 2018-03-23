@@ -362,7 +362,7 @@ class LvfsTestCase(unittest.TestCase):
             display_name='VendorName',
             plugins='dfu 1.2.3',
             description='Everything supported',
-            visible='1',
+            visible=True,
             is_fwupd_supported='1',
             is_account_holder='1',
             is_uploading='1',

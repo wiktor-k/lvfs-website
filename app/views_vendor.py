@@ -197,8 +197,6 @@ def vendor_modify_by_admin(vendor_id):
     for key in ['display_name',
                 'plugins',
                 'description',
-                'visible',
-                'visible_for_search',
                 'is_fwupd_supported',
                 'is_account_holder',
                 'is_uploading',
@@ -208,6 +206,9 @@ def vendor_modify_by_admin(vendor_id):
                 'keywords']:
         if key in request.form:
             setattr(vendor, key, request.form[key])
+    for key in ['visible',
+                'visible_for_search']:
+        setattr(vendor, key, True if key in request.form else False)
     db.session.commit()
     flash('Updated vendor', 'info')
     return redirect(url_for('.vendor_list'))
