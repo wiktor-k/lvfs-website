@@ -291,7 +291,6 @@ def login_oauth_authorized(plugin_id):
         return _error_permission_denied('no oauth support in plugin %s' % plugin_id)
     try:
         data = p.oauth_get_data()
-        _event_log('OAuth returned: %s' % str(data))
         if 'userPrincipalName' not in data:
             return _error_internal('No userPrincipalName in profile')
     except PluginError as e:
