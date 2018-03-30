@@ -14,6 +14,7 @@ import humanize
 from flask import request, flash, url_for, redirect, render_template
 from flask import send_from_directory, abort, Response, g
 from flask_login import login_required, login_user, logout_user
+from sqlalchemy.exc import IntegrityError
 
 from gi.repository import AppStreamGlib
 
@@ -94,7 +95,11 @@ def serveStaticResource(resource):
         if analytic:
             analytic.cnt += 1
         else:
-            db.session.add(Analytic(datestr))
+            try:
+                db.session.add(Analytic(datestr))
+                db.session.flush()
+            except IntegrityError:
+                db.session.rollback()
 
         # update the user-agent counter
         if user_agent:
@@ -106,7 +111,11 @@ def serveStaticResource(resource):
             if ug:
                 ug.cnt += 1
             else:
-                db.session.add(Useragent(user_agent_safe, datestr))
+                try:
+                    db.session.add(Useragent(user_agent_safe, datestr))
+                    db.session.flush()
+                except IntegrityError:
+                    db.session.rollback()
 
         # log the client request
         db.session.add(Client(addr=_addr_hash(_get_client_address()),

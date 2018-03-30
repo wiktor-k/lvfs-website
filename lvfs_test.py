@@ -958,6 +958,18 @@ class LvfsTestCase(unittest.TestCase):
         rv = self.app.get('/lvfs/issue/2/priority/up', follow_redirects=True)
         assert b'Unable to change issue priority' in rv.data, rv.data
 
+    def test_download_repeat(self):
+
+        # upload a file
+        self.login()
+        self.upload()
+
+        # download a few times
+        for _ in range(5):
+            rv = self.app.get('/downloads/7514fc4b0e1a306337de78c58f10e9e68f791de2-hughski-colorhug2-2.0.3.cab',
+                              environ_base={'HTTP_USER_AGENT': 'fwupd/1.1.1'})
+            assert rv.status_code == 200, rv.status_code
+
     def test_download_old_fwupd(self):
 
         # upload a file
