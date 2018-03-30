@@ -749,7 +749,7 @@ class Analytic(db.Model):
 
     # sqlalchemy metadata
     __tablename__ = 'analytics'
-    datestr = Column(Integer, primary_key=True, default=0, index=True)
+    datestr = Column(Integer, primary_key=True, unique=True, default=0, index=True)
     cnt = Column(Integer, default=1)
 
     def __init__(self, datestr=0):
