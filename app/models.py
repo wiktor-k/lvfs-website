@@ -12,7 +12,7 @@ import re
 
 from gi.repository import AppStreamGlib
 
-from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey, Unicode
 from sqlalchemy.orm import relationship
 
 from app import db
@@ -33,8 +33,8 @@ class User(db.Model):
     user_id = Column(Integer, primary_key=True, unique=True, nullable=False)
     username = Column(Text, nullable=False)
     username_old = Column(Text, default=None)
-    password = Column(Text, default=None)
-    display_name = Column(Text, default=None)
+    password = Column(Unicode, default=None)
+    display_name = Column(Unicode, default=None)
     vendor_id = Column(Integer, ForeignKey('vendors.vendor_id'), nullable=False)
     auth_type = Column(Text, default='disabled')
     is_qa = Column(Boolean, default=False)
@@ -211,17 +211,17 @@ class Vendor(db.Model):
 
     vendor_id = Column(Integer, primary_key=True, unique=True)
     group_id = Column(Text, nullable=False, index=True)
-    display_name = Column(Text, default=None)
+    display_name = Column(Unicode, default=None)
     plugins = Column(Text, default=None)
-    description = Column(Text, default=None)
+    description = Column(Unicode, default=None)
     visible = Column(Boolean, default=False)
     visible_for_search = Column(Boolean, default=False)
     is_fwupd_supported = Column(String(16), nullable=False, default='no')
     is_account_holder = Column(String(16), nullable=False, default='no')
     is_uploading = Column(String(16), nullable=False, default='no')
-    comments = Column(Text, default=None)
+    comments = Column(Unicode, default=None)
     icon = Column(Text, default=None)
-    keywords = Column(Text, default=None)
+    keywords = Column(Unicode, default=None)
     oauth_unknown_user = Column(Text, default=None)
     oauth_domain_glob = Column(Text, default=None)
     remote_id = Column(Integer, ForeignKey('remotes.remote_id'), nullable=False)
@@ -278,7 +278,7 @@ class Event(db.Model):
     user_id = Column(Integer, ForeignKey('users.user_id'), nullable=False)
     vendor_id = Column(Integer, ForeignKey('vendors.vendor_id'), nullable=False)
     address = Column('addr', String(40), nullable=False)
-    message = Column(Text, default=None)
+    message = Column(Unicode, default=None)
     is_important = Column(Integer, default=0)
     request = Column(Text, default=None)
 
@@ -355,7 +355,7 @@ class Keyword(db.Model):
     keyword_id = Column(Integer, primary_key=True, unique=True, nullable=False)
     component_id = Column(Integer, ForeignKey('components.component_id'), nullable=False)
     priority = Column(Integer, default=0)
-    value = Column(Text, nullable=False)
+    value = Column(Unicode, nullable=False)
 
     # link back to parent
     md = relationship("Component", back_populates="keywords")
@@ -413,22 +413,22 @@ class Component(db.Model):
     firmware_id = Column(Integer, ForeignKey('firmware.firmware_id'), nullable=False, index=True)
     checksum_contents = Column(String(40), nullable=False)
     appstream_id = Column(Text, nullable=False)
-    name = Column(Text, default=None)
-    summary = Column(Text, default=None)
-    description = Column(Text, default=None)
-    release_description = Column(Text, default=None)
-    url_homepage = Column(Text, default=None)
+    name = Column(Unicode, default=None)
+    summary = Column(Unicode, default=None)
+    description = Column(Unicode, default=None)
+    release_description = Column(Unicode, default=None)
+    url_homepage = Column(Unicode, default=None)
     metadata_license = Column(Text, default=None)
     project_license = Column(Text, default=None)
-    developer_name = Column(Text, default=None)
+    developer_name = Column(Unicode, default=None)
     filename_contents = Column(Text, nullable=False)
     release_timestamp = Column(Integer, default=0)
     version = Column(Text, nullable=False)
     release_installed_size = Column(Integer, default=0)
     release_download_size = Column(Integer, default=0)
     release_urgency = Column(Text, default=None)
-    screenshot_url = Column(Text, default=None)
-    screenshot_caption = Column(Text, default=None)
+    screenshot_url = Column(Unicode, default=None)
+    screenshot_caption = Column(Unicode, default=None)
 
     # link back to parent
     fw = relationship("Firmware", back_populates="mds", lazy='joined')
@@ -839,7 +839,7 @@ class SearchEvent(db.Model):
     search_event_id = Column(Integer, primary_key=True, unique=True, nullable=False)
     timestamp = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
     addr = Column(String(40), nullable=False)
-    value = Column(Text, nullable=False)
+    value = Column(Unicode, nullable=False)
     count = Column(Integer, default=0)
     method = Column(Text, default=None)
 
