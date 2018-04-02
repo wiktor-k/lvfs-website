@@ -36,15 +36,15 @@ def init_db(db):
         db.session.add(remote)
         db.session.commit()
         vendor = Vendor('admin')
-        vendor.display_name = 'Acme Corp.'
-        vendor.description = 'A fake vendor used for testing firmware'
+        vendor.display_name = u'Acme Corp.'
+        vendor.description = u'A fake vendor used for testing firmware'
         vendor.remote_id = remote.remote_id
         db.session.add(vendor)
         db.session.commit()
         db.session.add(User(username='sign-test@fwupd.org',
-                            password='5459dbe5e9aa80e077bfa40f3fb2ca8368ed09b4',
+                            password=u'5459dbe5e9aa80e077bfa40f3fb2ca8368ed09b4',
                             auth_type='local',
-                            display_name='Admin User',
+                            display_name=u'Admin User',
                             vendor_id=vendor.vendor_id,
                             is_admin=True,
                             is_qa=True,
@@ -52,7 +52,7 @@ def init_db(db):
         db.session.commit()
     if not db.session.query(User).filter(User.username == 'anonymous').first():
         db.session.add(User(username='anonymous@fwupd.org',
-                            display_name='Anonymous User',
+                            display_name=u'Anonymous User',
                             vendor_id=1))
         db.session.commit()
 

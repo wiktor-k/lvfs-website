@@ -206,7 +206,7 @@ def index():
     user = db.session.query(User).filter(User.username == 'admin').first()
     settings = _get_settings()
     default_admin_password = False
-    if user and user.password == '5459dbe5e9aa80e077bfa40f3fb2ca8368ed09b4':
+    if user and user.password == u'5459dbe5e9aa80e077bfa40f3fb2ca8368ed09b4':
         default_admin_password = True
     server_warning = ''
     if 'server_warning' in settings:

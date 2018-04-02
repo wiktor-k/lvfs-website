@@ -164,17 +164,17 @@ def upload():
     for component in ufile.get_components():
         md = Component()
         md.appstream_id = component.get_id()
-        md.name = component.get_name()
-        md.summary = component.get_comment()
-        md.developer_name = component.get_developer_name()
+        md.name = unicode(component.get_name())
+        md.summary = unicode(component.get_comment())
+        md.developer_name = unicode(component.get_developer_name())
         md.metadata_license = component.get_metadata_license()
         md.project_license = component.get_project_license()
-        md.url_homepage = component.get_url_item(AppStreamGlib.UrlKind.HOMEPAGE)
-        md.description = component.get_description()
+        md.url_homepage = unicode(component.get_url_item(AppStreamGlib.UrlKind.HOMEPAGE))
+        md.description = unicode(component.get_description())
 
         # add manually added keywords
         for keyword in component.get_keywords():
-            md.add_keywords_from_string(keyword, priority=5)
+            md.add_keywords_from_string(unicode(keyword), priority=5)
 
         # add from the provided free text
         if md.developer_name:
@@ -193,7 +193,7 @@ def upload():
         # from the release
         rel = component.get_release_default()
         md.version = rel.get_version()
-        md.release_description = rel.get_description()
+        md.release_description = unicode(rel.get_description())
         md.release_timestamp = rel.get_timestamp()
         md.release_installed_size = rel.get_size(AppStreamGlib.SizeKind.INSTALLED)
         md.release_download_size = rel.get_size(AppStreamGlib.SizeKind.DOWNLOAD)
@@ -214,7 +214,7 @@ def upload():
             md.screenshot_caption = ss.get_caption(None)
             if len(ss.get_images()) > 0:
                 im = ss.get_images()[0]
-                md.screenshot_url = im.get_url()
+                md.screenshot_url = unicode(im.get_url())
 
         # from the content checksum
         csum = rel.get_checksum_by_target(AppStreamGlib.ChecksumTarget.CONTENT)

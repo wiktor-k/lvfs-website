@@ -48,7 +48,7 @@ def flash_save_eventlog(unused_sender, message, category, **unused_extra):
     is_important = False
     if category in ['danger', 'warning']:
         is_important = True
-    _event_log(message, is_important)
+    _event_log(unicode(message), is_important)
 
 message_flashed.connect(flash_save_eventlog, app)
 

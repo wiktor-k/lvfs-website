@@ -19,4 +19,4 @@ def _addr_hash(value):
 def _password_hash(value):
     """ Generate a salted hash of the password string """
     salt = 'lvfs%%%'
-    return hashlib.sha1((salt + value).encode('utf-8')).hexdigest()
+    return unicode(hashlib.sha1((salt + value).encode('utf-8')).hexdigest())

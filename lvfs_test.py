@@ -58,7 +58,7 @@ class LvfsTestCase(unittest.TestCase):
     def _logout(self):
         return self.app.get('/lvfs/logout', follow_redirects=True)
 
-    def login(self, username='sign-test@fwupd.org', password='Pa$$w0rd'):
+    def login(self, username='sign-test@fwupd.org', password=u'Pa$$w0rd'):
         rv = self._login(username, password)
         assert b'/lvfs/upload' in rv.data, rv.data
         assert b'Incorrect username or password' not in rv.data, rv.data
@@ -78,11 +78,11 @@ class LvfsTestCase(unittest.TestCase):
             username=username,
             password_new=password,
             group_id=group_id,
-            display_name='Generic Name',
+            display_name=u'Generic Name',
         ), follow_redirects=True)
 
     def add_user(self, username='testuser@fwupd.org', group_id='testgroup',
-                 password='Pa$$w0rd', is_qa=False, is_analyst=False):
+                 password=u'Pa$$w0rd', is_qa=False, is_analyst=False):
         rv = self._add_user(username, group_id, password)
         assert b'Added user' in rv.data, rv.data
         user_id_idx = rv.data.find('Added user ')
@@ -115,16 +115,16 @@ class LvfsTestCase(unittest.TestCase):
     def test_login_logout(self):
 
         # test logging in and out
-        rv = self._login('sign-test@fwupd.org', 'Pa$$w0rd')
+        rv = self._login('sign-test@fwupd.org', u'Pa$$w0rd')
         assert b'/lvfs/upload' in rv.data, rv.data
         rv = self._logout()
-        rv = self._login('sign-test@fwupd.org', 'Pa$$w0rd')
+        rv = self._login('sign-test@fwupd.org', u'Pa$$w0rd')
         assert b'/lvfs/upload' in rv.data, rv.data
         rv = self._logout()
         assert b'/lvfs/upload' not in rv.data, rv.data
-        rv = self._login('sign-test@fwupd.orgx', 'default')
+        rv = self._login('sign-test@fwupd.orgx', u'default')
         assert b'Incorrect username or password' in rv.data, rv.data
-        rv = self._login('sign-test@fwupd.org', 'defaultx')
+        rv = self._login('sign-test@fwupd.org', u'defaultx')
         assert b'Incorrect username or password' in rv.data, rv.data
 
     def test_upload_invalid(self):
@@ -387,15 +387,15 @@ class LvfsTestCase(unittest.TestCase):
 
         # login then add invalid users
         self.login()
-        rv = self._add_user('testuser@fwupd.org', 'testgroup', 'unsuitable')
+        rv = self._add_user('testuser@fwupd.org', 'testgroup', u'unsuitable')
         assert b'requires at least one uppercase character' in rv.data, rv.data
-        rv = self._add_user('testuser', 'testgroup', 'Pa$$w0rd')
+        rv = self._add_user('testuser', 'testgroup', u'Pa$$w0rd')
         assert b'Invalid email address' in rv.data, rv.data
-        rv = self._add_user('testuser@fwupd.org', 'XX', 'Pa$$w0rd')
+        rv = self._add_user('testuser@fwupd.org', 'XX', u'Pa$$w0rd')
         assert b'QA group invalid' in rv.data, rv.data
 
         # add a good user, and check the user and group was created
-        rv = self._add_user('testuser@fwupd.org', 'testgroup', 'Pa$$w0rd')
+        rv = self._add_user('testuser@fwupd.org', 'testgroup', u'Pa$$w0rd')
         assert b'Added user' in rv.data, rv.data
         rv = self.app.get('/lvfs/userlist')
         assert b'testuser' in rv.data, rv.data
@@ -422,15 +422,15 @@ class LvfsTestCase(unittest.TestCase):
 
         # ensure the user can change thier own password
         rv = self.app.post('/lvfs/user/3/modify', data=dict(
-            password_old='not-even-close',
-            password_new='Hi$$t0ry',
-            display_name='Something Funky',
+            password_old=u'not-even-close',
+            password_new=u'Hi$$t0ry',
+            display_name=u'Something Funky',
         ), follow_redirects=True)
         assert b'Incorrect existing password' in rv.data, rv.data
         rv = self.app.post('/lvfs/user/3/modify', data=dict(
-            password_old='Pa$$w0rd',
-            password_new='Hi$$t0ry',
-            display_name='Something Funky',
+            password_old=u'Pa$$w0rd',
+            password_new=u'Hi$$t0ry',
+            display_name=u'Something Funky',
         ), follow_redirects=True)
         assert b'Updated profile' in rv.data, rv.data
         rv = self.app.get('/lvfs/profile')
@@ -630,7 +630,7 @@ class LvfsTestCase(unittest.TestCase):
         # edit the description and severity
         rv = self.app.post('/lvfs/firmware/1/modify', data=dict(
             urgency='critical',
-            description='Not enough cats!',
+            description=u'Not enough cats!',
         ), follow_redirects=True)
         assert b'Update text updated' in rv.data, rv.data
 
