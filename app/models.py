@@ -28,7 +28,7 @@ class User(db.Model):
 
     # database
     __tablename__ = 'users'
-    mysql_character_set = 'utf8mb4'
+    __table_args__ = {'mysql_character_set': 'utf8mb4'}
 
     user_id = Column(Integer, primary_key=True, unique=True, nullable=False)
     username = Column(Text, nullable=False)
@@ -207,7 +207,7 @@ class Vendor(db.Model):
 
     # sqlalchemy metadata
     __tablename__ = 'vendors'
-    mysql_character_set = 'utf8mb4'
+    __table_args__ = {'mysql_character_set': 'utf8mb4'}
 
     vendor_id = Column(Integer, primary_key=True, unique=True)
     group_id = Column(Text, nullable=False, index=True)
@@ -271,7 +271,7 @@ class Event(db.Model):
 
     # sqlalchemy metadata
     __tablename__ = 'event_log'
-    mysql_character_set = 'utf8mb4'
+    __table_args__ = {'mysql_character_set': 'utf8mb4'}
 
     id = Column(Integer, primary_key=True, nullable=False, unique=True)
     timestamp = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
@@ -303,7 +303,7 @@ class Requirement(db.Model):
 
     # sqlalchemy metadata
     __tablename__ = 'requirements'
-    mysql_character_set = 'utf8mb4'
+    __table_args__ = {'mysql_character_set': 'utf8mb4'}
 
     requirement_id = Column(Integer, primary_key=True, unique=True)
     component_id = Column(Integer, ForeignKey('components.component_id'), nullable=False)
@@ -350,7 +350,7 @@ class Keyword(db.Model):
 
     # sqlalchemy metadata
     __tablename__ = 'keywords'
-    mysql_character_set = 'utf8mb4'
+    __table_args__ = {'mysql_character_set': 'utf8mb4'}
 
     keyword_id = Column(Integer, primary_key=True, unique=True, nullable=False)
     component_id = Column(Integer, ForeignKey('components.component_id'), nullable=False)
@@ -407,7 +407,7 @@ class Component(db.Model):
 
     # sqlalchemy metadata
     __tablename__ = 'components'
-    mysql_character_set = 'utf8mb4'
+    __table_args__ = {'mysql_character_set': 'utf8mb4'}
 
     component_id = Column(Integer, primary_key=True, unique=True, nullable=False, index=True)
     firmware_id = Column(Integer, ForeignKey('firmware.firmware_id'), nullable=False, index=True)
@@ -486,7 +486,7 @@ class Remote(db.Model):
 
     # sqlalchemy metadata
     __tablename__ = 'remotes'
-    mysql_character_set = 'utf8mb4'
+    __table_args__ = {'mysql_character_set': 'utf8mb4'}
 
     remote_id = Column(Integer, primary_key=True, unique=True, nullable=False)
     name = Column(Text, nullable=False)
@@ -499,7 +499,7 @@ class FirmwareEvent(db.Model):
 
     # sqlalchemy metadata
     __tablename__ = 'firmware_events'
-    mysql_character_set = 'utf8mb4'
+    __table_args__ = {'mysql_character_set': 'utf8mb4'}
 
     firmware_event_id = Column(Integer, primary_key=True, unique=True, nullable=False)
     firmware_id = Column(Integer, ForeignKey('firmware.firmware_id'), nullable=False)
@@ -527,7 +527,7 @@ class Firmware(db.Model):
 
     # sqlalchemy metadata
     __tablename__ = 'firmware'
-    mysql_character_set = 'utf8mb4'
+    __table_args__ = {'mysql_character_set': 'utf8mb4'}
 
     firmware_id = Column(Integer, primary_key=True, unique=True, nullable=False, index=True)
     vendor_id = Column(Integer, ForeignKey('vendors.vendor_id'), nullable=False)
@@ -578,7 +578,7 @@ class Client(db.Model):
 
     # sqlalchemy metadata
     __tablename__ = 'clients'
-    mysql_character_set = 'utf8mb4'
+    __table_args__ = {'mysql_character_set': 'utf8mb4'}
 
     id = Column(Integer, primary_key=True, nullable=False, unique=True)
     timestamp = Column(DateTime, nullable=False, default=datetime.datetime.utcnow, index=True)
@@ -603,7 +603,7 @@ class Condition(db.Model):
 
     # sqlalchemy metadata
     __tablename__ = 'conditions'
-    mysql_character_set = 'utf8mb4'
+    __table_args__ = {'mysql_character_set': 'utf8mb4'}
 
     condition_id = Column(Integer, primary_key=True, nullable=False, unique=True)
     issue_id = Column(Integer, ForeignKey('issues.issue_id'), nullable=False)
@@ -657,7 +657,7 @@ class Issue(db.Model):
 
     # sqlalchemy metadata
     __tablename__ = 'issues'
-    mysql_character_set = 'utf8mb4'
+    __table_args__ = {'mysql_character_set': 'utf8mb4'}
 
     issue_id = Column(Integer, primary_key=True, nullable=False, unique=True)
     priority = Column(Integer, default=0)
@@ -696,7 +696,7 @@ class Issue(db.Model):
 
 class ReportAttribute(db.Model):
     __tablename__ = 'report_attributes'
-    mysql_character_set = 'utf8mb4'
+    __table_args__ = {'mysql_character_set': 'utf8mb4'}
 
     report_attribute_id = Column(Integer, primary_key=True, nullable=False, unique=True)
     report_id = Column(Integer, ForeignKey('reports.report_id'), nullable=False)
@@ -719,7 +719,7 @@ class Report(db.Model):
 
     # sqlalchemy metadata
     __tablename__ = 'reports'
-    mysql_character_set = 'utf8mb4'
+    __table_args__ = {'mysql_character_set': 'utf8mb4'}
 
     report_id = Column(Integer, primary_key=True, nullable=False, unique=True)
     timestamp = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
@@ -776,7 +776,7 @@ class Setting(db.Model):
 
     # sqlalchemy metadata
     __tablename__ = 'settings'
-    mysql_character_set = 'utf8mb4'
+    __table_args__ = {'mysql_character_set': 'utf8mb4'}
 
     setting_id = Column(Integer, primary_key=True, nullable=False, unique=True)
     key = Column('config_key', Text)
@@ -796,7 +796,7 @@ class Analytic(db.Model):
 
     # sqlalchemy metadata
     __tablename__ = 'analytics'
-    mysql_character_set = 'utf8mb4'
+    __table_args__ = {'mysql_character_set': 'utf8mb4'}
 
     datestr = Column(Integer, primary_key=True, unique=True, default=0, index=True)
     cnt = Column(Integer, default=1)
@@ -813,7 +813,7 @@ class Useragent(db.Model):
 
     # sqlalchemy metadata
     __tablename__ = 'useragents'
-    mysql_character_set = 'utf8mb4'
+    __table_args__ = {'mysql_character_set': 'utf8mb4'}
 
     useragent_id = Column(Integer, primary_key=True, nullable=False, unique=True)
     datestr = Column(Integer, default=0)
@@ -834,7 +834,7 @@ class SearchEvent(db.Model):
 
     # sqlalchemy metadata
     __tablename__ = 'search_events'
-    mysql_character_set = 'utf8mb4'
+    __table_args__ = {'mysql_character_set': 'utf8mb4'}
 
     search_event_id = Column(Integer, primary_key=True, unique=True, nullable=False)
     timestamp = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
