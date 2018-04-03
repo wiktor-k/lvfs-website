@@ -59,7 +59,7 @@ class LvfsTestCase(unittest.TestCase):
     def _logout(self):
         return self.app.get('/lvfs/logout', follow_redirects=True)
 
-    def login(self, username='sign-test@fwupd.org', password=u'Pa$$w0rd'):
+    def login(self, username='sign-test@fwupd.org', password='Pa$$w0rd'):
         rv = self._login(username, password)
         assert b'/lvfs/upload' in rv.data, rv.data
         assert b'Incorrect username or password' not in rv.data, rv.data
@@ -83,7 +83,7 @@ class LvfsTestCase(unittest.TestCase):
         ), follow_redirects=True)
 
     def add_user(self, username='testuser@fwupd.org', group_id='testgroup',
-                 password=u'Pa$$w0rd', is_qa=False, is_analyst=False):
+                 password='Pa$$w0rd', is_qa=False, is_analyst=False):
         rv = self._add_user(username, group_id, password)
         assert b'Added user' in rv.data, rv.data
         user_id_idx = rv.data.find('Added user ')
@@ -473,15 +473,15 @@ class LvfsTestCase(unittest.TestCase):
 
         # ensure the user can change thier own password
         rv = self.app.post('/lvfs/user/3/modify', data=dict(
-            password_old=u'not-even-close',
-            password_new=u'Hi$$t0ry',
-            display_name=u'Something Funky',
+            password_old='not-even-close',
+            password_new='Hi$$t0ry',
+            display_name='Something Funky',
         ), follow_redirects=True)
         assert b'Incorrect existing password' in rv.data, rv.data
         rv = self.app.post('/lvfs/user/3/modify', data=dict(
-            password_old=u'Pa$$w0rd',
-            password_new=u'Hi$$t0ry',
-            display_name=u'Something Funky',
+            password_old='Pa$$w0rd',
+            password_new='Hi$$t0ry',
+            display_name='Something Funky',
         ), follow_redirects=True)
         assert b'Updated profile' in rv.data, rv.data
         rv = self.app.get('/lvfs/profile')
