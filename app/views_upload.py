@@ -162,9 +162,6 @@ def upload():
     fn = os.path.join(download_dir, ufile.filename_new)
     open(fn, 'wb').write(cab_data)
 
-    # inform the plugin loader
-    ploader.file_modified(fn)
-
     # create parent firmware object
     target = request.form['target']
     fw = Firmware()
