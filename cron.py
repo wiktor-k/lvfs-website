@@ -23,7 +23,7 @@ from app import db, ploader
 
 from app.models import Remote, Firmware
 from app.metadata import _metadata_update_targets, _metadata_update_pulp
-from app.util import _archive_get_files_from_glob, _get_dirname_safe
+from app.util import _archive_get_files_from_glob, _get_dirname_safe, _event_log
 
 # make compatible with Flask
 app = application.app
@@ -63,6 +63,10 @@ def _regenerate_and_sign_metadata():
 
     # drop caches in other sessions
     db.session.expire_all()
+
+    # log what we did
+    for remote_name in remote_names:
+        _event_log('Signed metadata %s' % remote_name)
 
 def _sign_md(cfarchive, cf):
     # parse each metainfo file
@@ -142,6 +146,10 @@ def _regenerate_and_sign_firmware():
 
     # drop caches in other sessions
     db.session.expire_all()
+
+    # log what we did
+    for fw in fws:
+        _event_log('Signed firmware %s' % fw.firmware_id)
 
 if __name__ == '__main__':
 
