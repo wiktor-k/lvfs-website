@@ -286,7 +286,6 @@ def login_oauth(plugin_id):
     if not p.oauth_authorize:
         return _error_permission_denied('no oauth support in plugin %s' % plugin_id)
     try:
-        _event_log('attempted to login using OAuth')
         return p.oauth_authorize(url_for('login_oauth_authorized', plugin_id=plugin_id, _external=True))
     except PluginError as e:
         return _error_permission_denied(str(e))
