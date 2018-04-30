@@ -91,7 +91,7 @@ def _generate_metadata_kind(filename, fws, firmware_baseuri=''):
 
             # add requires for each allowed vendor_ids
             vendor = db.session.query(Vendor).filter(Vendor.vendor_id == fw.vendor_id).first()
-            if vendor:
+            if vendor and vendor.restrictions:
                 vendor_ids = []
                 for res in vendor.restrictions:
                     vendor_ids.append(res.value)
