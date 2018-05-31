@@ -9,10 +9,17 @@
 from __future__ import print_function
 
 import os
+import fnmatch
 import requests
 
 from app.pluginloader import PluginBase, PluginError, PluginSettingText, PluginSettingBool
 from app.util import _get_settings
+
+def _basename_matches_globs(basename, globs):
+    for glob in globs:
+        if fnmatch.fnmatch(basename, glob):
+            return True
+    return False
 
 class Plugin(PluginBase):
     def __init__(self):
@@ -45,7 +52,7 @@ class Plugin(PluginBase):
         if not fns:
             raise PluginError('No file whitelist set')
         basename = os.path.basename(fn)
-        if basename not in fns.split(','):
+        if not _basename_matches_globs(basename, fns.split(',')):
             print('%s not in %s' % (basename, fns))
             return
 
