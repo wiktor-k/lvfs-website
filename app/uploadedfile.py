@@ -156,13 +156,13 @@ class UploadedFile(object):
             tmp = cfg.get('Version', 'Class')
         except (ConfigParser.NoOptionError, ConfigParser.NoSectionError) as _:
             raise MetadataInvalid('The inf file Version:Class was missing')
-        if tmp != 'Firmware':
+        if tmp.lower() != 'firmware':
             raise MetadataInvalid('The inf file Version:Class was invalid')
         try:
             tmp = cfg.get('Version', 'ClassGuid')
         except ConfigParser.NoOptionError as _:
             raise MetadataInvalid('The inf file Version:ClassGuid was missing')
-        if tmp != '{f2e7dd72-6468-4e36-b6f1-6488f42c1b52}':
+        if tmp.lower() != '{f2e7dd72-6468-4e36-b6f1-6488f42c1b52}':
             raise MetadataInvalid('The inf file Version:ClassGuid was invalid')
         try:
             tmp = cfg.get('Version', 'DriverVer').split(',')
