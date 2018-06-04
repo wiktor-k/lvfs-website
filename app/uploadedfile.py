@@ -88,6 +88,23 @@ def _repackage_archive(filename, buf, tmpdir=None):
     src.close()
     return arc
 
+def detect_encoding_from_bom(b):
+
+    # UTF-8 BOM
+    if b[0:3] == b'\xef\xbb\xbf':
+        return "utf-8"
+
+    # UTF-16 BOM
+    if b[0:2] == b'\xfe\xff' or b[0:2] == b'\xff\xfe':
+        return "utf-16"
+
+    # UTF-32 BOM
+    if b[0:5] == b'\xfe\xff\x00\x00' or b[0:5] == b'\x00\x00\xff\xfe':
+        return "utf-32"
+
+    # fallback
+    return "cp1252"
+
 class UploadedFile(object):
 
     def __init__(self):
@@ -169,7 +186,9 @@ class UploadedFile(object):
     def _verify_infs(self):
 
         for cf in _archive_get_files_from_glob(self._source_cfarchive, '*.inf'):
-            contents = cf.get_bytes().get_data().decode('utf-8', 'ignore')
+            # accept basically any encoding
+            contents_blob = cf.get_bytes().get_data()
+            contents = contents_blob.decode(detect_encoding_from_bom(contents_blob))
             self._verify_inf(contents)
 
     def _add_cf_to_repacked_folder(self, cf):
