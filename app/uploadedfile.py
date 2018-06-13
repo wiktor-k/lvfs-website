@@ -114,7 +114,6 @@ class UploadedFile(object):
         self.filename_new = None
         self.fwupd_min_version = '0.8.0'    # a guess, but everyone should have this
         self.version_display = None
-        self.metadata = {}
 
         # strip out any unlisted files
         self._repacked_cfarchive = GCab.Cabinet.new()
@@ -264,9 +263,6 @@ class UploadedFile(object):
                                              'org.freedesktop.fwupd')
         if req:
             self.fwupd_min_version = req.get_version()
-
-        # get any metadata
-        self.metadata = component.get_metadata()
 
         # ensure there's always a container checksum
         release = component.get_release_default()

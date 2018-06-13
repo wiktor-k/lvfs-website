@@ -137,10 +137,11 @@ class TestStringMethods(unittest.TestCase):
         _archive_add(arc, 'firmware.metainfo.xml', _get_valid_metainfo())
         ufile = UploadedFile()
         ufile.parse('foo.cab', _archive_to_contents(arc))
-        self.assertTrue('foo' in ufile.metadata)
-        self.assertTrue('LVFS::InhibitDownload' in ufile.metadata)
-        self.assertTrue(ufile.metadata['foo'] == 'bar')
-        self.assertFalse('NotGoingToExist' in ufile.metadata)
+        metadata = ufile.get_components()[0].get_metadata()
+        self.assertTrue('foo' in metadata)
+        self.assertTrue('LVFS::InhibitDownload' in metadata)
+        self.assertTrue(metadata['foo'] == 'bar')
+        self.assertFalse('NotGoingToExist' in metadata)
 
     # update description references another file
     def test_release_mentions_file(self):

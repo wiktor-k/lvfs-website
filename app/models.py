@@ -450,6 +450,7 @@ class Component(db.Model):
     release_urgency = Column(Text, default=None)
     screenshot_url = Column(Unicode, default=None)
     screenshot_caption = Column(Unicode, default=None)
+    inhibit_download = Column(Boolean, default=False)
 
     # link back to parent
     fw = relationship("Firmware", back_populates="mds", lazy='joined')
@@ -593,7 +594,6 @@ class Firmware(db.Model):
     remote_id = Column(Integer, ForeignKey('remotes.remote_id'), nullable=False)
     checksum_signed = Column(String(40), nullable=False)
     user_id = Column(Integer, ForeignKey('users.user_id'), nullable=False)
-    inhibit_download = Column(Boolean, default=False)
     signed_timestamp = Column(DateTime, default=None)
 
     # include all Component objects
@@ -617,6 +617,13 @@ class Firmware(db.Model):
     @property
     def is_deleted(self):
         return self.remote.name == 'deleted'
+
+    @property
+    def inhibit_download(self):
+        for md in self.mds:
+            if md.inhibit_download:
+                return True
+        return False
 
     @property
     def scheduled_signing(self):

@@ -60,10 +60,6 @@ def _create_fw_from_uploaded_file(ufile):
     if ufile.version_display:
         fw.version_display = ufile.version_display
 
-    # this allows an OEM to hide the direct download link on the LVFS
-    if 'LVFS::InhibitDownload' in ufile.metadata:
-        fw.inhibit_download = True
-
     # create child metadata object for the components
     for component in ufile.get_components():
         md = Component()
@@ -124,6 +120,11 @@ def _create_fw_from_uploaded_file(ufile):
         csum = rel.get_checksum_by_target(AppStreamGlib.ChecksumTarget.CONTENT)
         md.checksum_contents = csum.get_value()
         md.filename_contents = csum.get_filename()
+
+        # allows OEM to hide the direct download link on the LVFS
+        metadata = component.get_metadata()
+        if 'LVFS::InhibitDownload' in metadata:
+            md.inhibit_download = True
 
         fw.mds.append(md)
 
