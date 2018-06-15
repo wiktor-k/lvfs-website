@@ -215,7 +215,8 @@ def vendor_modify_by_admin(vendor_id):
     for key in ['is_embargo_default',
                 'visible',
                 'visible_for_search']:
-        setattr(vendor, key, True if key in request.form else False)
+        if key in request.form:
+            setattr(vendor, key, True if request.form[key] == '1' else False)
     db.session.commit()
     flash('Updated vendor', 'info')
     return redirect(url_for('.vendor_list'))
