@@ -5,6 +5,9 @@
 # Licensed under the GNU General Public License Version 2
 
 import os
+import string
+import random
+
 from glob import fnmatch
 
 from flask import request, flash, url_for, redirect, render_template, g
@@ -14,6 +17,7 @@ from app import app, db
 
 from .util import _error_permission_denied, _error_internal, _email_check
 from .models import UserCapability, Vendor, Restriction, User, Remote
+from .hash import _password_hash
 
 # sort by awesomeness
 def _sort_vendor_func(a, b):
@@ -284,6 +288,9 @@ def _verify_username_vendor_glob(username, username_glob):
             return True
     return False
 
+def _generate_initial_password(size=10, chars=string.ascii_letters + string.digits):
+    return ''.join(random.choice(chars) for _ in range(size))
+
 @app.route('/lvfs/vendor/<int:vendor_id>/user/add', methods=['POST'])
 @login_required
 def vendor_user_add(vendor_id):
@@ -327,11 +334,13 @@ def vendor_user_add(vendor_id):
             return redirect(url_for('.vendor_users', vendor_id=vendor_id), 302)
 
     # add user
+    password = _generate_initial_password()
     user = User(username=request.form['username'],
                 display_name=request.form['display_name'],
-                auth_type='disabled',
+                auth_type='local',
+                password=_password_hash(password),
                 vendor_id=vendor.vendor_id)
     db.session.add(user)
     db.session.commit()
-    flash('Added user %i' % user.user_id, 'info')
+    flash('Added user %i.\n\nThe initial password has been set as %s' % (user.user_id, password), 'info')
     return redirect(url_for('.vendor_users', vendor_id=vendor_id), 302)
