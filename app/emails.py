@@ -9,6 +9,7 @@ from flask_mail import Message
 from app import app, mail
 
 from .decorators import async
+from .util import _event_log
 
 @async
 def send_async_email(app2, msg):
@@ -21,4 +22,5 @@ def send_email(subject, recipient, text_body):
         return
     msg = Message(subject, recipients=[recipient])
     msg.body = text_body
+    _event_log('Sending email to %s' % recipient)
     send_async_email(app, msg)

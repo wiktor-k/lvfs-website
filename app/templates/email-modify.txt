@@ -1,0 +1,9 @@
+Dear {{ user.display_name }},
+
+Your profile has been modified on the Linux Vendor Firmware Service by {{ g.user.display_name }} <{{ g.user.username }}>. You may need to log out and back in before these changes will be applied:
+
+{{ url_for('.logout', _external=True) }}
+
+Regards,
+
+The LVFS admins

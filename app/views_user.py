@@ -9,6 +9,7 @@ from flask_login import login_required
 
 from app import app, db
 
+from .emails import send_email
 from .util import _error_internal, _error_permission_denied, _email_check
 from .models import UserCapability, User, Vendor, Remote
 from .hash import _password_hash
@@ -106,6 +107,14 @@ def user_modify_by_admin(user_id):
     # password is optional, and hashed
     if 'password' in request.form and request.form['password']:
         user.password = _password_hash(request.form['password'])
+        send_email("[LVFS] Your password has been reset",
+                   user.username,
+                   render_template('email-modify-password.txt',
+                                   user=user, password=request.form['password']))
+    else:
+        send_email("[LVFS] Your account has been updated",
+                   user.username,
+                   render_template('email-modify.txt', user=user))
 
     db.session.commit()
     flash('Updated profile', 'info')
