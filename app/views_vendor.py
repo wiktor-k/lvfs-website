@@ -5,8 +5,6 @@
 # Licensed under the GNU General Public License Version 2
 
 import os
-import string
-import random
 
 from glob import fnmatch
 
@@ -19,6 +17,7 @@ from .emails import send_email
 from .util import _error_permission_denied, _error_internal, _email_check
 from .models import UserCapability, Vendor, Restriction, User, Remote
 from .hash import _password_hash
+from .util import _generate_password
 
 # sort by awesomeness
 def _sort_vendor_func(a, b):
@@ -289,9 +288,6 @@ def _verify_username_vendor_glob(username, username_glob):
             return True
     return False
 
-def _generate_initial_password(size=10, chars=string.ascii_letters + string.digits):
-    return ''.join(random.choice(chars) for _ in range(size))
-
 @app.route('/lvfs/vendor/<int:vendor_id>/user/add', methods=['POST'])
 @login_required
 def vendor_user_add(vendor_id):
@@ -335,7 +331,7 @@ def vendor_user_add(vendor_id):
             return redirect(url_for('.vendor_users', vendor_id=vendor_id), 302)
 
     # add user
-    password = _generate_initial_password()
+    password = _generate_password()
     user = User(username=request.form['username'],
                 display_name=request.form['display_name'],
                 auth_type='local',

@@ -10,10 +10,6 @@
     <label for="display_name">Display Name:</label>
     <input type="text" class="form-control" name="display_name" value="{{u.display_name}}" required>
   </div>
-  <div class="form-group">
-    <label for="password">New Password:</label>
-    <input type="password" class="form-control" name="password">
-  </div>
 {% endif %}
 {% if g.user.check_capability('vendor-manager') %}
   <div class="form-group">
@@ -53,6 +49,7 @@
   </div>
 {% endif %}
   <input type="submit" class="btn btn-primary btn-large" class="submit" value="Modify">
+  <a class="btn btn-danger" href="/lvfs/user/{{u.user_id}}/reset_by_admin">Reset Password</a>
 {% if g.user.check_capability('admin') and u.group_id != 'admin' %}
   <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#deleteModal">Delete</button>
 {% endif %}

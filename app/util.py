@@ -9,6 +9,9 @@ from __future__ import print_function
 import os
 import calendar
 import datetime
+import string
+import random
+
 from glob import fnmatch
 
 from flask import request, flash, render_template, g
@@ -121,3 +124,6 @@ def _email_check(value):
     if len(value) < 5 or value.find('@') == -1 or value.find('.') == -1:
         return False
     return True
+
+def _generate_password(size=10, chars=string.ascii_letters + string.digits):
+    return ''.join(random.choice(chars) for _ in range(size))

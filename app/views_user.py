@@ -10,7 +10,7 @@ from flask_login import login_required
 from app import app, db
 
 from .emails import send_email
-from .util import _error_internal, _error_permission_denied, _email_check
+from .util import _error_internal, _error_permission_denied, _email_check, _generate_password
 from .models import UserCapability, User, Vendor, Remote
 from .hash import _password_hash
 
@@ -81,6 +81,34 @@ def user_modify(user_id):
     flash('Updated profile', 'info')
     return redirect(url_for('.profile'))
 
+@app.route('/lvfs/user/<int:user_id>/reset_by_admin')
+@login_required
+def user_reset_by_admin(user_id):
+    """ Reset the users password """
+
+    # check exists
+    user = db.session.query(User).filter(User.user_id == user_id).first()
+    if not user:
+        return _error_internal('No user with that user_id', 422)
+
+    # security check
+    if not g.user.check_for_vendor(user.vendor):
+        return _error_permission_denied('Unable to modify user as non-admin')
+
+    # password is stored hashed
+    password = _generate_password()
+    user.password = _password_hash(password)
+    db.session.commit()
+
+    # send email
+    send_email("[LVFS] Your password has been reset",
+               user.username,
+               render_template('email-modify-password.txt',
+                               user=user, password=password))
+
+    flash('Password has been reset and an email has been sent to the user', 'info')
+    return redirect(url_for('.user_admin', user_id=user_id))
+
 @app.route('/lvfs/user/<int:user_id>/modify_by_admin', methods=['POST'])
 @login_required
 def user_modify_by_admin(user_id):
@@ -107,14 +135,11 @@ def user_modify_by_admin(user_id):
     # password is optional, and hashed
     if 'password' in request.form and request.form['password']:
         user.password = _password_hash(request.form['password'])
-        send_email("[LVFS] Your password has been reset",
-                   user.username,
-                   render_template('email-modify-password.txt',
-                                   user=user, password=request.form['password']))
-    else:
-        send_email("[LVFS] Your account has been updated",
-                   user.username,
-                   render_template('email-modify.txt', user=user))
+
+    # send email
+    send_email("[LVFS] Your account has been updated",
+               user.username,
+               render_template('email-modify.txt', user=user))
 
     db.session.commit()
     flash('Updated profile', 'info')
@@ -182,7 +207,7 @@ def user_add():
                 vendor_id=vendor.vendor_id)
     db.session.add(user)
     db.session.commit()
-    flash('Added user %i' % user.user_id, 'info')
+    flash('Added user %i and an email has been sent to the user' % user.user_id, 'info')
     return redirect(url_for('.user_list'), 302)
 
 @app.route('/lvfs/user/<int:user_id>/delete')
