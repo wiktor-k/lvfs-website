@@ -28,6 +28,7 @@ class LvfsTestCase(unittest.TestCase):
             "SQLALCHEMY_DATABASE_URI = '%s'" % self.db_uri,
             "RESTORE_DIR = '/tmp'",
             "DOWNLOAD_DIR = '/tmp'",
+            "MAIL_SUPPRESS_SEND = True",
             ]))
         cfgfile.close()
 

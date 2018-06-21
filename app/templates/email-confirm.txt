@@ -1,0 +1,18 @@
+Dear {{ user.display_name }},
+
+You have been added as a user on the Linux Vendor Firmware Service by {{ g.user.display_name }} <{{ g.user.username }}>. Please click on the following link to log in to the LVFS:
+
+{{ url_for('.index', _external=True) }}
+
+Your credidentials have been set as:
+
+Username: {{ user.username }}
+Password: {{ password }}
+
+If you have any questions about how to use this web service don't hesistate to ask for help. You should also change your password when you log in for the first time clicking menu items 'Profile' then 'User'.
+
+If you have not requested access to the LVFS please reply to this message to let us know that something has gone wrong.
+
+Regards,
+
+The LVFS admins

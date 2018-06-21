@@ -15,6 +15,7 @@ from flask_login import login_required
 
 from app import app, db
 
+from .emails import send_email
 from .util import _error_permission_denied, _error_internal, _email_check
 from .models import UserCapability, Vendor, Restriction, User, Remote
 from .hash import _password_hash
@@ -342,5 +343,13 @@ def vendor_user_add(vendor_id):
                 vendor_id=vendor.vendor_id)
     db.session.add(user)
     db.session.commit()
-    flash('Added user %i.\n\nThe initial password has been set as %s' % (user.user_id, password), 'info')
+
+    # send email
+    send_email("[LVFS] An account has been created",
+               user.username,
+               render_template('email-confirm.txt',
+                               user=user, password=password))
+
+    # done!
+    flash('Added user %i' % user.user_id, 'info')
     return redirect(url_for('.vendor_users', vendor_id=vendor_id), 302)

@@ -12,6 +12,7 @@ import sqlalchemy
 from flask import Flask, flash, render_template, message_flashed, request, Response, g
 from flask_login import LoginManager
 from flask_migrate import Migrate
+from flask_mail import Mail
 from flask_oauthlib.client import OAuth
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.local import LocalProxy
@@ -34,6 +35,8 @@ oauth = OAuth(app)
 
 db = SQLAlchemy(app)
 
+mail = Mail(app)
+
 migrate = Migrate(app, db)
 
 @app.cli.command('initdb')
@@ -48,8 +51,7 @@ def flash_save_eventlog(unused_sender, message, category, **unused_extra):
     is_important = False
     if category in ['danger', 'warning']:
         is_important = True
-    msg = unicode(message).split('\n\n')[0]
-    _event_log(msg, is_important)
+    _event_log(unicode(message), is_important)
 
 message_flashed.connect(flash_save_eventlog, app)
 
