@@ -56,6 +56,9 @@ class User(db.Model):
     is_vendor_manager = Column(Boolean, default=False)
     is_admin = Column(Boolean, default=False)
     agreement_id = Column(Integer, ForeignKey('agreements.agreement_id'))
+    ctime = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
+    mtime = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
+    atime = Column(DateTime, default=None)
 
     # link using foreign keys
     vendor = relationship('Vendor', foreign_keys=[vendor_id])

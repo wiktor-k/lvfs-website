@@ -7,8 +7,9 @@
 <table class="table">
   <tr class="row table-borderless">
     <th class="col-sm-4">Username</th>
-    <th class="col-sm-3">Display Name</th>
-    <th class="col-sm-3">Attributes</th>
+    <th class="col-sm-2">Display Name</th>
+    <th class="col-sm-2">Last Used</th>
+    <th class="col-sm-2">Attributes</th>
     <th class="col-sm-2">&nbsp;</th>
   </tr>
 {% for u in v.users %}
@@ -20,8 +21,9 @@
       <a href="/lvfs/user/{{u.user_id}}/admin"><code>{{u.username}}</code></a>
 {% endif %}
     </td>
-    <td class="col-sm-3">{{u.display_name}}</td>
-    <td class="col-sm-3">
+    <td class="col-sm-2">{{u.display_name}}</td>
+    <td class="col-sm-2">{{u.atime}}</td>
+    <td class="col-sm-2">
       <code>
       {{ 'me' if u.user_id == g.user.user_id }}
       {{ u.auth_type if u.auth_type else 'disabled' }}

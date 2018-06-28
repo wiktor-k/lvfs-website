@@ -291,6 +291,11 @@ def login():
               'use %s instead of %s.' % (user.username, user.username_old), 'warning')
     else:
         flash('Logged in', 'info')
+
+    # set the access time
+    user.atime = datetime.datetime.utcnow()
+    db.session.commit()
+
     return redirect(url_for('.index'))
 
 @app.route('/lvfs/login/<plugin_id>')
@@ -356,6 +361,11 @@ def login_oauth_authorized(plugin_id):
         flash('Logged in, and created account', 'info')
     else:
         flash('Logged in', 'info')
+
+    # set the access time
+    user.atime = datetime.datetime.utcnow()
+    db.session.commit()
+
     return redirect(url_for('.index'))
 
 @app.route('/lvfs/logout')

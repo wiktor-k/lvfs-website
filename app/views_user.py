@@ -4,6 +4,8 @@
 # Copyright (C) 2017 Richard Hughes <richard@hughsie.com>
 # Licensed under the GNU General Public License Version 2
 
+import datetime
+
 from flask import request, flash, url_for, redirect, render_template, g
 from flask_login import login_required
 
@@ -77,6 +79,7 @@ def user_modify(user_id):
     # save to database
     user.password = _password_hash(password)
     user.display_name = display_name
+    user.mtime = datetime.datetime.utcnow()
     db.session.commit()
     flash('Updated profile', 'info')
     return redirect(url_for('.profile'))
@@ -98,6 +101,7 @@ def user_reset_by_admin(user_id):
     # password is stored hashed
     password = _generate_password()
     user.password = _password_hash(password)
+    user.mtime = datetime.datetime.utcnow()
     db.session.commit()
 
     # send email
@@ -141,6 +145,7 @@ def user_modify_by_admin(user_id):
                user.username,
                render_template('email-modify.txt', user=user))
 
+    user.mtime = datetime.datetime.utcnow()
     db.session.commit()
     flash('Updated profile', 'info')
     return redirect(url_for('.user_admin', user_id=user_id))
