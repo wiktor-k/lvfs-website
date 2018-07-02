@@ -128,9 +128,12 @@ def user_modify_by_admin(user_id):
         return _error_permission_denied('Unable to modify user as non-admin')
 
     # set each optional thing in turn
-    for key in ['display_name', 'auth_type']:
+    for key in ['display_name', 'username_old', 'auth_type']:
         if key in request.form:
-            setattr(user, key, request.form[key])
+            value = request.form[key]
+            if value == '':
+                value = None
+            setattr(user, key, value)
 
     # unchecked checkbuttons are not included in the form data
     for key in ['is_qa', 'is_analyst', 'is_vendor_manager']:
