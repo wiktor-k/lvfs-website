@@ -141,9 +141,10 @@ def user_modify_by_admin(user_id):
         user.password = _password_hash(request.form['password'])
 
     # send email
-    send_email("[LVFS] Your account has been updated",
-               user.username,
-               render_template('email-modify.txt', user=user))
+    if 'send_email' in request.form:
+        send_email("[LVFS] Your account has been updated",
+                   user.username,
+                   render_template('email-modify.txt', user=user))
 
     user.mtime = datetime.datetime.utcnow()
     db.session.commit()

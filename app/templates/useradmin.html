@@ -48,6 +48,17 @@
     </label>
   </div>
 {% endif %}
+{% if g.user.check_capability('admin') %}
+  <hr/>
+  <div class="form-group">
+    <label for="is_qa">
+      <input class="checkbox" type="checkbox" name="send_email" value="1" checked />
+      Notify the user about the account change
+    </label>
+  </div>
+{% else %}
+  <input type="hidden" name="send_email" value="1">
+{% endif %}
   <input type="submit" class="btn btn-primary btn-large" class="submit" value="Modify">
   <a class="btn btn-danger" href="/lvfs/user/{{u.user_id}}/reset_by_admin">Reset Password</a>
 {% if g.user.check_capability('admin') and u.group_id != 'admin' %}
