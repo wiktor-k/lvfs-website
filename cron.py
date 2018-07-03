@@ -146,6 +146,7 @@ def _regenerate_and_sign_firmware():
     for fw in fws:
         if fw.is_deleted:
             continue
+        print('Signing firmware %u...' % fw.firmware_id)
         _sign_fw(fw)
         _event_log('Signed firmware %s' % fw.firmware_id)
 
