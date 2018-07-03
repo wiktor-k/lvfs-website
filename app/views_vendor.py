@@ -82,6 +82,7 @@ def vendor_delete(vendor_id):
     flash('Removed vendor', 'info')
     return redirect(url_for('.vendor_list'), 302)
 
+@app.route('/lvfs/vendor/<int:vendor_id>')
 @app.route('/lvfs/vendor/<int:vendor_id>/details')
 @login_required
 def vendor_details(vendor_id):
