@@ -63,8 +63,8 @@ def _get_client_address():
 
 def _event_log(msg, is_important=False):
     """ Adds an item to the event log """
-    user_id = 1
-    vendor_id = 1
+    user_id = 2 	# Anonymous User
+    vendor_id = 1	# admin
     request_path = None
     if hasattr(g, 'user') and g.user:
         user_id = g.user.user_id
