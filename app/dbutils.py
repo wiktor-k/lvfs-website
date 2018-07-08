@@ -14,11 +14,6 @@ def _execute_count_star(q):
     count_query = q.statement.with_only_columns([func.count()]).order_by(None)
     return q.session.execute(count_query).scalar()
 
-class Database(object):
-
-    def __init__(self):
-        self.Base = None
-
 def init_db(db):
 
     # ensure all tables exist
