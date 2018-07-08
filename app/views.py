@@ -24,7 +24,7 @@ from .pluginloader import PluginError
 
 from .models import Firmware, Requirement, Component, Vendor
 from .models import User, Analytic, Client, Event, Useragent, _get_datestr_from_datetime
-from .hash import _qa_hash, _password_hash, _addr_hash
+from .hash import _password_hash, _addr_hash
 from .util import _get_client_address, _get_settings
 from .util import _error_permission_denied, _event_log, _error_internal
 
@@ -171,11 +171,7 @@ def utility_processor():
             num /= 1024.0
         return "%.1f%s%s" % (num, 'Yi', suffix)
 
-    def format_qa_hash(tmp):
-        return _qa_hash(tmp)
-
     return dict(format_size=format_size,
-                format_qa_hash=format_qa_hash,
                 format_timedelta_approx=format_timedelta_approx,
                 format_timestamp=format_timestamp)
 

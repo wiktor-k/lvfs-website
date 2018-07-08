@@ -18,7 +18,6 @@ from gi.repository import GLib
 from app import app, db
 from .dbutils import _execute_count_star
 
-from .hash import _qa_hash
 from .models import Firmware, Report, Client, FirmwareEvent, FirmwareLimit, Remote, Vendor
 from .util import _error_internal, _error_permission_denied
 from .util import _get_chart_labels_months, _get_chart_labels_days
@@ -421,8 +420,6 @@ def firmware_show(firmware_id):
     if not fw.check_acl('@view'):
         return _error_permission_denied('Insufficient permissions to view firmware')
 
-    embargo_url = '/downloads/firmware-%s.xml.gz' % _qa_hash(fw.vendor.group_id)
-
     # get the reports for this firmware
     reports_success = 0
     reports_failure = 0
@@ -438,7 +435,6 @@ def firmware_show(firmware_id):
 
     return render_template('firmware-details.html',
                            fw=fw,
-                           embargo_url=embargo_url,
                            reports_success=reports_success,
                            reports_issue=reports_issue,
                            reports_failure=reports_failure)

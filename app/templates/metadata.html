@@ -46,7 +46,7 @@
     <td class="col-sm-3">Embargo &lsquo;{{v.group_id}}&rsquo;</td>
     <td class="col-sm-1"><b>No</b></td>
     <td class="col-sm-4">
-      <a href="/downloads/{{ 'firmware-%s.xml.gz' % format_qa_hash(v.group_id) }}">{{ 'firmware-%s...xml.gz' % format_qa_hash(v.group_id)[0:8] }}
+      <a href="/downloads/{{v.remote.filename}}">{{ v.remote.filename[:16] }}
 {% if remotes['embargo-' + v.group_id].is_dirty %}
       <br/><span class="badge badge-warning">Will be signed in {{format_timedelta_approx(remotes['embargo-' + v.group_id].scheduled_signing)}}</span>
 {% endif %}

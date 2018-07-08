@@ -11,7 +11,6 @@ from flask_login import login_required
 
 from app import app, db
 
-from .hash import _qa_hash
 from .models import Vendor, Remote
 from .util import _error_internal, _error_permission_denied
 
@@ -37,7 +36,7 @@ def metadata_remote(group_id):
     remote.append('Enabled=true')
     remote.append('Title=Embargoed for ' + group_id)
     remote.append('Keyring=gpg')
-    remote.append('MetadataURI=https://fwupd.org/downloads/firmware-' + _qa_hash(group_id) + '.xml.gz')
+    remote.append('MetadataURI=https://fwupd.org/downloads/%s' % vendor.remote.filename)
     remote.append('OrderBefore=lvfs,fwupd')
     fn = group_id + '-embargo.conf'
     response = make_response('\n'.join(remote))
