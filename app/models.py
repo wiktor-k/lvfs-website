@@ -48,6 +48,7 @@ class User(db.Model):
     auth_type = Column(Text, default='disabled')
     auth_warning = Column(Text, default=None)
     is_qa = Column(Boolean, default=False)
+    is_robot = Column(Boolean, default=False)
     is_analyst = Column(Boolean, default=False)
     is_vendor_manager = Column(Boolean, default=False)
     is_approved_public = Column(Boolean, default=False)
@@ -111,6 +112,8 @@ class User(db.Model):
             if not self.vendor.check_acl('@manage-users'):
                 return False
             return self.is_qa
+        elif action == '@add-attribute-robot':
+            return self.vendor.check_acl('@manage-users')
         elif action in ('@view-eventlog', '@view-issues'):
             return self.is_qa
         raise NotImplementedError('unknown security check type: %s' % self)

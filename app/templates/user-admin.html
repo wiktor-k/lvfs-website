@@ -69,6 +69,14 @@
     <div class="row">
       <legend class="col-form-label col-sm-2 pt-0">Attributes</legend>
       <div class="col-sm-10">
+{% if g.user.check_acl('@add-attribute-robot') %}
+        <span class="switch mt-3">
+          <input class="switch" type="checkbox" name="is_robot" id="is_robot" value="1" {{'checked' if u.is_robot}}>
+          <label for="is_robot">
+            Account is a robot used for automated firmware uploading only
+          </label>
+        </span>
+{% endif %}
 {% if g.user.check_acl('@add-attribute-analyst') %}
         <span class="switch">
           <input class="switch" type="checkbox" name="is_analyst" id="is_analyst" value="1" {{'checked' if u.is_analyst}}>
@@ -108,8 +116,8 @@
 {% if g.user.check_acl('@admin') %}
   <hr/>
   <div class="form-group">
-    <label for="is_qa">
-      <input class="checkbox" type="checkbox" name="send_email" value="1" checked />
+    <label for="send_email">
+      <input class="checkbox" type="checkbox" name="send_email" value="{{'1' if not u.is_robot}}" checked />
       Notify the user about the account change
     </label>
   </div>

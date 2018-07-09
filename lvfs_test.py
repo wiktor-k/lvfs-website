@@ -108,14 +108,14 @@ class LvfsTestCase(unittest.TestCase):
 
     def add_user(self, username='testuser@fwupd.org', group_id='testgroup',
                  password='Pa$$w0rd', is_qa=False, is_analyst=False,
-                 is_vendor_manager=False, is_approved_public=False):
+                 is_vendor_manager=False, is_approved_public=False, is_robot=False):
         rv = self._add_user(username, group_id, password)
         assert b'Added user' in rv.data, rv.data
         user_id_idx = rv.data.find('Added user ')
         assert user_id_idx != -1, rv.data
         user_id = int(rv.data[user_id_idx+11:user_id_idx+12])
         assert user_id != 0, rv.data
-        if is_qa or is_analyst or is_vendor_manager or is_approved_public:
+        if is_qa or is_analyst or is_vendor_manager or is_approved_public or is_robot:
             data = {'auth_type': 'local'}
             if is_qa:
                 data['is_qa'] = '1'
@@ -125,6 +125,8 @@ class LvfsTestCase(unittest.TestCase):
                 data['is_vendor_manager'] = '1'
             if is_approved_public:
                 data['is_approved_public'] = '1'
+            if is_robot:
+                data['is_robot'] = '1'
             rv = self.app.post('/lvfs/user/%i/modify_by_admin' % user_id,
                                data=data, follow_redirects=True)
             assert b'Updated profile' in rv.data, rv.data
