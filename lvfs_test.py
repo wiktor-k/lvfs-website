@@ -20,7 +20,10 @@ def _gzip_decompress_buffer(buf):
     fgz.write(buf)
     fgz.seek(0)
     with gzip.GzipFile(fileobj=fgz, mode='rb') as gzip_obj:
-        buf_d = gzip_obj.read()
+        try:
+            buf_d = gzip_obj.read()
+        except IOError as e:
+            print(e, buf)
     fgz.close()
     return buf_d
 
