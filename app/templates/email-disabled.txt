@@ -1,0 +1,9 @@
+Dear {{ user.display_name }},
+
+Your profile has been disabled on the Linux Vendor Firmware Service.
+
+If you believe this was in error please email {{ g.user.display_name }} <{{ g.user.username }}> and they can explain why this has happened.
+
+Regards,
+
+The LVFS admins

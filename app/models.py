@@ -56,6 +56,7 @@ class User(db.Model):
     ctime = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
     mtime = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
     atime = Column(DateTime, default=None)
+    dtime = Column(DateTime, default=None)
 
     # link using foreign keys
     vendor = relationship('Vendor', foreign_keys=[vendor_id])

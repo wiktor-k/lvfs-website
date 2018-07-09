@@ -271,8 +271,12 @@ def login():
     if not user:
         flash('Failed to log in: Incorrect username or password for %s' % request.form['username'], 'danger')
         return redirect(url_for('.index'))
-    if not user.auth_type:
-        flash('Failed to log in: User account %s is disabled' % request.form['username'], 'danger')
+    if not user.auth_type or user.auth_type == 'disabled':
+        if user.dtime:
+            flash('Failed to log in: User account %s was disabled on %s' %
+                  (request.form['username'], user.dtime.strftime('%Y-%m-%d')), 'danger')
+        else:
+            flash('Failed to log in: User account %s is disabled' % request.form['username'], 'danger')
         return redirect(url_for('.index'))
     if user.auth_type == 'oauth':
         flash('Failed to log in: Only OAuth can be used to log in for this user', 'danger')

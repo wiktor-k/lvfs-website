@@ -160,6 +160,13 @@ def user_modify_by_admin(user_id):
     if 'password' in request.form and request.form['password']:
         user.password = _password_hash(request.form['password'])
 
+    # was disabled?
+    if user.auth_type == 'disabled':
+        if not user.dtime:
+            user.dtime = datetime.datetime.utcnow()
+    else:
+        user.dtime = None
+
     user.mtime = datetime.datetime.utcnow()
     db.session.commit()
 
@@ -199,9 +206,14 @@ def user_modify_by_admin(user_id):
                                        old_vendor=old_vendor,
                                        reparent=reparent))
         else:
-            send_email("[LVFS] Your account has been updated",
-                       user.username,
-                       render_template('email-modify.txt', user=user))
+            if user.auth_type == 'disabled':
+                send_email("[LVFS] Your account has been disabled",
+                           user.username,
+                           render_template('email-disabled.txt', user=user))
+            else:
+                send_email("[LVFS] Your account has been updated",
+                           user.username,
+                           render_template('email-modify.txt', user=user))
         flash('Updated profile and sent a notification email to the user', 'info')
     else:
         flash('Updated profile', 'info')
