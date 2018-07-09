@@ -46,6 +46,7 @@ class User(db.Model):
     display_name = Column(Unicode, default=None)
     vendor_id = Column(Integer, ForeignKey('vendors.vendor_id'), nullable=False)
     auth_type = Column(Text, default='disabled')
+    auth_warning = Column(Text, default=None)
     is_qa = Column(Boolean, default=False)
     is_analyst = Column(Boolean, default=False)
     is_vendor_manager = Column(Boolean, default=False)

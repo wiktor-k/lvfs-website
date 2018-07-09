@@ -116,6 +116,15 @@
     </div>
 {% endfor %}
 
+{% if g.user is defined and g.user.auth_warning %}
+    <!-- notify user about authentication problem -->
+    <div class="container mt-3">
+      <div class="alert alert-warning" role="alert">
+        <strong>{{g.user.auth_warning}}</strong>
+      </div>
+    </div>
+{% endif %}
+
 <div class="container mt-3">
 {% block nav %}{% endblock %}
   <div class="container mt-3">

@@ -71,7 +71,7 @@ class LvfsTestCase(unittest.TestCase):
         os.close(self.cfg_fd)
         os.unlink(self.cfg_filename)
 
-    def _login(self, username, password):
+    def _login(self, username, password='Pa$$w0rd'):
         return self.app.post('/lvfs/login', data=dict(
             username=username,
             password=password
@@ -638,6 +638,7 @@ class LvfsTestCase(unittest.TestCase):
         # modify an existing user as the admin
         rv = self.app.post('/lvfs/user/3/modify_by_admin', data=dict(
             auth_type='local',
+            auth_warning='Caveat Emptor',
             is_qa='1',
             is_analyst='1',
             group_id='testgroup',
@@ -649,7 +650,9 @@ class LvfsTestCase(unittest.TestCase):
 
         # ensure the user can log in
         self.logout()
-        self.login('testuser@fwupd.org')
+        rv = self._login('testuser@fwupd.org')
+        assert b'/lvfs/upload' in rv.data, rv.data
+        assert b'Caveat Emptor' in rv.data, rv.data
 
         # ensure the user can change thier own password
         rv = self.app.post('/lvfs/user/3/modify', data=dict(
