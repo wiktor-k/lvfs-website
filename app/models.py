@@ -87,6 +87,10 @@ class User(db.Model):
         if self.is_admin:
             return True
 
+        # disabled users can do nothing
+        if self.auth_type == 'disabled':
+            return False
+
         # decide based on the action
         if action == '@admin':
             return False

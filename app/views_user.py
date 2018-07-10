@@ -281,6 +281,7 @@ def user_add():
         db.session.commit()
     user = User(username=username,
                 password=_password_hash(password),
+                auth_type='local',
                 display_name=display_name,
                 vendor_id=vendor.vendor_id)
     db.session.add(user)

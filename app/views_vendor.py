@@ -277,7 +277,7 @@ def vendor_user_disable(vendor_id, user_id):
 
     # erase password and set as 'disabled'
     user.password = None
-    user.auth_type = None
+    user.auth_type = 'disabled'
     db.session.commit()
     return redirect(url_for('.vendor_users', vendor_id=vendor_id))
 
