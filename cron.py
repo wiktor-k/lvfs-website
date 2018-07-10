@@ -4,7 +4,7 @@
 # Copyright (C) 2015-2018 Richard Hughes <richard@hughsie.com>
 # Licensed under the GNU General Public License Version 2
 #
-# pylint: disable=singleton-comparison
+# pylint: disable=singleton-comparison,wrong-import-position
 
 from __future__ import print_function
 
@@ -13,7 +13,10 @@ import sys
 import hashlib
 import datetime
 
+import gi
+gi.require_version('AppStreamGlib', '1.0')
 from gi.repository import AppStreamGlib
+gi.require_version('GCab', '1.0')
 from gi.repository import GCab
 from gi.repository import Gio
 from gi.repository import GLib

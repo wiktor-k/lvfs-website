@@ -3,6 +3,8 @@
 #
 # Copyright (C) 2015 Richard Hughes <richard@hughsie.com>
 # Licensed under the GNU General Public License Version 2
+#
+# pylint: disable=wrong-import-position
 
 from __future__ import print_function
 
@@ -16,6 +18,8 @@ from glob import fnmatch
 
 from flask import request, flash, render_template, g
 
+import gi
+gi.require_version('GCab', '1.0')
 from gi.repository import GCab
 from gi.repository import GLib
 

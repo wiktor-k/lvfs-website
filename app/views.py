@@ -3,6 +3,8 @@
 #
 # Copyright (C) 2015-2018 Richard Hughes <richard@hughsie.com>
 # Licensed under the GNU General Public License Version 2
+#
+# pylint: disable=wrong-import-position
 
 from __future__ import print_function
 
@@ -16,6 +18,8 @@ from flask import send_from_directory, abort, Response, g
 from flask_login import login_required, login_user, logout_user
 from sqlalchemy.exc import IntegrityError
 
+import gi
+gi.require_version('AppStreamGlib', '1.0')
 from gi.repository import AppStreamGlib
 
 from app import app, db, lm, ploader
