@@ -145,6 +145,9 @@ def user_modify_by_admin(user_id):
     if not user.is_robot and 'is_robot' in request.form:
         if not g.user.check_acl('@add-attribute-robot'):
             return _error_permission_denied('Unable to mark user as robot')
+    if not user.is_admin and 'is_admin' in request.form:
+        if not g.user.check_acl('@add-attribute-admin'):
+            return _error_permission_denied('Unable to mark user as admin')
 
     # set each optional thing in turn
     old_vendor = user.vendor
@@ -156,7 +159,7 @@ def user_modify_by_admin(user_id):
             setattr(user, key, value)
 
     # unchecked checkbuttons are not included in the form data
-    for key in ['is_qa', 'is_analyst', 'is_vendor_manager', 'is_approved_public', 'is_robot']:
+    for key in ['is_qa', 'is_analyst', 'is_vendor_manager', 'is_approved_public', 'is_robot', 'is_admin']:
         setattr(user, key, True if key in request.form else False)
 
     # password is optional, and hashed

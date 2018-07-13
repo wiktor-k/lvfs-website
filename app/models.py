@@ -119,6 +119,10 @@ class User(db.Model):
             if not self.vendor.check_acl('@manage-users'):
                 return False
             return self.is_qa
+        elif action == '@add-attribute-admin':
+            if not self.vendor.check_acl('@manage-users'):
+                return False
+            return self.is_admin
         elif action == '@add-attribute-robot':
             return self.vendor.check_acl('@manage-users')
         elif action in ('@view-eventlog', '@view-issues'):

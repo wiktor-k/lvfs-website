@@ -69,6 +69,14 @@
     <div class="row">
       <legend class="col-form-label col-sm-2 pt-0">Attributes</legend>
       <div class="col-sm-10">
+{% if g.user.check_acl('@add-attribute-admin') %}
+        <span class="switch mt-3">
+          <input class="switch" type="checkbox" name="is_admin" id="is_admin" value="1" {{'checked' if u.is_admin}}>
+          <label for="is_admin">
+            Full access to all vendors and users on the server
+          </label>
+        </span>
+{% endif %}
 {% if g.user.check_acl('@add-attribute-robot') %}
         <span class="switch mt-3">
           <input class="switch" type="checkbox" name="is_robot" id="is_robot" value="1" {{'checked' if u.is_robot}}>
