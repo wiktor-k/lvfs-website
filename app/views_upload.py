@@ -307,6 +307,7 @@ def upload():
     # invalidate
     if target == 'embargo':
         remote.is_dirty = True
+        vendor.remote.is_dirty = True
         db.session.commit()
 
     return redirect(url_for('.firmware_show', firmware_id=fw.firmware_id))
