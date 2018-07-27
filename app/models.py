@@ -540,6 +540,15 @@ class Component(db.Model):
                                        v & 0x0000ffff)
         return self.version
 
+    def _check_release_description(self):
+        if not self.release_description:
+            return False
+        if len(self.release_description) < 12:
+            return False
+        if self.release_description.find('.BLD') != -1:
+            return False
+        return True
+
     def add_keywords_from_string(self, value, priority=0):
         existing_keywords = {}
         for kw in self.keywords:
@@ -753,7 +762,7 @@ class Firmware(db.Model):
         for md in self.mds:
             if md.release_urgency == 'unknown':
                 problems.append('no-release-urgency')
-            if not md.release_description or len(md.release_description) < 12:
+            if not md._check_release_description():
                 problems.append('no-release-description')
         return list(set(problems))
 
