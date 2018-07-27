@@ -73,6 +73,10 @@ def _create_fw_from_uploaded_file(ufile):
         md.url_homepage = unicode(component.get_url_item(AppStreamGlib.UrlKind.HOMEPAGE))
         md.description = unicode(component.get_description())
 
+        # fix up the vendor
+        if md.developer_name == 'LenovoLtd.':
+            md.developer_name = 'Lenovo Ltd.'
+
         # add manually added keywords
         for keyword in component.get_keywords():
             md.add_keywords_from_string(unicode(keyword), priority=5)
