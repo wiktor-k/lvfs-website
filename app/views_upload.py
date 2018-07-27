@@ -265,7 +265,7 @@ def upload():
                 for old_guid in md.guids:
                     if not old_guid.value in new_guids:
                         flash('Firmware %s dropped a GUID previously '
-                              'supported %s' % (md.appstream_id, old_guid), 'danger')
+                              'supported %s' % (md.appstream_id, old_guid.value), 'danger')
                         return redirect(request.url)
 
     # allow plugins to copy any extra files from the source archive
