@@ -75,7 +75,7 @@ def _create_fw_from_uploaded_file(ufile):
 
         # fix up the vendor
         if md.developer_name == 'LenovoLtd.':
-            md.developer_name = 'Lenovo Ltd.'
+            md.developer_name = u'Lenovo Ltd.'
 
         # add manually added keywords
         for keyword in component.get_keywords():
