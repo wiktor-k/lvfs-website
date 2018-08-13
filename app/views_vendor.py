@@ -10,6 +10,7 @@ from glob import fnmatch
 
 from flask import request, flash, url_for, redirect, render_template, g
 from flask_login import login_required
+from sqlalchemy.orm import joinedload
 
 from app import app, db
 
@@ -86,20 +87,20 @@ def _abs_to_pc(data):
 
 @app.route('/lvfs/vendorlist/<page>')
 def vendor_list_analytics(page):
+    vendors = db.session.query(Vendor).\
+                order_by(Vendor.display_name).\
+                options(joinedload('fws')).all()
     if page == 'publicfw':
-        vendors = db.session.query(Vendor).order_by(Vendor.display_name).all()
         labels, data = _get_vendorlist_stats(vendors, _count_vendor_fws_public)
         return render_template('vendorlist-analytics.html', vendors=vendors,
                                title='Total number of public firmware files',
                                page=page, labels=labels, data=data)
     if page == 'downloads':
-        vendors = db.session.query(Vendor).order_by(Vendor.display_name).all()
         labels, data = _get_vendorlist_stats(vendors, _count_vendor_fws_downloads)
         return render_template('vendorlist-analytics.html', vendors=vendors,
                                title='Percentage of firmware downloads',
                                page=page, labels=labels, data=_abs_to_pc(data))
     if page == 'devices':
-        vendors = db.session.query(Vendor).order_by(Vendor.display_name).all()
         labels, data = _get_vendorlist_stats(vendors, _count_vendor_fws_devices)
         return render_template('vendorlist-analytics.html', vendors=vendors,
                                title='Total number of supported devices',
