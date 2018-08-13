@@ -48,8 +48,4 @@ new Chart(ctx, {
 
 {% endblock %}
 
-<!-- back -->
-{% block footer %}
-{% if g.user is not defined %}
-<p><a href="/lvfs/devicelist">Back to the device list</a></p>
-{% endif %}{% endblock %}
+{% block breadcrumb %}{% include 'device-breadcrumb.html' %}{% endblock %}
