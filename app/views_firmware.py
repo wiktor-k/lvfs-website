@@ -89,7 +89,7 @@ def firmware_modify(firmware_id):
         if 'description' in request.form:
             txt = request.form['description']
             if txt:
-                if txt.find('<p>') == -1:
+                if txt.find('<p>') == -1 and txt.find('<li>') == -1:
                     txt = AppStreamGlib.markup_import(txt, AppStreamGlib.MarkupConvertFormat.SIMPLE)
                 try:
                     AppStreamGlib.markup_validate(txt)
