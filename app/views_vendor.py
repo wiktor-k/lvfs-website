@@ -33,11 +33,11 @@ def _sort_vendor_func(a, b):
     return 0
 
 def _count_vendor_fws_public(vendor, remote_name):
-    cnt = 0
+    dedupe_csum = {}
     for fw in vendor.fws:
         if fw.remote.name == remote_name:
-            cnt += 1
-    return cnt
+            dedupe_csum[fw.checksum_upload] = True
+    return len(dedupe_csum)
 
 def _count_vendor_fws_downloads(vendor, remote_name):
     cnt = 0
