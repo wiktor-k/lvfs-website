@@ -17,10 +17,16 @@ var data = {
     labels: {{labels|safe}},
     datasets: [
         {
-            label: "{{title}}",
-            borderColor: "rgba(20,120,220,0.2)",
-            backgroundColor: "rgba(20,120,220,0.2)",
-            data: {{data|safe}}
+            label: "Stable Releases",
+            borderColor: "rgba(20,120,220,0.4)",
+            backgroundColor: "rgba(20,120,220,0.4)",
+            data: {{data_stable|safe}}
+        },
+        {
+            label: "Testing Releases",
+            borderColor: "rgba(20,120,120,0.2)",
+            backgroundColor: "rgba(20,120,180,0.2)",
+            data: {{data_testing|safe}}
         },
     ]
 };
@@ -30,7 +36,15 @@ new Chart(ctx, {
     data: data,
     options: {
         legend: {
-            display: false
+            display: true
+        },
+        scales: {
+            xAxes: [{
+                stacked: true,
+            }],
+            yAxes: [{
+                stacked: true
+            }]
         }
     }
 });

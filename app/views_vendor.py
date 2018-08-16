@@ -3,6 +3,8 @@
 #
 # Copyright (C) 2017 Richard Hughes <richard@hughsie.com>
 # Licensed under the GNU General Public License Version 2
+#
+# pylint: disable=too-few-public-methods
 
 import os
 
@@ -30,27 +32,33 @@ def _sort_vendor_func(a, b):
         return 1
     return 0
 
-def _count_vendor_fws_public(vendor):
+def _count_vendor_fws_public(vendor, remote_name):
     cnt = 0
     for fw in vendor.fws:
-        if fw.remote.is_public:
+        if fw.remote.name == remote_name:
             cnt += 1
     return cnt
 
-def _count_vendor_fws_downloads(vendor):
+def _count_vendor_fws_downloads(vendor, remote_name):
     cnt = 0
     for fw in vendor.fws:
-        cnt += fw.download_cnt
+        if fw.remote.name == remote_name:
+            cnt += fw.download_cnt
     return cnt
 
-def _count_vendor_fws_devices(vendor):
+def _count_vendor_fws_devices(vendor, remote_name):
     guids = {}
     for fw in vendor.fws:
-        if fw.remote.is_public:
+        if fw.remote.name == remote_name:
             for md in fw.mds:
                 for gu in md.guids:
                     guids[gu.value] = 1
     return len(guids)
+
+class VendorStat(object):
+    def __init__(self, stable, testing):
+        self.stable = stable
+        self.testing = testing
 
 def _get_vendorlist_stats(vendors, fn):
 
@@ -59,30 +67,40 @@ def _get_vendorlist_stats(vendors, fn):
     for v in vendors:
         if not v.visible:
             continue
-        cnt = fn(v)
-        if not cnt:
+        cnt_stable = fn(v, 'stable')
+        cnt_testing = fn(v, 'testing')
+        if not cnt_stable and not cnt_testing:
             continue
         display_name = v.display_name.split(' ')[0]
         if display_name not in display_names:
-            display_names[display_name] = 0
-        display_names[display_name] += cnt
+            display_names[display_name] = VendorStat(cnt_stable, cnt_testing)
+            continue
+        stat = display_names[display_name]
+        stat.stable += cnt_stable
+        stat.testing += cnt_testing
 
     # build graph data
     labels = []
-    data = []
-    vendors = sorted(display_names.items(), key=lambda k: k[1], reverse=True)
-    for display_name, cnt in vendors[:10]:
+    data_stable = []
+    data_testing = []
+    vendors = sorted(display_names.items(),
+                     key=lambda k: k[1].stable + k[1].testing,
+                     reverse=True)
+    for display_name, stat in vendors[:10]:
         labels.append(str(display_name))
-        data.append(int(cnt))
-    return labels, data
+        data_stable.append(float(stat.stable))
+        data_testing.append(float(stat.testing))
+    return labels, data_stable, data_testing
 
-def _abs_to_pc(data):
+def _abs_to_pc(data, data_other):
     total = 0
     for num in data:
         total += num
+    for num in data_other:
+        total += num
     data_pc = []
     for num in data:
-        data_pc.append(num * 100 / total)
+        data_pc.append(round(num * 100 / total, 2))
     return data_pc
 
 @app.route('/lvfs/vendorlist/<page>')
@@ -91,20 +109,26 @@ def vendor_list_analytics(page):
                 order_by(Vendor.display_name).\
                 options(joinedload('fws')).all()
     if page == 'publicfw':
-        labels, data = _get_vendorlist_stats(vendors, _count_vendor_fws_public)
+        labels, data_stable, data_testing = _get_vendorlist_stats(vendors, _count_vendor_fws_public)
         return render_template('vendorlist-analytics.html', vendors=vendors,
                                title='Total number of public firmware files',
-                               page=page, labels=labels, data=data)
+                               page=page, labels=labels,
+                               data_stable=data_stable,
+                               data_testing=data_testing)
     if page == 'downloads':
-        labels, data = _get_vendorlist_stats(vendors, _count_vendor_fws_downloads)
+        labels, data_stable, data_testing = _get_vendorlist_stats(vendors, _count_vendor_fws_downloads)
         return render_template('vendorlist-analytics.html', vendors=vendors,
                                title='Percentage of firmware downloads',
-                               page=page, labels=labels, data=_abs_to_pc(data))
+                               page=page, labels=labels,
+                               data_stable=_abs_to_pc(data_stable, data_testing),
+                               data_testing=_abs_to_pc(data_testing, data_stable))
     if page == 'devices':
-        labels, data = _get_vendorlist_stats(vendors, _count_vendor_fws_devices)
+        labels, data_stable, data_testing = _get_vendorlist_stats(vendors, _count_vendor_fws_devices)
         return render_template('vendorlist-analytics.html', vendors=vendors,
                                title='Total number of supported devices',
-                               page=page, labels=labels, data=data)
+                               page=page, labels=labels,
+                               data_stable=data_stable,
+                               data_testing=data_testing)
     return _error_internal('Vendorlist kind invalid')
 
 @app.route('/status')
