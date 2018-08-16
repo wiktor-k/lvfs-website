@@ -21,21 +21,28 @@ def _generate_metadata_kind(filename, fws, firmware_baseuri=''):
     store = AppStreamGlib.Store.new()
     store.set_origin('lvfs')
     store.set_api_version(0.9)
+
+    components = {}
     for fw in fws:
 
         # add each component
         for md in fw.mds:
-            component = AppStreamGlib.App.new()
-            component.set_id(md.appstream_id)
-            component.set_kind(AppStreamGlib.AppKind.FIRMWARE)
-            component.set_name(None, md.name)
-            component.set_comment(None, md.summary)
-            component.set_description(None, md.description)
-            if md.url_homepage:
-                component.add_url(AppStreamGlib.UrlKind.HOMEPAGE, md.url_homepage)
-            component.set_metadata_license(md.metadata_license)
-            component.set_project_license(md.project_license)
-            component.set_developer_name(None, md.developer_name)
+            if md.appstream_id not in components:
+                component = AppStreamGlib.App.new()
+                component.set_trust_flags(AppStreamGlib.AppTrustFlags.CHECK_DUPLICATES)
+                component.set_id(md.appstream_id)
+                component.set_kind(AppStreamGlib.AppKind.FIRMWARE)
+                component.set_name(None, md.name)
+                component.set_comment(None, md.summary)
+                component.set_description(None, md.description)
+                if md.url_homepage:
+                    component.add_url(AppStreamGlib.UrlKind.HOMEPAGE, md.url_homepage)
+                component.set_metadata_license(md.metadata_license)
+                component.set_project_license(md.project_license)
+                component.set_developer_name(None, md.developer_name)
+                components[md.appstream_id] = component
+            else:
+                component = components[md.appstream_id]
 
             # add provide
             for guid in md.guids:
@@ -135,8 +142,9 @@ def _generate_metadata_kind(filename, fws, firmware_baseuri=''):
             if md.version_format:
                 component.add_metadata('LVFS::VersionFormat', md.version_format)
 
-            # add component
-            store.add_app(component)
+    # add components
+    for appstream_id in components:
+        store.add_app(components[appstream_id])
 
     # dump to file
     store.to_file(Gio.file_new_for_path(filename),
