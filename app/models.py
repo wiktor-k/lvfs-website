@@ -862,6 +862,9 @@ class Firmware(db.Model):
             # is original file uploader and uploaded to ODM group
             if self._is_owner(user) and self._is_vendor(user):
                 return True
+            # is QA user for the current assigned vendor
+            if user.is_qa and self._is_vendor(user):
+                return True
             return False
         raise NotImplementedError('unknown security check action: %s:%s' % (self, action))
 

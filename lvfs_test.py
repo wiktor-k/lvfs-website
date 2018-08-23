@@ -1018,6 +1018,31 @@ class LvfsTestCase(unittest.TestCase):
         assert b'>embargo-oem<' in rv.data, rv.data
         assert b'>embargo-odm<' not in rv.data, rv.data
 
+    def test_affiliation_change_as_qa(self):
+
+        # add oem and odm
+        self.login()
+        self.add_vendor('odm')  # 2
+        self.add_vendor('oem')  # 3
+        self.add_affiliation(3, 2)
+
+        # add odm uploader and QA user
+        self.add_user('alice@odm.com', 'odm')
+        self.add_user('bob@odm.com', 'odm', is_qa=True)
+        self.logout()
+
+        # upload as alice
+        self.login('alice@odm.com')
+        self.upload(target='embargo')
+        self.logout()
+
+        # move to oem as bob
+        self.login('bob@odm.com')
+        rv = self.app.post('/lvfs/firmware/1/affiliation/change', data=dict(
+            vendor_id='3',
+        ), follow_redirects=True)
+        assert b'Changed firmware vendor' in rv.data, rv.data
+
     def test_affiliation_change_as_user(self):
 
         # add oem and odm
