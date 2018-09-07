@@ -478,7 +478,7 @@ def vendor_affiliations(vendor_id):
     for v in db.session.query(Vendor).order_by(Vendor.display_name).all():
         if v.vendor_id == vendor_id:
             continue
-        if v.is_uploading != 'yes':
+        if v.is_account_holder != 'yes':
             continue
         if v.is_affiliate_for(vendor.vendor_id):
             continue
