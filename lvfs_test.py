@@ -938,7 +938,6 @@ class LvfsTestCase(unittest.TestCase):
 
         # check existing requires were added
         self.login()
-        self.app.get('/lvfs/component/requirement/repair')
         self.upload()
 
         # check requirements were copied out from the .metainfo.xml file
@@ -950,20 +949,18 @@ class LvfsTestCase(unittest.TestCase):
         assert b'BOT03.0[2-9]_*' in rv.data, rv.data
 
         # remove the CHID requirement
-        rv = self.app.get('/lvfs/component/requirement/delete/3', follow_redirects=True)
+        rv = self.app.get('/lvfs/component/1/requirement/delete/3', follow_redirects=True)
         assert b'Removed requirement 85d38fda-fc0e-5c6f-808f-076984ae7978' in rv.data, rv.data
 
         # add an invalid CHID
-        rv = self.app.post('/lvfs/component/requirement/add', data=dict(
-            component_id='1',
+        rv = self.app.post('/lvfs/component/1/requirement/add', data=dict(
             kind='hardware',
             value='NOVALIDGUID',
         ), follow_redirects=True)
         assert b'NOVALIDGUID is not a valid GUID' in rv.data, rv.data
 
         # add a valid CHID
-        rv = self.app.post('/lvfs/component/requirement/add', data=dict(
-            component_id='1',
+        rv = self.app.post('/lvfs/component/1/requirement/add', data=dict(
             kind='hardware',
             value='85d38fda-fc0e-5c6f-808f-076984ae7978',
         ), follow_redirects=True)
@@ -971,8 +968,7 @@ class LvfsTestCase(unittest.TestCase):
         assert b'Added requirement' in rv.data, rv.data
 
         # modify an existing requirement by adding it again
-        rv = self.app.post('/lvfs/component/requirement/add', data=dict(
-            component_id='1',
+        rv = self.app.post('/lvfs/component/1/requirement/add', data=dict(
             kind='id',
             value='org.freedesktop.fwupd',
             compare='ge',
@@ -982,8 +978,7 @@ class LvfsTestCase(unittest.TestCase):
         assert b'Modified requirement' in rv.data, rv.data
 
         # delete a requirement by adding an 'any' comparison
-        rv = self.app.post('/lvfs/component/requirement/add', data=dict(
-            component_id='1',
+        rv = self.app.post('/lvfs/component/1/requirement/add', data=dict(
             kind='id',
             value='org.freedesktop.fwupd',
             compare='any',
@@ -1275,8 +1270,7 @@ class LvfsTestCase(unittest.TestCase):
         assert b'>bob<' in rv.data, rv.data
 
         # add another set of keywords
-        rv = self.app.post('/lvfs/component/keyword/add', data=dict(
-            component_id='1',
+        rv = self.app.post('/lvfs/component/1/keyword/add', data=dict(
             value='Clara Dave',
         ), follow_redirects=True)
         assert b'Added keywords' in rv.data, rv.data
@@ -1284,7 +1278,7 @@ class LvfsTestCase(unittest.TestCase):
         assert b'>dave<' in rv.data, rv.data
 
         # delete one of the added keywords
-        rv = self.app.get('/lvfs/component/keyword/5/delete', follow_redirects=True)
+        rv = self.app.get('/lvfs/component/1/keyword/5/delete', follow_redirects=True)
         assert b'Removed keyword' in rv.data, rv.data
         assert b'>alice<' in rv.data, rv.data
         assert b'>colorimeter<' not in rv.data, rv.data

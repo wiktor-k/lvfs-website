@@ -73,9 +73,9 @@ def firmware_component_show(component_id, page='overview'):
     return render_template('firmware-md-' + page + '.html',
                            md=md, fw=fw, page=page)
 
-@app.route('/lvfs/component/requirement/delete/<requirement_id>')
+@app.route('/lvfs/component/<int:component_id>/requirement/delete/<requirement_id>')
 @login_required
-def firmware_requirement_delete(requirement_id):
+def firmware_requirement_delete(component_id, requirement_id):
 
     # get firmware component
     rq = db.session.query(Requirement).filter(Requirement.requirement_id == requirement_id).first()
@@ -84,6 +84,8 @@ def firmware_requirement_delete(requirement_id):
 
     # get the firmware for the requirement
     md = rq.md
+    if md.component_id != component_id:
+        return _error_internal('Wrong component ID for requirement!')
     if not md:
         return _error_internal('No metadata matched!')
 
@@ -101,13 +103,13 @@ def firmware_requirement_delete(requirement_id):
                             component_id=md.component_id,
                             page='requires'))
 
-@app.route('/lvfs/component/requirement/add', methods=['POST'])
+@app.route('/lvfs/component/<int:component_id>/requirement/add', methods=['POST'])
 @login_required
-def firmware_requirement_add():
+def firmware_requirement_add(component_id):
     """ Adds a requirement to a component """
 
     # check we have data
-    for key in ['component_id', 'kind', 'value']:
+    for key in ['kind', 'value']:
         if key not in request.form or not request.form[key]:
             return _error_internal('No %s specified!' % key)
     if request.form['kind'] not in ['hardware', 'firmware', 'id']:
@@ -115,7 +117,7 @@ def firmware_requirement_add():
 
     # get firmware component
     md = db.session.query(Component).\
-            filter(Component.component_id == request.form['component_id']).first()
+            filter(Component.component_id == component_id).first()
     if not md:
         return _error_internal('No component matched!')
 
@@ -164,9 +166,9 @@ def firmware_requirement_add():
                             component_id=md.component_id,
                             page='requires'))
 
-@app.route('/lvfs/component/keyword/<keyword_id>/delete')
+@app.route('/lvfs/component/<int:component_id>/keyword/<keyword_id>/delete')
 @login_required
-def firmware_keyword_delete(keyword_id):
+def firmware_keyword_delete(component_id, keyword_id):
 
     # get firmware component
     kw = db.session.query(Keyword).filter(Keyword.keyword_id == keyword_id).first()
@@ -175,6 +177,8 @@ def firmware_keyword_delete(keyword_id):
 
     # get the firmware for the keyword
     md = kw.md
+    if md.component_id != component_id:
+        return _error_internal('Wrong component ID for keyword!')
     if not md:
         return _error_internal('No metadata matched!')
 
@@ -192,19 +196,19 @@ def firmware_keyword_delete(keyword_id):
                             component_id=md.component_id,
                             page='keywords'))
 
-@app.route('/lvfs/component/keyword/add', methods=['POST'])
+@app.route('/lvfs/component/<int:component_id>/keyword/add', methods=['POST'])
 @login_required
-def firmware_keyword_add():
+def firmware_keyword_add(component_id):
     """ Adds one or more keywords to the existing component """
 
     # check we have data
-    for key in ['component_id', 'value']:
+    for key in ['value']:
         if key not in request.form or not request.form[key]:
             return _error_internal('No %s specified!' % key)
 
     # get firmware component
     md = db.session.query(Component).\
-            filter(Component.component_id == request.form['component_id']).first()
+            filter(Component.component_id == component_id).first()
     if not md:
         return _error_internal('No component matched!')
 
