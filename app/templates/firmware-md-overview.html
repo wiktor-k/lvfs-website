@@ -35,7 +35,7 @@
     <th class="col-sm-3">Installed Size</th>
     <td class="col-sm-9">{{format_size(md.release_installed_size)}}</td>
   </tr>
-{% if md.priority != 0 %}
+{% if md.priority %}
   <tr class="row">
     <th class="col-sm-3">Priority</th>
     <td class="col-sm-9">{{md.priority}}</td>
