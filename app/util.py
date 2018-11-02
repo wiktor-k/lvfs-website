@@ -90,6 +90,8 @@ def _add_problem(problems, title, line=None):
 def _check_both(problems, txt):
     if txt.isupper():
         _add_problem(problems, 'Uppercase only sentences are not allowed', txt)
+    if txt.find('http://') != -1 or txt.find('https://') != -1:
+        _add_problem(problems, 'Links cannot be included in update descriptions', txt)
 
 def _check_is_fake_li(txt):
     for line in txt.split('\n'):
@@ -99,10 +101,10 @@ def _check_is_fake_li(txt):
 
 def _check_para(problems, txt):
     _check_both(problems, txt)
-    if txt.startswith('[') or txt.endswith(']'):
-        _add_problem(problems, 'Paragraphs cannot start or end with "[" or "]"', txt)
-    if txt.startswith('(') or txt.endswith(')'):
-        _add_problem(problems, 'Paragraphs cannot start or end with "(" or ")"', txt)
+    if txt.startswith('[') and txt.endswith(']'):
+        _add_problem(problems, 'Paragraphs cannot start and end with "[]"', txt)
+    if txt.startswith('(') and txt.endswith(')'):
+        _add_problem(problems, 'Paragraphs cannot start and end with "()"', txt)
     if _check_is_fake_li(txt):
         _add_problem(problems, 'Paragraphs cannot start with list elements', txt)
     if txt.find('.BLD') != -1 or txt.find('changes.new') != -1:
@@ -114,16 +116,16 @@ def _check_para(problems, txt):
 
 def _check_li(problems, txt):
     _check_both(problems, txt)
-    if txt == 'Nothing.':
-        _add_problem(problems, 'List elements cannot be empty, found "Nothing"')
+    if txt == 'Nothing.' or txt == 'Not applicable.':
+        _add_problem(problems, 'List elements cannot be empty', txt)
     if _check_is_fake_li(txt):
         _add_problem(problems, 'List elements cannot start with bullets', txt)
     if txt.find('.BLD') != -1:
         _add_problem(problems, 'Do not refer to BLD release notes', txt)
     if txt.find('Fix the return code from GetHardwareVersion') != -1:
         _add_problem(problems, 'Do not use the example update notes!', txt)
-    if len(txt) > 200:
-        _add_problem(problems, 'List element is too long, limit is 200 chars and was %i' % len(txt), txt)
+    if len(txt) > 300:
+        _add_problem(problems, 'List element is too long, limit is 300 chars and was %i' % len(txt), txt)
     if len(txt) < 5:
         _add_problem(problems, 'List element is too short, minimum is 5 chars and was %i' % len(txt), txt)
 
@@ -145,9 +147,9 @@ def _get_update_description_problems(root):
         else:
             _add_problem(problems, 'Invalid XML tag', '<%s>' % n.tag)
     if n_para > 5:
-        _add_problem(problems, 'Too many paragraphs, limit is 5')
-    if n_li > 10:
-        _add_problem(problems, 'Too many list elements, limit is 10')
+        _add_problem(problems, 'Too many paragraphs, limit is 5 and was %i' % n_para)
+    if n_li > 20:
+        _add_problem(problems, 'Too many list elements, limit is 20 and was %i' % n_li)
     if n_para < 1:
         _add_problem(problems, 'Not enough paragraphs, minimum is 1')
     return problems
