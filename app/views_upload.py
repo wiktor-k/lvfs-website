@@ -23,7 +23,7 @@ from app import app, db, ploader
 from .models import Firmware, Component, Requirement, Guid, FirmwareEvent
 from .models import Vendor, Remote, Agreement, Affiliation
 from .uploadedfile import UploadedFile, FileTooLarge, FileTooSmall, FileNotSupported, MetadataInvalid
-from .util import _get_client_address, _get_settings
+from .util import _get_client_address, _get_settings, _markdown_from_xml
 from .util import _error_internal, _error_permission_denied
 from .util import _json_success, _json_error
 from .views_firmware import _firmware_delete
@@ -73,7 +73,7 @@ def _create_fw_from_uploaded_file(ufile):
         md.metadata_license = component.get_metadata_license()
         md.project_license = component.get_project_license()
         md.url_homepage = unicode(component.get_url_item(AppStreamGlib.UrlKind.HOMEPAGE))
-        md.description = unicode(component.get_description())
+        md.description = _markdown_from_xml(unicode(component.get_description()))
         md.priority = component.get_priority()
 
         # fix up the vendor
@@ -101,7 +101,7 @@ def _create_fw_from_uploaded_file(ufile):
         # from the release
         rel = component.get_release_default()
         md.version = rel.get_version()
-        md.release_description = unicode(rel.get_description())
+        md.release_description = _markdown_from_xml(unicode(rel.get_description()))
         md.release_timestamp = rel.get_timestamp()
         md.release_installed_size = rel.get_size(AppStreamGlib.SizeKind.INSTALLED)
         md.release_download_size = rel.get_size(AppStreamGlib.SizeKind.DOWNLOAD)
