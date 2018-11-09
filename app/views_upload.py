@@ -145,11 +145,13 @@ def _create_fw_from_uploaded_file(ufile):
 
     return fw
 
-def _filter_fw_by_guid_version(fws, provides_value, release_version):
+def _filter_fw_by_id_guid_version(fws, component_id, provides_value, release_version):
     for fw in fws:
         if fw.is_deleted:
             continue
         for md in fw.mds:
+            if md.component_id != component_id:
+                continue
             for guid in md.guids:
                 if guid.value == provides_value and md.version == release_version:
                     return fw
@@ -244,7 +246,11 @@ def upload():
         provides_value = component.get_provides()[0].get_value()
         release_default = component.get_release_default()
         release_version = release_default.get_version()
-        fw = _filter_fw_by_guid_version(fws, provides_value, release_version)
+        component_id = component.get_id()
+        fw = _filter_fw_by_id_guid_version(fws,
+                                           component_id,
+                                           provides_value,
+                                           release_version)
         if fw:
             fws_already_exist.append(fw)
 
