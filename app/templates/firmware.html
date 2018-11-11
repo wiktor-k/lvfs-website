@@ -28,10 +28,10 @@
 <h2>{{name}}</h2>
 <table class="table">
   <tr class="row">
-    <th class="col-sm-3">Version</td>
-    <th class="col-sm-3">Submitted</td>
-    <th class="col-sm-4">Remote</td>
-    <th class="col-sm-2">&nbsp;</td>
+    <th class="col-sm-3">Version</th>
+    <th class="col-sm-3">Submitted</th>
+    <th class="col-sm-4">Remote</th>
+    <th class="col-sm-2">&nbsp;</th>
   </tr>
 {% for fw in fw_by_name[name] %}
 {% if show_all or fw.is_newest_in_state %}
