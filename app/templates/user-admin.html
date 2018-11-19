@@ -37,6 +37,14 @@
     </div>
   </div>
 {% endif %}
+{% if g.user.check_acl('@admin') and u.auth_type in ['local', 'local+locked'] %}
+  <div class="form-group row">
+    <label class="col-sm-2 col-form-label" for="display_name">Password</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="password" value="" placeholder="{{'Exists' if u.password else 'Does not exist'}}">
+    </div>
+  </div>
+{% endif %}
 {% if u.vendor.check_acl('@manage-users') %}
   <div class="form-group row">
     <label class="col-sm-2 col-form-label" for="auth_warning">Account Warning</label>
