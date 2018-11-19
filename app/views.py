@@ -462,13 +462,13 @@ def profile():
 # old names used on the static site
 @app.route('/users.html')
 def users_html():
-    return redirect(url_for('.users'), code=302)
+    return redirect(url_for('.docs_users'), code=302)
 @app.route('/vendors.html')
 def vendors_html():
-    return redirect(url_for('.vendors'), code=302)
+    return redirect(url_for('.docs_vendors'), code=302)
 @app.route('/developers.html')
 def developers_html():
-    return redirect(url_for('.developers'), code=302)
+    return redirect(url_for('.docs_developers'), code=302)
 @app.route('/index.html')
 def index_html():
     return redirect(url_for('.index'), code=302)
