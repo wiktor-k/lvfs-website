@@ -327,6 +327,11 @@ def upload():
     fw.checksum_signed = hashlib.sha1(cab_data).hexdigest()
     fw.is_dirty = True
 
+    # fall back to a version format when unspecified and not semver
+    for md in fw.mds:
+        if not md.version_format and vendor.version_format and md.version.find('.') == -1:
+            md.version_format = vendor.version_format
+
     # add to database
     fw.events.append(FirmwareEvent(remote.remote_id, g.user.user_id))
     db.session.add(fw)

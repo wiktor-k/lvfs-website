@@ -567,14 +567,6 @@ class Component(db.Model):
         self.priority = 0
 
     @property
-    def version_format_with_vendor_fallback(self):
-        if self.version_format:
-            return self.version_format
-        if self.fw.vendor.version_format:
-            return self.fw.vendor.version_format
-        return None
-
-    @property
     def developer_name_display(self):
         return self.developer_name.split(' ')[0]
 
@@ -586,24 +578,23 @@ class Component(db.Model):
     def version_display(self):
         if self.version.isdigit():
             v = int(self.version)
-            version_format = self.version_format_with_vendor_fallback
-            if version_format == 'quad':
+            if self.version_format == 'quad':
                 return '%02i.%02i.%02i.%02i' % ((v & 0xff000000) >> 24,
                                                 (v & 0x00ff0000) >> 16,
                                                 (v & 0x0000ff00) >> 8,
                                                 v & 0x000000ff)
-            elif version_format == 'triplet':
+            elif self.version_format == 'triplet':
                 return '%02i.%02i.%04i' % ((v & 0xff000000) >> 24,
                                            (v & 0x00ff0000) >> 16,
                                            v & 0x0000ffff)
-            elif version_format == 'pair':
+            elif self.version_format == 'pair':
                 return '%02i.%02i' % ((v & 0xffff0000) >> 16, v & 0x0000ffff)
-            elif version_format == 'intel-me':
+            elif self.version_format == 'intel-me':
                 return '%i.%i.%i.%i' % (((v & 0xe0000000) >> 29) + 0x0b,
                                         (v & 0x1f000000) >> 24,
                                         (v & 0x00ff0000) >> 16,
                                         v &  0x0000ffff)
-            elif version_format == 'intel-me2':
+            elif self.version_format == 'intel-me2':
                 return '%i.%i.%i.%i' % ((v & 0xf0000000) >> 28,
                                         (v & 0x0f000000) >> 24,
                                         (v & 0x00ff0000) >> 16,
