@@ -29,7 +29,13 @@
   </tr>
 {% for r in v.affiliations %}
   <tr class="row">
-    <td class="col-sm-10"><a href="/lvfs/vendor/{{r.vendor_odm.vendor_id}}">{{r.vendor_odm.display_name}}</a></td>
+    <td class="col-sm-10">
+{% if v.check_acl('@admin') %}
+      <a href="/lvfs/vendor/{{r.vendor_odm.vendor_id}}">{{r.vendor_odm.display_name}}</a>
+{% else %}
+      {{r.vendor_odm.display_name}}
+{% endif %}
+    </td>
     <td class="col-sm-2">
 {% if v.check_acl('@modify-affiliations') %}
       <a class="btn btn-block btn-danger" href="/lvfs/vendor/{{v.vendor_id}}/affiliation/{{r.affiliation_id}}/delete" role="button">Remove</a>
