@@ -206,7 +206,7 @@ def _generate_metadata_kind(filename, fws, firmware_baseuri=''):
                 child.text = md.version_format
                 elements['LVFS::VersionFormat'] = child
         if elements:
-            parent = ET.SubElement(component, 'metadata')
+            parent = ET.SubElement(component, 'custom')
             for key in elements:
                 parent.append(elements[key])
 
