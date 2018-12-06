@@ -11,7 +11,7 @@ from flask_login import login_required
 
 from app import app, db
 
-from .util import _error_permission_denied
+from .util import _error_permission_denied, _error_internal
 from .models import Firmware
 
 @app.route('/lvfs/device')
@@ -77,6 +77,8 @@ def device_analytics(guid):
     labels = []
     now = datetime.date.today()
     fws = _get_fws_for_guid(guid)
+    if not fws:
+        return _error_internal('No firmware with that GUID')
     for i in range(-2, 1):
         year = now.year + i
         for quarter in range(0, 4):
