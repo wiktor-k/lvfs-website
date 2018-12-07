@@ -263,6 +263,11 @@ class UploadedFile(object):
         if req:
             raise MetadataInvalid('Firmware cannot specify vendor-id')
 
+        # check only recognised requirements are added
+        for req in component.get_requires():
+            if req.get_kind() == AppStreamGlib.RequireKind.UNKNOWN:
+                raise MetadataInvalid('Requirement \'%s\' was invalid' % req.get_value())
+
         # check the version format
         version_format = component.get_metadata_item('LVFS::VersionFormat')
         if version_format:
