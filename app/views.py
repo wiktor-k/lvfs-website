@@ -12,6 +12,7 @@ import os
 import datetime
 import fnmatch
 import humanize
+import GeoIP
 
 from flask import request, flash, url_for, redirect, render_template
 from flask import send_from_directory, abort, Response, g
@@ -88,6 +89,16 @@ def serveStaticResource(resource):
             if req and user_agent and not _user_agent_safe_for_requirement(user_agent):
                 return Response(response='detected fwupd version too old',
                                 status=412,
+                                mimetype="text/plain")
+
+        # check the firmware vendor has no country block
+        if fw.vendor.banned_country_codes:
+            banned_country_codes = fw.vendor.banned_country_codes.split(',')
+            geo = GeoIP.new(GeoIP.GEOIP_MEMORY_CACHE)
+            country_code = geo.country_code_by_addr(_get_client_address())
+            if country_code and country_code in banned_country_codes:
+                return Response(response='firmware not available from this IP range',
+                                status=451,
                                 mimetype="text/plain")
 
         # check any firmware download limits
