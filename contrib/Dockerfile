@@ -4,6 +4,7 @@ RUN yum -y update
 RUN yum -y install epel-release
 RUN yum -y install \
 	bsdtar \
+	geolite2-country \
 	libappstream-glib \
 	libgcab1 \
 	libstemmer \
@@ -19,7 +20,8 @@ RUN yum -y install \
 	python-sqlalchemy \
 	python-flask \
 	python-flask-sqlalchemy \
-	python-flask-wft
+	python-flask-wft \
+	python-GeoIP
 RUN yum -y install https://people.freedesktop.org/~hughsient/temp/libappstream-glib-0.7.15-0.643.20181111git.fc29.x86_64.rpm
 RUN yum -y install https://kojipkgs.fedoraproject.org//packages/gcab/1.1/1.fc27/x86_64/libgcab1-1.1-1.fc27.x86_64.rpm
 RUN yum -y install https://kojipkgs.fedoraproject.org//packages/python-flask/0.11.1/6.fc27/noarch/python2-flask-0.11.1-6.fc27.noarch.rpm
