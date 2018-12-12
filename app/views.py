@@ -26,7 +26,7 @@ from app import app, db, lm, ploader
 from .dbutils import _execute_count_star
 from .pluginloader import PluginError
 
-from .models import Firmware, Requirement, Component, Vendor
+from .models import Firmware, Requirement, Component, Vendor, Protocol
 from .models import User, Analytic, Client, Event, Useragent, _get_datestr_from_datetime
 from .hash import _password_hash, _addr_hash
 from .util import _get_client_address, _get_settings, _xml_from_markdown
@@ -250,7 +250,8 @@ def docs_vendors():
 @app.route('/metainfo') # deprecated
 @app.route('/lvfs/docs/metainfo')
 def docs_metainfo():
-    return render_template('docs-metainfo.html')
+    protocols = db.session.query(Protocol).order_by(Protocol.protocol_id.asc()).all()
+    return render_template('docs-metainfo.html', protocols=protocols)
 
 @app.route('/lvfs/docs/composite')
 def docs_composite():

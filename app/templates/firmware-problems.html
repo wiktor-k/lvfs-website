@@ -43,6 +43,18 @@
         text&lt;/p&gt;&lt;/description&gt;&lt;/release&gt;</code>
       </p>
     </td>
+{% elif problem.kind == 'no-protocol' %}
+    <td class="col-sm-7">
+      <p class="card-text">
+        All components should have a defined update protocol before being moved
+        to stable.
+      </p>
+      <p class="card-text">
+        For future firmware uploads, this can be set automatically using this
+        in the <a href="/metainfo"><code>.metainfo.xml</code></a> file:<br/>
+        <code>&lt;custom&gt;&lt;value key="LVFS::UpdateProtocol"&gt;org.uefi.UpdateCapsule&lt;/value&gt;&lt;/custom&gt;</code>
+      </p>
+    </td>
 {% elif problem.kind == 'invalid-release-description' %}
     <td class="col-sm-7">
       <p class="card-text">

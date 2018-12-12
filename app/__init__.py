@@ -97,3 +97,4 @@ from app import views_upload
 from app import views_issue
 from app import views_search
 from app import views_agreement
+from app import views_protocol

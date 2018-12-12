@@ -181,6 +181,43 @@ using ad9fe8f7-cdc4-52c9-9fea-31b6f4988ffa for NVME\VEN_1179
 </pre>
 
 <hr/>
+<h2><a id="upload-protocol"></a>Settting the Upload Protocol</h2>
+<p>
+  The LVFS now needs to know what protocol is being used to flash the firmware
+  file. The protocol value is used to provide information about the security
+  of the firmware update to end users.
+</p>
+<p>
+  The update protocol can be set as part of the <code>metainfo.xml</code> file
+  or set from the LVFS web console.
+  Most users will want to include the extra metadata to make the upload process
+  quicker for engineers.
+  To do this, add this to the metainfo file:
+</p>
+<pre>
+  &lt;custom&gt;
+    &lt;value key="LVFS::UpdateProtocol"&gt;some-value-here&lt;/custom&gt;
+  &lt;/custom&gt;
+</pre>
+<p>
+  Allowed values for <code>LVFS::UpdateProtocol</code> are currently:
+</p>
+<table class="table">
+  <tr class="row table-borderless">
+    <th class="col-sm-2">Value</th>
+    <th class="col-sm-3">Name</th>
+    <th class="col-sm-1">Signed?</th>
+  </tr>
+{% for pr in protocols %}
+  <tr class="row">
+    <td class="col-sm-2"><code>{{pr.value}}</code></td>
+    <td class="col-sm-3">{{pr.name}}</td>
+    <td class="col-sm-1">{{'Yes' if pr.is_signed else 'No'}}</td>
+  </tr>
+{% endfor %}
+</table>
+
+<hr/>
 <h2>Settting the Version Format</h2>
 <p>
   Some hardware returns the version number as a string such as

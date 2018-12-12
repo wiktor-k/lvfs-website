@@ -21,7 +21,7 @@ from flask_login import login_required
 from app import app, db, ploader
 
 from .models import Firmware, Component, Requirement, Guid, FirmwareEvent
-from .models import Vendor, Remote, Agreement, Affiliation
+from .models import Vendor, Remote, Agreement, Affiliation, Protocol
 from .uploadedfile import UploadedFile, FileTooLarge, FileTooSmall, FileNotSupported, MetadataInvalid
 from .util import _get_client_address, _get_settings, _markdown_from_xml
 from .util import _error_internal, _error_permission_denied
@@ -147,6 +147,13 @@ def _create_fw_from_uploaded_file(ufile):
         # allows OEM to change the triplet (AA.BB.CCDD) to quad (AA.BB.CC.DD)
         if 'LVFS::VersionFormat' in metadata:
             md.version_format = metadata['LVFS::VersionFormat']
+
+        # allows OEM to specify protocol
+        if 'LVFS::UpdateProtocol' in metadata:
+            pr = db.session.query(Protocol).\
+                    filter(Protocol.value == metadata['LVFS::UpdateProtocol']).first()
+            if pr:
+                md.protocol_id = pr.protocol_id
 
         fw.mds.append(md)
 
