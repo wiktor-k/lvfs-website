@@ -141,6 +141,20 @@ using ad9fe8f7-cdc4-52c9-9fea-31b6f4988ffa for NVME\VEN_1179
   &lt;/requires&gt;
 </pre>
 <p>
+  If multiple <code>&lt;hardware&gt;</code> entries are specified then all must
+  be present.
+  Newer versions of fwupd can understand an OR requirement using a <code>|</code>
+  separator between the listed GUIDs.
+</p>
+<pre>
+  &lt;!-- only newer versions of fwupd understand OR requirements --&gt;
+  &lt;requires&gt;
+    &lt;id compare="ge" version="1.0.8"&gt;org.freedesktop.fwupd&lt;/id&gt;
+    &lt;hardware&gt;6de5d951-d755-576b-bd09-c5cf66b27234|27234951-d755-576b-bd09-c5cf66b27234&lt;/hardware&gt;
+  &lt;/requires&gt;
+</pre>
+
+<p>
   CHIDs can also be added or removed in the LVFS web UI, but only before
   the firmware is published to stable channel.
 </p>
