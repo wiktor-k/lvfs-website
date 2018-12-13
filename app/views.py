@@ -66,6 +66,8 @@ def serveStaticResource(resource):
             abort(403)
         if user_agent.find('ltx71') != -1:
             abort(403)
+        if user_agent.find('Sogou') != -1:
+            abort(403)
 
     # log certain kinds of files
     if resource.endswith('.cab'):
