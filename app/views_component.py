@@ -128,6 +128,7 @@ def firmware_component_modify(component_id):
         page = 'update'
 
     # modify
+    md.fw.mark_dirty()
     db.session.commit()
     flash('Component updated', 'info')
     return redirect(url_for('.firmware_component_show',
@@ -177,6 +178,7 @@ def firmware_requirement_delete(component_id, requirement_id):
 
     # remove chid
     db.session.delete(rq)
+    md.fw.mark_dirty()
     db.session.commit()
 
     # log
@@ -242,6 +244,7 @@ def firmware_requirement_add(component_id):
                      request.form['version'] if 'version' in request.form else None,
                     )
     md.requirements.append(rq)
+    md.fw.mark_dirty()
     db.session.commit()
     flash('Added requirement', 'info')
     return redirect(url_for('.firmware_component_show',
@@ -270,6 +273,7 @@ def firmware_keyword_delete(component_id, keyword_id):
 
     # remove chid
     db.session.delete(kw)
+    md.fw.mark_dirty()
     db.session.commit()
 
     # log
@@ -300,6 +304,7 @@ def firmware_keyword_add(component_id):
 
     # add keyword
     md.add_keywords_from_string(request.form['value'])
+    md.fw.mark_dirty()
     db.session.commit()
     flash('Added keywords', 'info')
     return redirect(url_for('.firmware_component_show',

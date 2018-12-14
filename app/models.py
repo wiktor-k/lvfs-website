@@ -894,6 +894,10 @@ class Firmware(db.Model):
     def _is_vendor(self, user):
         return self.vendor_id == user.vendor_id
 
+    def mark_dirty(self):
+        self.is_dirty = True
+        self.remote.is_dirty = True
+
     def check_acl(self, action, user=None):
 
         # fall back

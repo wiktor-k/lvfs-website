@@ -109,8 +109,7 @@ def _firmware_delete(fw):
         shutil.move(path, path_new)
 
     # generate next cron run
-    fw.is_dirty = True
-    fw.remote.is_dirty = True
+    fw.mark_dirty()
 
     # mark as invalid
     fw.remote_id = remote.remote_id
@@ -220,7 +219,7 @@ def firmware_promote(firmware_id, target):
     fw.remote.is_dirty = True
 
     # invalidate the firmware as we're waiting for the metadata generation
-    fw.is_dirty = True
+    fw.mark_dirty()
 
     # also dirty any ODM remote if uploading on behalf of an OEM
     if target == 'embargo' and fw.vendor != fw.user.vendor:
@@ -281,6 +280,7 @@ def firmware_limit_delete(firmware_limit_id):
         return _error_permission_denied('Insufficient permissions to delete limits')
 
     firmware_id = fl.firmware_id
+    fl.fw.mark_dirty()
     db.session.delete(fl)
     db.session.commit()
     flash('Deleted limit', 'info')
@@ -311,6 +311,8 @@ def firmware_limit_add():
                        user_agent_glob=request.form['user_agent_glob'],
                        response=request.form['response'])
     db.session.add(fl)
+    db.session.commit()
+    fl.fw.mark_dirty()
     db.session.commit()
     flash('Added limit', 'info')
     return redirect(url_for('.firmware_limits', firmware_id=fl.firmware_id))
@@ -377,9 +379,9 @@ def firmware_affiliation_change(firmware_id):
         fw.vendor.remote.is_dirty = True
         fw.user.vendor.remote.is_dirty = True
         old_vendor.remote.is_dirty = True
-        fw.is_dirty = True
         fw.remote_id = fw.vendor.remote.remote_id
         fw.events.append(FirmwareEvent(fw.remote_id, g.user.user_id))
+        fw.mark_dirty()
         db.session.commit()
 
     flash('Changed firmware vendor', 'info')

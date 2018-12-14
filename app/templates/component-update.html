@@ -10,11 +10,6 @@
   This firmware has <strong>already been pushed to stable</strong>.
   Move the firmware back to embargo or private to edit the text.
 </div>
-{% else %}
-<div class="alert alert-info mt-1" role="alert">
-  Changing this information will <strong>only</strong> modify the metadata when the
-  firmware changes state, e.g. from <em>testing</em> to <em>stable</em>.
-</div>
 {% endif %}
 
 {% if not md.check_acl('@modify-updateinfo') %}
