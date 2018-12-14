@@ -53,7 +53,7 @@ def firmware_component_problems():
         if md.fw.is_deleted:
             continue
         mds.append(md)
-    return render_template('firmware-md-problems.html', mds=mds)
+    return render_template('component-problems.html', mds=mds)
 
 @app.route('/lvfs/component/<int:component_id>/all')
 def firmware_component_all(component_id):
@@ -152,7 +152,7 @@ def firmware_component_show(component_id, page='overview'):
     if not fw.check_acl('@view'):
         return _error_permission_denied('Unable to view other vendor firmware')
 
-    return render_template('firmware-md-' + page + '.html',
+    return render_template('component-' + page + '.html',
                            md=md, page=page)
 
 @app.route('/lvfs/component/<int:component_id>/requirement/delete/<requirement_id>')
